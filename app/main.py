@@ -938,6 +938,51 @@ def api_config_platforms():
     return jsonify({'platforms': platforms})
 
 
+@app.route('/api/config/upload-client-secret', methods=['POST'])
+def api_upload_client_secret():
+    """API endpoint to upload client_secret.json file."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+        
+        if not file.filename.endswith('.json'):
+            return jsonify({'success': False, 'error': 'File must be a JSON file'}), 400
+        
+        # Read file content to validate it's a valid JSON
+        try:
+            content = file.read()
+            json.loads(content)
+            file.seek(0)  # Reset file pointer
+        except json.JSONDecodeError:
+            return jsonify({'success': False, 'error': 'Invalid JSON file'}), 400
+        
+        # Save to project root (parent of app directory)
+        client_secret_path = os.path.join(os.path.dirname(__file__), '..', 'client_secret.json')
+        client_secret_path = os.path.abspath(client_secret_path)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(client_secret_path), exist_ok=True)
+        
+        # Save the file
+        file.save(client_secret_path)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Client secret file uploaded successfully. Please refresh the page to see the updated status.'
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @app.route('/api/calendar-data')
 def api_calendar_data():
     """API endpoint for calendar data (JSON)."""

@@ -217,6 +217,57 @@
 
 {% block extra_js %}
 <script>
+    // Handle client secret file upload
+    document.getElementById('clientSecretUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('clientSecretFile');
+        const uploadBtn = document.getElementById('uploadClientSecretBtn');
+        const statusDiv = document.getElementById('uploadStatus');
+        
+        if (!fileInput.files.length) {
+            statusDiv.innerHTML = '<div class="alert alert-danger">Please select a file</div>';
+            statusDiv.style.display = 'block';
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+        statusDiv.style.display = 'none';
+        
+        fetch('/api/config/upload-client-secret', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+                statusDiv.style.display = 'block';
+                fileInput.value = '';
+                
+                // Refresh page after 2 seconds to show updated status
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + (data.error || 'Upload failed') + '</div>';
+                statusDiv.style.display = 'block';
+            }
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+        })
+        .catch(error => {
+            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + error.message + '</div>';
+            statusDiv.style.display = 'block';
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+        });
+    });
+
     function testConnections() {
         const platforms = ['linkedin', 'facebook', 'instagram', 'ayrshare'];
         const results = [];
