@@ -80,20 +80,29 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Client ID</label>
+                    <label class="form-label">
+                        LinkedIn Client ID
+                        <span class="help-icon" onclick="showHelp('linkedin-client-id')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="linkedin_client_id"
                         value="{{ settings.api_keys.linkedin_client_id }}" placeholder="Enter LinkedIn Client ID">
                     <small class="text-muted">Get from LinkedIn Developer Portal → App → Auth tab</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Client Secret</label>
+                    <label class="form-label">
+                        LinkedIn Client Secret
+                        <span class="help-icon" onclick="showHelp('linkedin-client-secret')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="linkedin_client_secret"
                         value="{{ settings.api_keys.linkedin_client_secret }}"
                         placeholder="Enter LinkedIn Client Secret">
                     <small class="text-muted">Get from LinkedIn Developer Portal → App → Auth tab</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Access Token (Optional - if you have one)</label>
+                    <label class="form-label">
+                        LinkedIn Access Token (Optional)
+                        <span class="help-icon" onclick="showHelp('linkedin-access-token')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="linkedin_access_token"
                         value="{{ settings.api_keys.linkedin_access_token }}"
                         placeholder="Enter LinkedIn access token (optional)">
@@ -101,25 +110,37 @@
                         directly</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Person URN</label>
+                    <label class="form-label">
+                        LinkedIn Person URN
+                        <span class="help-icon" onclick="showHelp('linkedin-person-urn')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="linkedin_person_urn"
                         value="{{ settings.api_keys.linkedin_person_urn }}" placeholder="urn:li:person:xxxxx">
                     <small class="text-muted">Format: urn:li:person:xxxxx (required for posting)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Facebook App ID</label>
+                    <label class="form-label">
+                        Facebook App ID
+                        <span class="help-icon" onclick="showHelp('facebook-app-id')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="facebook_app_id"
                         value="{{ settings.api_keys.facebook_app_id }}" placeholder="Enter Facebook App ID">
                     <small class="text-muted">Get from Facebook Developers → App → Settings</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Facebook App Secret</label>
+                    <label class="form-label">
+                        Facebook App Secret
+                        <span class="help-icon" onclick="showHelp('facebook-app-secret')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="facebook_app_secret"
                         value="{{ settings.api_keys.facebook_app_secret }}" placeholder="Enter Facebook App Secret">
                     <small class="text-muted">Get from Facebook Developers → App → Settings</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Facebook Page Access Token (Optional - if you have one)</label>
+                    <label class="form-label">
+                        Facebook Page Access Token (Optional)
+                        <span class="help-icon" onclick="showHelp('facebook-page-token')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="facebook_page_access_token"
                         value="{{ settings.api_keys.facebook_page_access_token }}"
                         placeholder="Enter Facebook page access token (optional)">
@@ -127,20 +148,29 @@
                         directly</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Facebook Page ID</label>
+                    <label class="form-label">
+                        Facebook Page ID
+                        <span class="help-icon" onclick="showHelp('facebook-page-id')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="facebook_page_id"
                         value="{{ settings.api_keys.facebook_page_id }}" placeholder="Enter Facebook page ID">
                     <small class="text-muted">Required: Your Facebook Page ID (found in Page Settings)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Instagram Business Account ID</label>
+                    <label class="form-label">
+                        Instagram Business Account ID
+                        <span class="help-icon" onclick="showHelp('instagram-account-id')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="instagram_business_account_id"
                         value="{{ settings.api_keys.instagram_business_account_id }}"
                         placeholder="Enter Instagram business account ID">
                     <small class="text-muted">Get from Facebook Page → Instagram → Business Account ID</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Instagram Access Token (Optional - if you have one)</label>
+                    <label class="form-label">
+                        Instagram Access Token (Optional)
+                        <span class="help-icon" onclick="showHelp('instagram-access-token')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="instagram_access_token"
                         value="{{ settings.api_keys.instagram_access_token }}"
                         placeholder="Enter Instagram access token (optional)">
