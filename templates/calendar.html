@@ -9,10 +9,11 @@
 <style>
     /* Buffer-style Calendar */
     .calendar-container {
-        background: white;
-        border: 1px solid #e9ecef;
+        background: var(--buffer-card-bg);
+        border: 1px solid var(--buffer-border);
         border-radius: 8px;
         padding: 24px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .fc {
@@ -22,36 +23,44 @@
     .fc-header-toolbar {
         margin-bottom: 24px;
         padding-bottom: 16px;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--buffer-border);
+        transition: border-color 0.3s ease;
     }
 
     .fc-toolbar-title {
         font-size: 20px;
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--buffer-text);
+        transition: color 0.3s ease;
     }
 
     .fc-button {
-        background: white;
-        border: 1px solid #e9ecef;
-        color: #2c3e50;
+        background: var(--buffer-input-bg);
+        border: 1px solid var(--buffer-border);
+        color: var(--buffer-text);
         padding: 6px 12px;
         font-weight: 500;
         font-size: 14px;
         border-radius: 6px;
         text-transform: none;
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 
     .fc-button:hover {
-        background: #f8f9fa;
-        border-color: #dee2e6;
+        background: var(--buffer-hover);
+        border-color: var(--buffer-border);
     }
 
     .fc-button-primary:not(:disabled):active,
     .fc-button-primary:not(:disabled).fc-button-active {
-        background: #1a1a1a;
-        border-color: #1a1a1a;
-        color: white;
+        background: var(--buffer-primary);
+        border-color: var(--buffer-primary);
+        color: var(--buffer-bg);
+    }
+
+    [data-theme="dark"] .fc-button-primary:not(:disabled):active,
+    [data-theme="dark"] .fc-button-primary:not(:disabled).fc-button-active {
+        color: var(--buffer-bg-light);
     }
 
     .fc-button-primary:focus {
@@ -59,21 +68,23 @@
     }
 
     .fc-daygrid-day {
-        border-color: #e9ecef;
+        border-color: var(--buffer-border);
+        transition: border-color 0.3s ease;
     }
 
     .fc-day-today {
-        background-color: #f8f9fa !important;
+        background-color: var(--buffer-hover) !important;
     }
 
     .fc-col-header-cell {
-        background: #f8f9fa;
-        border-color: #e9ecef;
+        background: var(--buffer-bg-light);
+        border-color: var(--buffer-border);
         padding: 12px;
         font-weight: 600;
         font-size: 12px;
         text-transform: uppercase;
-        color: #6c757d;
+        color: var(--buffer-text-light);
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 
     /* Event Styles - Buffer Style */
@@ -159,7 +170,8 @@
         gap: 24px;
         margin-top: 24px;
         padding-top: 24px;
-        border-top: 1px solid #e9ecef;
+        border-top: 1px solid var(--buffer-border);
+        transition: border-color 0.3s ease;
     }
 
     .legend-item {
@@ -167,7 +179,8 @@
         align-items: center;
         gap: 8px;
         font-size: 14px;
-        color: #2c3e50;
+        color: var(--buffer-text);
+        transition: color 0.3s ease;
     }
 
     .legend-color {
@@ -194,18 +207,30 @@
     }
 
     .event-modal .modal-header {
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--buffer-border);
         padding: 20px 24px;
+        background: var(--buffer-card-bg);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .event-modal .modal-title {
         font-weight: 600;
         font-size: 18px;
-        color: #1a1a1a;
+        color: var(--buffer-text);
+        transition: color 0.3s ease;
     }
 
     .event-modal .modal-body {
         padding: 24px;
+        background: var(--buffer-card-bg);
+        color: var(--buffer-text);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .event-modal .modal-content {
+        background: var(--buffer-card-bg);
+        border: 1px solid var(--buffer-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .event-platform {
@@ -235,14 +260,15 @@
     }
 
     .event-content {
-        background: #f8f9fa;
+        background: var(--buffer-bg-light);
         border-radius: 6px;
         padding: 16px;
         margin-top: 16px;
         font-size: 14px;
         line-height: 1.6;
-        color: #2c3e50;
+        color: var(--buffer-text);
         white-space: pre-wrap;
+        transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     .event-meta {
@@ -250,9 +276,10 @@
         gap: 24px;
         margin-top: 16px;
         padding-top: 16px;
-        border-top: 1px solid #e9ecef;
+        border-top: 1px solid var(--buffer-border);
         font-size: 14px;
-        color: #6c757d;
+        color: var(--buffer-text-light);
+        transition: border-color 0.3s ease, color 0.3s ease;
     }
 
     .event-meta-item {
