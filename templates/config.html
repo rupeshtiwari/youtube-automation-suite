@@ -351,37 +351,38 @@
         vertical-align: middle;
         transition: all 0.2s;
     }
-    
+
     .help-icon:hover {
         background: var(--buffer-primary);
         opacity: 0.8;
         transform: scale(1.1);
     }
-    
+
     .form-label {
         display: flex;
         align-items: center;
     }
-    
+
     /* Help Modal Styles */
     .help-modal .modal-body {
         max-height: 70vh;
         overflow-y: auto;
     }
-    
+
     .help-content {
         line-height: 1.8;
     }
-    
-    .help-content ol, .help-content ul {
+
+    .help-content ol,
+    .help-content ul {
         padding-left: 24px;
         margin: 12px 0;
     }
-    
+
     .help-content li {
         margin: 8px 0;
     }
-    
+
     .help-content code {
         background: var(--buffer-bg-light);
         padding: 2px 6px;
@@ -389,17 +390,17 @@
         font-size: 13px;
         color: var(--buffer-primary);
     }
-    
+
     .help-content .alert {
         margin: 12px 0;
     }
-    
+
     .help-link {
         color: var(--buffer-primary);
         text-decoration: none;
         font-weight: 500;
     }
-    
+
     .help-link:hover {
         text-decoration: underline;
     }
@@ -665,10 +666,10 @@
             alert('Help content not available for this field.');
             return;
         }
-        
+
         document.getElementById('helpModalTitle').textContent = help.title;
         document.getElementById('helpModalContent').innerHTML = help.content;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('helpModal'));
         modal.show();
     }
