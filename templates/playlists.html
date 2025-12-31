@@ -443,13 +443,19 @@ function loadPlaylistVideos(playlistId, containerId) {
             videos.forEach(video => {
                 const dateDisplay = formatVideoDate(video);
                 const statusBadge = getStatusBadge(video);
+                const tagsDisplay = renderVideoTags(video);
                 
                 html += `
-                    <div class="video-card">
+                    <div class="video-card" data-video-id="${video.videoId}" 
+                         data-video-type="${video.video_type || ''}" 
+                         data-role="${video.role || ''}">
                         ${video.thumbnail ? `<img src="${video.thumbnail}" alt="Thumbnail" class="video-thumbnail">` : ''}
                         <div class="video-info">
                             <div class="video-title">
                                 <a href="${video.videoUrl}" target="_blank">${escapeHtml(video.title)}</a>
+                                <button class="btn btn-sm tag-edit-btn btn-outline-secondary" onclick="editVideoTags('${video.videoId}')">
+                                    <i class="bi bi-tags"></i> Edit Tags
+                                </button>
                             </div>
                             <div class="video-meta">
                                 ${dateDisplay}
@@ -459,6 +465,8 @@ function loadPlaylistVideos(playlistId, containerId) {
                                     <i class="bi bi-youtube"></i> Watch
                                 </a>
                             </div>
+                            
+                            ${tagsDisplay}
                             
                             ${renderSocialPosts(video.social_posts)}
                         </div>
