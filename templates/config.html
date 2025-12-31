@@ -109,15 +109,13 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Facebook App ID</label>
                     <input type="text" class="form-control" name="facebook_app_id"
-                        value="{{ settings.api_keys.facebook_app_id }}"
-                        placeholder="Enter Facebook App ID">
+                        value="{{ settings.api_keys.facebook_app_id }}" placeholder="Enter Facebook App ID">
                     <small class="text-muted">Get from Facebook Developers → App → Settings</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Facebook App Secret</label>
                     <input type="password" class="form-control" name="facebook_app_secret"
-                        value="{{ settings.api_keys.facebook_app_secret }}"
-                        placeholder="Enter Facebook App Secret">
+                        value="{{ settings.api_keys.facebook_app_secret }}" placeholder="Enter Facebook App Secret">
                     <small class="text-muted">Get from Facebook Developers → App → Settings</small>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -125,7 +123,8 @@
                     <input type="password" class="form-control" name="facebook_page_access_token"
                         value="{{ settings.api_keys.facebook_page_access_token }}"
                         placeholder="Enter Facebook page access token (optional)">
-                    <small class="text-muted">Optional: If you already have a page access token, you can use it directly</small>
+                    <small class="text-muted">Optional: If you already have a page access token, you can use it
+                        directly</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Facebook Page ID</label>
@@ -145,7 +144,8 @@
                     <input type="password" class="form-control" name="instagram_access_token"
                         value="{{ settings.api_keys.instagram_access_token }}"
                         placeholder="Enter Instagram access token (optional)">
-                    <small class="text-muted">Optional: If you already have an access token, you can use it directly. Otherwise, use Facebook App ID/Secret above.</small>
+                    <small class="text-muted">Optional: If you already have an access token, you can use it directly.
+                        Otherwise, use Facebook App ID/Secret above.</small>
                 </div>
                 <div class="col-md-12 mb-3">
                     <label class="form-label">Ayrshare API Key (Alternative)</label>
@@ -302,8 +302,273 @@
 </form>
 {% endblock %}
 
+<!-- Help Modal -->
+<div class="modal fade help-modal" id="helpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="helpModalTitle">Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content" id="helpModalContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% block extra_js %}
 <script>
+    // Help content for each field
+    const helpContent = {
+        'linkedin-client-id': {
+            title: 'LinkedIn Client ID',
+            content: `
+                <h6>How to get LinkedIn Client ID:</h6>
+                <ol>
+                    <li>Go to <a href="https://www.linkedin.com/developers/" target="_blank" class="help-link">LinkedIn Developers</a></li>
+                    <li>Sign in with your LinkedIn account</li>
+                    <li>Click <strong>"Create app"</strong> or select your existing app</li>
+                    <li>Go to the <strong>"Auth"</strong> tab</li>
+                    <li>Under <strong>"OAuth 2.0 settings"</strong>, you'll see your <strong>"Client ID"</strong></li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>Tip:</strong> Your Client ID is public and can be shared. It's different from your Client Secret.
+                </div>
+            `
+        },
+        'linkedin-client-secret': {
+            title: 'LinkedIn Client Secret',
+            content: `
+                <h6>How to get LinkedIn Client Secret:</h6>
+                <ol>
+                    <li>Go to <a href="https://www.linkedin.com/developers/" target="_blank" class="help-link">LinkedIn Developers</a></li>
+                    <li>Select your app</li>
+                    <li>Go to the <strong>"Auth"</strong> tab</li>
+                    <li>Under <strong>"OAuth 2.0 settings"</strong>, find <strong>"Client Secret"</strong></li>
+                    <li>Click <strong>"Show"</strong> to reveal it (you may need to verify your identity)</li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Keep your Client Secret private! Never share it publicly or commit it to version control.
+                </div>
+            `
+        },
+        'linkedin-access-token': {
+            title: 'LinkedIn Access Token (Optional)',
+            content: `
+                <h6>LinkedIn Access Token:</h6>
+                <p>This field is <strong>optional</strong>. You only need it if you already have an access token.</p>
+                
+                <h6>If you don't have one:</h6>
+                <p>Just enter your <strong>Client ID</strong> and <strong>Client Secret</strong> above. The system will generate an access token using OAuth flow when needed.</p>
+                
+                <h6>If you want to get one manually:</h6>
+                <ol>
+                    <li>Go to your LinkedIn app's <strong>"Auth"</strong> tab</li>
+                    <li>Click <strong>"Generate a token"</strong></li>
+                    <li>Select scopes: <code>w_member_social</code> (required for posting)</li>
+                    <li>Click <strong>"Generate token"</strong></li>
+                    <li>Copy the token and paste it here</li>
+                </ol>
+            `
+        },
+        'linkedin-person-urn': {
+            title: 'LinkedIn Person URN',
+            content: `
+                <h6>How to get LinkedIn Person URN:</h6>
+                
+                <h6>Method 1: From LinkedIn Profile URL</h6>
+                <ol>
+                    <li>Go to your <a href="https://www.linkedin.com/me" target="_blank" class="help-link">LinkedIn Profile</a></li>
+                    <li>Check your profile URL (e.g., <code>linkedin.com/in/yourname-123456/</code>)</li>
+                    <li>The URN format is: <code>urn:li:person:xxxxx</code></li>
+                </ol>
+                
+                <h6>Method 2: Using LinkedIn API</h6>
+                <ol>
+                    <li>Use your LinkedIn Access Token</li>
+                    <li>Make a request: <code>GET https://api.linkedin.com/v2/me</code></li>
+                    <li>The response contains an <code>id</code> field</li>
+                    <li>Copy that ID (format: <code>urn:li:person:xxxxx</code>)</li>
+                </ol>
+                
+                <h6>Method 3: From Developer Portal</h6>
+                <ol>
+                    <li>Go to <a href="https://www.linkedin.com/developers/" target="_blank" class="help-link">LinkedIn Developers</a></li>
+                    <li>Select your app</li>
+                    <li>Go to <strong>"Products"</strong> → <strong>"Marketing Developer Platform"</strong></li>
+                    <li>Your Person URN may be displayed there</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>Format:</strong> Must be in the format <code>urn:li:person:xxxxx</code> (required for posting)
+                </div>
+            `
+        },
+        'facebook-app-id': {
+            title: 'Facebook App ID',
+            content: `
+                <h6>How to get Facebook App ID:</h6>
+                <ol>
+                    <li>Go to <a href="https://developers.facebook.com/" target="_blank" class="help-link">Facebook Developers</a></li>
+                    <li>Sign in with your Facebook account</li>
+                    <li>Click <strong>"My Apps"</strong> → <strong>"Create App"</strong> (or select existing app)</li>
+                    <li>Select app type: <strong>"Business"</strong> or <strong>"Other"</strong></li>
+                    <li>Fill in app name and click <strong>"Create App"</strong></li>
+                    <li>In your app dashboard, go to <strong>"Settings"</strong> → <strong>"Basic"</strong></li>
+                    <li>Find <strong>"App ID"</strong> - copy and paste it here</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> You'll need to add the <strong>"Pages"</strong> product to your app for posting functionality.
+                </div>
+            `
+        },
+        'facebook-app-secret': {
+            title: 'Facebook App Secret',
+            content: `
+                <h6>How to get Facebook App Secret:</h6>
+                <ol>
+                    <li>Go to <a href="https://developers.facebook.com/" target="_blank" class="help-link">Facebook Developers</a></li>
+                    <li>Select your app</li>
+                    <li>Go to <strong>"Settings"</strong> → <strong>"Basic"</strong></li>
+                    <li>Find <strong>"App Secret"</strong></li>
+                    <li>Click <strong>"Show"</strong> to reveal it (you may need to enter your password)</li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Keep your App Secret private! Never share it publicly or commit it to version control.
+                </div>
+            `
+        },
+        'facebook-page-token': {
+            title: 'Facebook Page Access Token (Optional)',
+            content: `
+                <h6>Facebook Page Access Token:</h6>
+                <p>This field is <strong>optional</strong>. You only need it if you already have a page access token.</p>
+                
+                <h6>If you don't have one:</h6>
+                <p>Just enter your <strong>App ID</strong> and <strong>App Secret</strong> above. The system will generate a page access token using OAuth flow when needed.</p>
+                
+                <h6>If you want to get one manually:</h6>
+                <ol>
+                    <li>Go to <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="help-link">Graph API Explorer</a></li>
+                    <li>Select your app from the dropdown</li>
+                    <li>Click <strong>"Generate Access Token"</strong></li>
+                    <li>Select permissions: <code>pages_show_list</code>, <code>pages_manage_posts</code></li>
+                    <li>Generate the token</li>
+                    <li>Call <code>GET /me/accounts</code> to get your pages</li>
+                    <li>Copy the <code>access_token</code> for your target page</li>
+                </ol>
+            `
+        },
+        'facebook-page-id': {
+            title: 'Facebook Page ID',
+            content: `
+                <h6>How to get Facebook Page ID:</h6>
+                
+                <h6>Method 1: From Facebook Page Settings</h6>
+                <ol>
+                    <li>Go to your <a href="https://www.facebook.com/pages" target="_blank" class="help-link">Facebook Page</a></li>
+                    <li>Click <strong>"Settings"</strong> on the left sidebar</li>
+                    <li>Click <strong>"Page Info"</strong></li>
+                    <li>Scroll down to find <strong>"Page ID"</strong></li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                
+                <h6>Method 2: Using Graph API Explorer</h6>
+                <ol>
+                    <li>Go to <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="help-link">Graph API Explorer</a></li>
+                    <li>Select your app and generate a token</li>
+                    <li>Call <code>GET /me/accounts</code></li>
+                    <li>The response shows all your pages with their <code>id</code> fields</li>
+                    <li>Copy the <code>id</code> for your target page</li>
+                </ol>
+                
+                <h6>Method 3: From Page URL</h6>
+                <ol>
+                    <li>Go to your Facebook Page</li>
+                    <li>Click <strong>"About"</strong> on the left sidebar</li>
+                    <li>Scroll down to find <strong>"Page ID"</strong></li>
+                    <li>Copy and paste it here</li>
+                </ol>
+            `
+        },
+        'instagram-account-id': {
+            title: 'Instagram Business Account ID',
+            content: `
+                <h6>How to get Instagram Business Account ID:</h6>
+                
+                <h6>Prerequisites:</h6>
+                <ul>
+                    <li>Your Instagram account must be converted to a <strong>Business Account</strong></li>
+                    <li>It must be connected to a Facebook Page</li>
+                </ul>
+                
+                <h6>Method 1: Using Graph API Explorer</h6>
+                <ol>
+                    <li>Go to <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="help-link">Graph API Explorer</a></li>
+                    <li>Select your Facebook app</li>
+                    <li>Use your Facebook Page Access Token</li>
+                    <li>Call: <code>GET /{page-id}?fields=instagram_business_account</code></li>
+                    <li>Replace <code>{page-id}</code> with your Facebook Page ID</li>
+                    <li>The response contains <code>instagram_business_account.id</code></li>
+                    <li>Copy that ID and paste it here</li>
+                </ol>
+                
+                <h6>Method 2: From Facebook Page Settings</h6>
+                <ol>
+                    <li>Go to your Facebook Page</li>
+                    <li>Click <strong>"Settings"</strong> → <strong>"Instagram"</strong></li>
+                    <li>Your Instagram Business Account ID may be displayed there</li>
+                </ol>
+                
+                <div class="alert alert-warning">
+                    <strong>Note:</strong> Instagram requires a Business Account. Convert your personal account to Business in Instagram app → Settings → Account → Switch to Professional Account → Business.
+                </div>
+            `
+        },
+        'instagram-access-token': {
+            title: 'Instagram Access Token (Optional)',
+            content: `
+                <h6>Instagram Access Token:</h6>
+                <p>This field is <strong>optional</strong>. Instagram uses the same access token as your Facebook Page.</p>
+                
+                <h6>If you don't have one:</h6>
+                <p>Just enter your <strong>Facebook App ID</strong> and <strong>Facebook App Secret</strong> above. The Instagram access token is the same as your Facebook Page Access Token.</p>
+                
+                <h6>If you want to get one manually:</h6>
+                <ol>
+                    <li>Follow the steps to get a Facebook Page Access Token</li>
+                    <li>Your Instagram Access Token is the same as your Facebook Page Access Token</li>
+                    <li>Make sure your Instagram Business Account is connected to the Facebook Page</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>Important:</strong> Instagram API uses the Facebook Graph API, so they share the same access token.
+                </div>
+            `
+        }
+    };
+
+    function showHelp(fieldId) {
+        const help = helpContent[fieldId];
+        if (!help) {
+            alert('Help content not available for this field.');
+            return;
+        }
+        
+        document.getElementById('helpModalTitle').textContent = help.title;
+        document.getElementById('helpModalContent').innerHTML = help.content;
+        
+        const modal = new bootstrap.Modal(document.getElementById('helpModal'));
+        modal.show();
+    }
+
     // Handle client secret file upload
     document.getElementById('clientSecretUploadForm').addEventListener('submit', function (e) {
         e.preventDefault();
