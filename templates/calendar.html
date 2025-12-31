@@ -1,113 +1,316 @@
 {% extends "base.html" %}
 
-{% block title %}Calendar View - YouTube Automation{% endblock %}
+{% block title %}Calendar - YouTube Automation{% endblock %}
+
+{% block page_title %}Calendar{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 <style>
-    #calendar {
+    /* Buffer-style Calendar */
+    .calendar-container {
         background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 24px;
     }
+
+    .fc {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .fc-header-toolbar {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .fc-toolbar-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .fc-button {
+        background: white;
+        border: 1px solid #e9ecef;
+        color: #2c3e50;
+        padding: 6px 12px;
+        font-weight: 500;
+        font-size: 14px;
+        border-radius: 6px;
+        text-transform: none;
+    }
+
+    .fc-button:hover {
+        background: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    .fc-button-primary:not(:disabled):active,
+    .fc-button-primary:not(:disabled).fc-button-active {
+        background: #1a1a1a;
+        border-color: #1a1a1a;
+        color: white;
+    }
+
+    .fc-button-primary:focus {
+        box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+    }
+
+    .fc-daygrid-day {
+        border-color: #e9ecef;
+    }
+
+    .fc-day-today {
+        background-color: #f8f9fa !important;
+    }
+
+    .fc-col-header-cell {
+        background: #f8f9fa;
+        border-color: #e9ecef;
+        padding: 12px;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #6c757d;
+    }
+
+    /* Event Styles - Buffer Style */
     .fc-event {
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
+        margin-bottom: 4px;
     }
-    .fc-event.linkedin {
-        background-color: #0077b5;
-        border-color: #0077b5;
+
+    .fc-event-linkedin {
+        background: #0077b5;
+        color: white;
     }
-    .fc-event.facebook {
-        background-color: #1877f2;
-        border-color: #1877f2;
+
+    .fc-event-facebook {
+        background: #1877f2;
+        color: white;
     }
-    .fc-event.instagram {
-        background-color: #e4405f;
-        border-color: #e4405f;
+
+    .fc-event-instagram {
+        background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+        color: white;
     }
-    .fc-event.pending {
-        opacity: 0.7;
+
+    .fc-event-title {
+        font-weight: 500;
     }
-    .fc-event.scheduled {
-        opacity: 1;
+
+    .fc-event-time {
+        font-weight: 600;
+        opacity: 0.9;
     }
-    .event-details-modal .modal-body {
-        max-height: 500px;
-        overflow-y: auto;
+
+    .fc-daygrid-event {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .post-content {
+
+    /* Calendar View Controls */
+    .calendar-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .view-selector {
+        display: flex;
+        gap: 8px;
+        background: #f8f9fa;
+        padding: 4px;
+        border-radius: 6px;
+    }
+
+    .view-btn {
+        padding: 6px 16px;
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .view-btn.active {
+        background: white;
+        color: #1a1a1a;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Legend */
+    .calendar-legend {
+        display: flex;
+        gap: 24px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #2c3e50;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+
+    .legend-color.linkedin {
+        background: #0077b5;
+    }
+
+    .legend-color.facebook {
+        background: #1877f2;
+    }
+
+    .legend-color.instagram {
+        background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+    }
+
+    /* Event Modal - Buffer Style */
+    .event-modal {
+        border-radius: 8px;
+    }
+
+    .event-modal .modal-header {
+        border-bottom: 1px solid #e9ecef;
+        padding: 20px 24px;
+    }
+
+    .event-modal .modal-title {
+        font-weight: 600;
+        font-size: 18px;
+        color: #1a1a1a;
+    }
+
+    .event-modal .modal-body {
+        padding: 24px;
+    }
+
+    .event-platform {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+
+    .event-platform.linkedin {
+        background: #e6f2f8;
+        color: #0077b5;
+    }
+
+    .event-platform.facebook {
+        background: #e7f0fd;
+        color: #1877f2;
+    }
+
+    .event-platform.instagram {
+        background: #fce8f0;
+        color: #e4405f;
+    }
+
+    .event-content {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 16px;
+        margin-top: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #2c3e50;
         white-space: pre-wrap;
-        background: #f5f5f5;
-        padding: 15px;
-        border-radius: 5px;
-        margin-top: 10px;
+    }
+
+    .event-meta {
+        display: flex;
+        gap: 24px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e9ecef;
+        font-size: 14px;
+        color: #6c757d;
+    }
+
+    .event-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">
-            <i class="bi bi-calendar-event"></i> Content Calendar
-        </h1>
-        <p class="text-muted">View all scheduled posts across LinkedIn, Facebook, and Instagram</p>
-    </div>
-</div>
-
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5>Legend</h5>
-                        <div class="d-flex gap-3">
-                            <span><span class="badge" style="background-color: #0077b5;">LinkedIn</span></span>
-                            <span><span class="badge" style="background-color: #1877f2;">Facebook</span></span>
-                            <span><span class="badge" style="background-color: #e4405f;">Instagram</span></span>
-                        </div>
-                    </div>
-                    <div>
-                        <button class="btn btn-primary" onclick="calendar.gotoToday()">
-                            <i class="bi bi-calendar-check"></i> Today
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="calendar.prev()">
-                            <i class="bi bi-chevron-left"></i> Previous
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="calendar.next()">
-                            Next <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
+<div class="calendar-container">
+    <div id="calendar"></div>
+    
+    <div class="calendar-legend">
+        <div class="legend-item">
+            <div class="legend-color linkedin"></div>
+            <span>LinkedIn</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color facebook"></div>
+            <span>Facebook</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color instagram"></div>
+            <span>Instagram</span>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div id="calendar"></div>
-    </div>
-</div>
-
-<!-- Event Details Modal -->
-<div class="modal fade event-details-modal" id="eventModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<!-- Event Detail Modal -->
+<div class="modal fade event-modal" id="eventModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="eventModalTitle">Event Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="eventModalBody">
-                <!-- Content will be populated by JavaScript -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a href="#" id="eventYoutubeLink" target="_blank" class="btn btn-danger">
-                    <i class="bi bi-youtube"></i> View on YouTube
-                </a>
+            <div class="modal-body">
+                <div id="eventModalPlatform" class="event-platform"></div>
+                <div id="eventModalVideoTitle" style="font-weight: 600; font-size: 16px; margin-bottom: 8px;"></div>
+                <div id="eventModalContent" class="event-content"></div>
+                <div class="event-meta">
+                    <div class="event-meta-item">
+                        <i class="bi bi-clock"></i>
+                        <span id="eventModalTime"></span>
+                    </div>
+                    <div class="event-meta-item">
+                        <i class="bi bi-tag"></i>
+                        <span id="eventModalStatus"></span>
+                    </div>
+                    <div class="event-meta-item">
+                        <a href="#" id="eventModalLink" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-youtube"></i>
+                            View Video
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -115,81 +318,99 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
-let calendar;
-let events = {{ events|tojson }};
-
 document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
+    var calendarEl = document.getElementById('calendar');
     
-    // Format events for FullCalendar
-    const calendarEvents = events.map(event => ({
-        id: event.video_id + '-' + event.platform,
-        title: `${event.platform}: ${event.video_title.substring(0, 50)}${event.video_title.length > 50 ? '...' : ''}`,
-        start: event.date + 'T' + event.time,
-        className: event.platform.toLowerCase() + ' ' + event.status,
-        extendedProps: {
-            platform: event.platform,
-            video_title: event.video_title,
-            video_id: event.video_id,
-            youtube_url: event.youtube_url,
-            status: event.status,
-            post_content: event.post_content,
-            date: event.date,
-            time: event.time
-        }
-    }));
-    
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        events: calendarEvents,
-        eventClick: function(info) {
-            const event = info.event;
-            const props = event.extendedProps;
+    // Fetch calendar events
+    fetch('/api/calendar-data')
+        .then(response => response.json())
+        .then(data => {
+            const events = data.events || [];
             
-            document.getElementById('eventModalTitle').textContent = 
-                props.platform + ' - ' + props.video_title;
+            // Format events for FullCalendar
+            const calendarEvents = events.map(event => {
+                const dateStr = event.date + 'T' + (event.time || '12:00:00');
+                const platformLower = event.platform.toLowerCase();
+                
+                return {
+                    id: event.video_id + '-' + platformLower,
+                    title: `${event.platform}: ${event.video_title}`,
+                    start: dateStr,
+                    backgroundColor: platformLower === 'linkedin' ? '#0077b5' : 
+                                   (platformLower === 'facebook' ? '#1877f2' : '#e4405f'),
+                    borderColor: platformLower === 'linkedin' ? '#0077b5' : 
+                                (platformLower === 'facebook' ? '#1877f2' : '#e4405f'),
+                    extendedProps: {
+                        platform: event.platform,
+                        video_title: event.video_title,
+                        video_id: event.video_id,
+                        youtube_url: event.youtube_url,
+                        post_content: event.post_content,
+                        status: event.status,
+                        date: event.date,
+                        time: event.time
+                    },
+                    className: `fc-event-${platformLower}`
+                };
+            });
             
-            document.getElementById('eventYoutubeLink').href = props.youtube_url;
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: calendarEvents,
+                eventClick: function(info) {
+                    const props = info.event.extendedProps;
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    
+                    // Set platform badge
+                    const platformClass = props.platform.toLowerCase();
+                    const platformColors = {
+                        'linkedin': { bg: '#e6f2f8', color: '#0077b5' },
+                        'facebook': { bg: '#e7f0fd', color: '#1877f2' },
+                        'instagram': { bg: '#fce8f0', color: '#e4405f' }
+                    };
+                    const colors = platformColors[platformClass] || { bg: '#f8f9fa', color: '#2c3e50' };
+                    
+                    document.getElementById('eventModalPlatform').innerHTML = `
+                        <i class="bi bi-${platformClass}"></i> ${props.platform}
+                    `;
+                    document.getElementById('eventModalPlatform').className = `event-platform ${platformClass}`;
+                    document.getElementById('eventModalPlatform').style.background = colors.bg;
+                    document.getElementById('eventModalPlatform').style.color = colors.color;
+                    
+                    document.getElementById('eventModalVideoTitle').textContent = props.video_title;
+                    document.getElementById('eventModalContent').textContent = props.post_content || 'No content available';
+                    document.getElementById('eventModalTime').textContent = 
+                        new Date(props.date + 'T' + props.time).toLocaleString();
+                    document.getElementById('eventModalStatus').textContent = 
+                        props.status.charAt(0).toUpperCase() + props.status.slice(1);
+                    document.getElementById('eventModalLink').href = props.youtube_url || '#';
+                    
+                    modal.show();
+                },
+                height: 'auto',
+                dayMaxEvents: 4,
+                moreLinkClick: 'popover',
+                eventDisplay: 'block',
+                eventTimeFormat: {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    meridiem: 'short'
+                }
+            });
             
-            const modalBody = document.getElementById('eventModalBody');
-            modalBody.innerHTML = `
-                <div class="mb-3">
-                    <strong>Platform:</strong> <span class="badge" style="background-color: ${
-                        props.platform === 'LinkedIn' ? '#0077b5' : 
-                        props.platform === 'Facebook' ? '#1877f2' : '#e4405f'
-                    };">${props.platform}</span>
-                </div>
-                <div class="mb-3">
-                    <strong>Status:</strong> <span class="badge badge-${props.status}">${props.status}</span>
-                </div>
-                <div class="mb-3">
-                    <strong>Scheduled:</strong> ${props.date} at ${props.time}
-                </div>
-                <div class="mb-3">
-                    <strong>Video:</strong> <a href="${props.youtube_url}" target="_blank">${props.video_title}</a>
-                </div>
-                <div>
-                    <strong>Post Content:</strong>
-                    <div class="post-content">${props.post_content}</div>
-                </div>
-            `;
-            
-            const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-            modal.show();
-        },
-        eventDisplay: 'block',
-        height: 'auto'
-    });
-    
-    calendar.render();
+            calendar.render();
+        })
+        .catch(error => {
+            console.error('Error loading calendar:', error);
+            calendarEl.innerHTML = '<div class="alert alert-danger">Error loading calendar data</div>';
+        });
 });
 </script>
 {% endblock %}
-

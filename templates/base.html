@@ -1,484 +1,350 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}YouTube Automation{% endblock %}</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-            rel="stylesheet">
-        <style>
-            :root {
-                /* Modern Color Palette */
-                --primary: #6366f1;
-                --primary-dark: #4f46e5;
-                --primary-light: #818cf8;
-                --secondary: #8b5cf6;
-                --accent: #ec4899;
-                --success: #10b981;
-                --warning: #f59e0b;
-                --danger: #ef4444;
-                --info: #3b82f6;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}YouTube Automation{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Buffer-inspired colors */
+            --buffer-primary: #1a1a1a;
+            --buffer-text: #2c3e50;
+            --buffer-text-light: #6c757d;
+            --buffer-bg: #ffffff;
+            --buffer-bg-light: #f8f9fa;
+            --buffer-border: #e9ecef;
+            --buffer-hover: #f1f3f5;
+            
+            /* Platform colors */
+            --linkedin: #0077b5;
+            --facebook: #1877f2;
+            --instagram: #e4405f;
+            --youtube: #ff0000;
+        }
 
-                /* Neutral Colors */
-                --gray-50: #f9fafb;
-                --gray-100: #f3f4f6;
-                --gray-200: #e5e7eb;
-                --gray-300: #d1d5db;
-                --gray-400: #9ca3af;
-                --gray-500: #6b7280;
-                --gray-600: #4b5563;
-                --gray-700: #374151;
-                --gray-800: #1f2937;
-                --gray-900: #111827;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-                /* Gradients */
-                --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                --gradient-dark: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--buffer-bg-light);
+            color: var(--buffer-text);
+            font-size: 14px;
+            line-height: 1.5;
+        }
 
-                /* Shadows */
-                --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        /* Sidebar Navigation - Buffer Style */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 240px;
+            height: 100vh;
+            background: var(--buffer-bg);
+            border-right: 1px solid var(--buffer-border);
+            padding: 24px 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
 
-                /* Spacing */
-                --radius-sm: 8px;
-                --radius: 12px;
-                --radius-lg: 16px;
-                --radius-xl: 24px;
+        .sidebar-brand {
+            padding: 0 24px 32px;
+            border-bottom: 1px solid var(--buffer-border);
+            margin-bottom: 24px;
+        }
 
-                /* Transitions */
-                --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-                --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-                --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+        .sidebar-brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--buffer-primary);
+            margin: 0;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin: 0;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            color: var(--buffer-text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: var(--buffer-hover);
+            color: var(--buffer-primary);
+        }
+
+        .sidebar-nav a.active {
+            background: var(--buffer-hover);
+            color: var(--buffer-primary);
+            border-left-color: var(--buffer-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 240px;
+            min-height: 100vh;
+            background: var(--buffer-bg-light);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: var(--buffer-bg);
+            border-bottom: 1px solid var(--buffer-border);
+            padding: 16px 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--buffer-primary);
+            margin: 0;
+        }
+
+        /* Content Container */
+        .content-container {
+            padding: 32px;
+            max-width: 1400px;
+        }
+
+        /* Cards - Buffer Style */
+        .card {
+            background: var(--buffer-bg);
+            border: 1px solid var(--buffer-border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: none;
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--buffer-border);
+            padding: 0 0 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--buffer-primary);
+        }
+
+        /* Buttons - Buffer Style */
+        .btn {
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid var(--buffer-border);
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--buffer-primary);
+            color: white;
+            border-color: var(--buffer-primary);
+        }
+
+        .btn-primary:hover {
+            background: #333;
+            border-color: #333;
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            background: white;
+            color: var(--buffer-text);
+            border-color: var(--buffer-border);
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--buffer-hover);
+            border-color: var(--buffer-border);
+        }
+
+        /* Form Elements */
+        .form-control, .form-select {
+            border: 1px solid var(--buffer-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--buffer-primary);
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--buffer-text);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Remove old navbar styles */
+        .navbar {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
             }
-
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
+            
+            .main-content {
+                margin-left: 0;
             }
+        }
 
-            html {
-                scroll-behavior: smooth;
-            }
+        /* Utility Classes */
+        .text-muted {
+            color: var(--buffer-text-light) !important;
+        }
 
-            body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-                background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-                color: var(--gray-900);
-                line-height: 1.6;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                min-height: 100vh;
-            }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            color: var(--buffer-primary);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
 
-            /* Modern Navbar */
-            .navbar {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                box-shadow: var(--shadow-sm);
-                border-bottom: 1px solid var(--gray-200);
-                padding: 1rem 0;
-                position: sticky;
-                top: 0;
-                z-index: 1000;
-                transition: all var(--transition);
-            }
-
-            .navbar-brand {
-                font-weight: 800;
-                font-size: 1.5rem;
-                background: var(--gradient-primary);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                letter-spacing: -0.5px;
-            }
-
-            .nav-link {
-                color: var(--gray-700) !important;
-                font-weight: 500;
-                padding: 0.5rem 1rem !important;
-                border-radius: var(--radius);
-                margin: 0 0.25rem;
-                transition: all var(--transition);
-                position: relative;
-            }
-
-            .nav-link::before {
-                content: '';
-                position: absolute;
-                bottom: 0;
-                left: 50%;
-                transform: translateX(-50%) scaleX(0);
-                width: 80%;
-                height: 2px;
-                background: var(--gradient-primary);
-                transition: transform var(--transition);
-            }
-
-            .nav-link:hover {
-                color: var(--primary) !important;
-                background: var(--gray-100);
-            }
-
-            .nav-link:hover::before {
-                transform: translateX(-50%) scaleX(1);
-            }
-
-            /* Modern Cards */
-            .card {
-                border: none;
-                border-radius: var(--radius-lg);
-                box-shadow: var(--shadow);
-                margin-bottom: 1.5rem;
-                background: white;
-                overflow: hidden;
-                transition: all var(--transition);
-                backdrop-filter: blur(10px);
-            }
-
-            .card:hover {
-                box-shadow: var(--shadow-lg);
-                transform: translateY(-2px);
-            }
-
-            .card-header {
-                background: var(--gradient-primary);
-                color: white;
-                border-radius: 0 !important;
-                font-weight: 600;
-                padding: 1.25rem 1.5rem;
-                border-bottom: none;
-                font-size: 1.1rem;
-            }
-
-            .card-body {
-                padding: 1.5rem;
-            }
-
-            /* Modern Buttons */
-            .btn {
-                border-radius: var(--radius);
-                padding: 0.625rem 1.5rem;
-                font-weight: 600;
-                transition: all var(--transition);
-                border: none;
-                position: relative;
-                overflow: hidden;
-            }
-
-            .btn::before {
-                content: '';
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 0;
-                height: 0;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.3);
-                transform: translate(-50%, -50%);
-                transition: width 0.6s, height 0.6s;
-            }
-
-            .btn:hover::before {
-                width: 300px;
-                height: 300px;
-            }
-
-            .btn-primary {
-                background: var(--gradient-primary);
-                color: white;
-                box-shadow: var(--shadow);
-            }
-
-            .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: var(--shadow-lg);
-                color: white;
-            }
-
-            .btn-outline-primary {
-                border: 2px solid var(--primary);
-                color: var(--primary);
-                background: transparent;
-            }
-
-            .btn-outline-primary:hover {
-                background: var(--primary);
-                color: white;
-                transform: translateY(-2px);
-                box-shadow: var(--shadow);
-            }
-
-            .btn-outline-secondary {
-                border: 2px solid var(--gray-400);
-                color: var(--gray-700);
-                background: transparent;
-            }
-
-            .btn-outline-secondary:hover {
-                background: var(--gray-700);
-                color: white;
-                transform: translateY(-2px);
-            }
-
-            .btn-sm {
-                padding: 0.5rem 1rem;
-                font-size: 0.875rem;
-            }
-
-            /* Status Badges */
-            .status-badge {
-                padding: 0.5rem 1rem;
-                border-radius: var(--radius);
-                font-size: 0.875rem;
-                font-weight: 600;
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .status-active {
-                background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
-                color: white;
-                box-shadow: var(--shadow-sm);
-            }
-
-            .status-inactive {
-                background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-                color: white;
-                box-shadow: var(--shadow-sm);
-            }
-
-            /* Form Elements */
-            .form-label {
-                font-weight: 600;
-                color: var(--gray-700);
-                margin-bottom: 0.5rem;
-                font-size: 0.875rem;
-            }
-
-            .form-control,
-            .form-select {
-                border-radius: var(--radius);
-                border: 2px solid var(--gray-200);
-                padding: 0.75rem 1rem;
-                transition: all var(--transition);
-                font-size: 0.95rem;
-            }
-
-            .form-control:focus,
-            .form-select:focus {
-                border-color: var(--primary);
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-                outline: none;
-            }
-
-            /* Badges */
-            .badge {
-                padding: 0.375rem 0.75rem;
-                border-radius: var(--radius-sm);
-                font-weight: 600;
-                font-size: 0.75rem;
-            }
-
-            /* Typography */
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
-                font-weight: 700;
-                color: var(--gray-900);
-                letter-spacing: -0.5px;
-            }
-
-            h1 {
-                font-size: 2.5rem;
-                font-weight: 800;
-            }
-
-            h2 {
-                font-size: 2rem;
-            }
-
-            h3 {
-                font-size: 1.5rem;
-            }
-
-            /* Container */
-            .container {
-                padding: 2rem 1rem;
-                max-width: 1400px;
-            }
-
-            /* Loading Spinner */
-            .spinner-border {
-                width: 2rem;
-                height: 2rem;
-                border-width: 0.2em;
-            }
-
-            /* Smooth Animations */
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translateX(-20px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateX(0);
-                }
-            }
-
-            .fade-in {
-                animation: fadeIn 0.5s ease-out;
-            }
-
-            .slide-in {
-                animation: slideIn 0.5s ease-out;
-            }
-
-            /* Alert Styles */
-            .alert {
-                border-radius: var(--radius);
-                border: none;
-                padding: 1rem 1.5rem;
-                box-shadow: var(--shadow-sm);
-            }
-
-            /* Table Styles */
-            .table {
-                border-radius: var(--radius);
-                overflow: hidden;
-            }
-
-            .table thead {
-                background: var(--gray-100);
-            }
-
-            /* Scrollbar Styling */
-            ::-webkit-scrollbar {
-                width: 10px;
-                height: 10px;
-            }
-
-            ::-webkit-scrollbar-track {
-                background: var(--gray-100);
-            }
-
-            ::-webkit-scrollbar-thumb {
-                background: var(--gray-400);
-                border-radius: 5px;
-            }
-
-            ::-webkit-scrollbar-thumb:hover {
-                background: var(--gray-500);
-            }
-
-            /* Responsive */
-            @media (max-width: 768px) {
-                .container {
-                    padding: 1rem;
-                }
-
-                h1 {
-                    font-size: 2rem;
-                }
-            }
-
-            /* Glassmorphism Effect */
-            .glass {
-                background: rgba(255, 255, 255, 0.7);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-            }
-
-            /* Gradient Text */
-            .gradient-text {
-                background: var(--gradient-primary);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-            }
-        </style>
-        {% block extra_css %}{% endblock %}
-    </head>
-
-    <body>
-        <nav class="navbar navbar-expand-lg">
-            <div class="container">
-                <a class="navbar-brand" href="/">
-                    <i class="bi bi-youtube"></i> YouTube Automation
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h1><i class="bi bi-youtube" style="color: #ff0000;"></i> YouTube Automation</h1>
+        </div>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="/" id="nav-dashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">
-                                <i class="bi bi-speedometer2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/playlists">
-                                <i class="bi bi-collection-play"></i> Playlists
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/calendar">
-                                <i class="bi bi-calendar-event"></i> Calendar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/config">
-                                <i class="bi bi-gear"></i> Configuration
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/docs">
-                                <i class="bi bi-book"></i> Documentation
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
+            </li>
+            <li>
+                <a href="/playlists" id="nav-playlists">
+                    <i class="bi bi-collection-play"></i>
+                    Playlists
+                </a>
+            </li>
+            <li>
+                <a href="/calendar" id="nav-calendar">
+                    <i class="bi bi-calendar-event"></i>
+                    Calendar
+                </a>
+            </li>
+            <li>
+                <a href="/config" id="nav-config">
+                    <i class="bi bi-gear"></i>
+                    Settings
+                </a>
+            </li>
+            <li>
+                <a href="/docs" id="nav-docs">
+                    <i class="bi bi-book"></i>
+                    Help
+                </a>
+            </li>
+        </ul>
+    </nav>
 
-        <div class="container fade-in">
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+        </div>
+        <div class="content-container">
             {% block content %}{% endblock %}
         </div>
+    </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        {% block extra_js %}{% endblock %}
-    </body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set active nav item based on current path
+        document.addEventListener('DOMContentLoaded', function() {
+            const path = window.location.pathname;
+            const navMap = {
+                '/': 'nav-dashboard',
+                '/playlists': 'nav-playlists',
+                '/calendar': 'nav-calendar',
+                '/config': 'nav-config',
+                '/docs': 'nav-docs'
+            };
+            
+            // Remove active from all
+            document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+            
+            // Add active to current
+            const activeId = navMap[path] || navMap['/'];
+            const activeEl = document.getElementById(activeId);
+            if (activeEl) {
+                activeEl.classList.add('active');
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
 
 </html>

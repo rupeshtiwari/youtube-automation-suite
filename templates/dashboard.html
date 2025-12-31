@@ -2,116 +2,117 @@
 
 {% block title %}Dashboard - YouTube Automation{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">
-            <i class="bi bi-speedometer2"></i> Dashboard
-        </h1>
-    </div>
-</div>
+{% block page_title %}Dashboard{% endblock %}
 
-<div class="row">
-    <div class="col-md-4">
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
         <div class="card">
-            <div class="card-body text-center">
-                <h5 class="card-title">Automation Status</h5>
-                <div id="status-badge" class="status-badge status-inactive mt-3">
+            <div class="card-body">
+                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Automation Status</div>
+                <div id="status-badge" class="status-badge status-inactive mb-2">
                     <i class="bi bi-pause-circle"></i> Inactive
                 </div>
-                <p class="text-muted mt-3 mb-0" id="status-message">Scheduling is disabled</p>
+                <div style="font-size: 13px; color: #6c757d;" id="status-message">Scheduling is disabled</div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card">
-            <div class="card-body text-center">
-                <h5 class="card-title">Last Run</h5>
-                <h3 class="mt-3" id="last-run">
-                    <i class="bi bi-clock-history"></i> Never
-                </h3>
-                <p class="text-muted mb-0">Last automation execution</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h5 class="card-title">Next Run</h5>
-                <h3 class="mt-3" id="next-run">
-                    <i class="bi bi-calendar-event"></i> Not scheduled
-                </h3>
-                <p class="text-muted mb-0">Next automation execution</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Quick Actions
-            </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Manual Execution</h5>
-                        <p class="text-muted">Run automation tasks immediately</p>
-                        <button class="btn btn-primary" id="run-now-btn" onclick="runNow()">
-                            <i class="bi bi-play-circle"></i> Run Now
-                        </button>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Configuration</h5>
-                        <p class="text-muted">Set up API keys and scheduling settings</p>
-                        <a href="/config" class="btn btn-outline-primary me-2">
-                            <i class="bi bi-gear"></i> Configure
-                        </a>
-                        <a href="/docs" class="btn btn-outline-secondary">
-                            <i class="bi bi-book"></i> Documentation
-                        </a>
-                    </div>
+                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Last Run</div>
+                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;" id="last-run">
+                    <i class="bi bi-clock-history"></i> Never
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Next Run</div>
+                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;" id="next-run">
+                    <i class="bi bi-calendar-event"></i> Not scheduled
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Database</div>
+                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">
+                    <i class="bi bi-database"></i> Active
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
+<div class="row">
+    <div class="col-md-6">
         <div class="card">
-            <div class="card-header">
-                <i class="bi bi-list-check"></i> Current Settings
-            </div>
+            <div class="card-header">Quick Actions</div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Videos per day:</strong> <span
-                                id="videos-per-day">{{ settings.scheduling.videos_per_day }}</span></p>
-                        <p><strong>YouTube schedule time:</strong> <span
-                                id="youtube-time">{{ settings.scheduling.youtube_schedule_time }}</span> IST</p>
-                        <p><strong>Schedule day:</strong> <span
-                                id="schedule-day">{{ settings.scheduling.schedule_day|title }}</span></p>
+                <div style="margin-bottom: 16px;">
+                    <button class="btn btn-primary" id="run-now-btn" onclick="runNow()" style="width: 100%;">
+                        <i class="bi bi-play-circle"></i> Run Automation Now
+                    </button>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="/playlists" class="btn btn-outline-secondary">
+                        <i class="bi bi-collection-play"></i> View Playlists
+                    </a>
+                    <a href="/calendar" class="btn btn-outline-secondary">
+                        <i class="bi bi-calendar-event"></i> View Calendar
+                    </a>
+                    <a href="/config" class="btn btn-outline-secondary">
+                        <i class="bi bi-gear"></i> Configure Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Current Settings</div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">Videos per day</div>
+                        <div style="font-weight: 600; color: #1a1a1a;" id="videos-per-day">{{ settings.scheduling.videos_per_day }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Export type:</strong> <span
-                                id="export-type">{{ settings.scheduling.export_type|title }}</span></p>
-                        <p><strong>Auto-post social:</strong>
-                            <span
-                                class="badge bg-{{ 'success' if settings.scheduling.auto_post_social else 'secondary' }}">
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">Schedule day</div>
+                        <div style="font-weight: 600; color: #1a1a1a;" id="schedule-day">{{ settings.scheduling.schedule_day|title }}</div>
+                    </div>
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">YouTube time</div>
+                        <div style="font-weight: 600; color: #1a1a1a;" id="youtube-time">{{ settings.scheduling.youtube_schedule_time }}</div>
+                    </div>
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">Social time</div>
+                        <div style="font-weight: 600; color: #1a1a1a;" id="social-time">{{ settings.scheduling.social_media_schedule_time }}</div>
+                    </div>
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">Auto-post</div>
+                        <div style="font-weight: 600; color: #1a1a1a;">
+                            <span class="badge bg-{{ 'success' if settings.scheduling.auto_post_social else 'secondary' }}">
                                 {{ 'Yes' if settings.scheduling.auto_post_social else 'No' }}
                             </span>
-                        </p>
-                        <p><strong>Social platforms:</strong>
-                            <span id="social-platforms">
-                                {% for platform in settings.scheduling.social_platforms %}
-                                <span class="badge bg-info">{{ platform|title }}</span>
-                                {% endfor %}
-                            </span>
-                        </p>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: #6c757d; margin-bottom: 4px;">Platforms</div>
+                        <div id="social-platforms">
+                            {% for platform in settings.scheduling.social_platforms %}
+                            <span class="badge bg-info me-1">{{ platform|title }}</span>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -132,11 +133,11 @@
                 const nextRun = document.getElementById('next-run');
 
                 if (data.enabled) {
-                    badge.className = 'status-badge status-active mt-3';
+                    badge.className = 'status-badge status-active mb-2';
                     badge.innerHTML = '<i class="bi bi-check-circle"></i> Active';
                     message.textContent = 'Automation is scheduled and running';
                 } else {
-                    badge.className = 'status-badge status-inactive mt-3';
+                    badge.className = 'status-badge status-inactive mb-2';
                     badge.innerHTML = '<i class="bi bi-pause-circle"></i> Inactive';
                     message.textContent = 'Scheduling is disabled';
                 }
@@ -164,13 +165,13 @@
             .then(data => {
                 alert(data.message);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Now';
+                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Automation Now';
                 setTimeout(updateStatus, 2000);
             })
             .catch(error => {
                 alert('Error: ' + error);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Now';
+                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Automation Now';
             });
     }
 
