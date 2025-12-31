@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - YouTube Automation{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-gear"></i> Configuration
+        </h1>
+    </div>
+</div>
+
+<div class="info-box">
+    <h5><i class="bi bi-info-circle"></i> Setup Instructions</h5>
+    <p class="mb-0">Configure your API keys and scheduling settings below. All settings are saved automatically and the
+        automation will run according to your schedule.</p>
+</div>
+
+<form method="POST" action="/config">
+    <!-- API Keys Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-key"></i> API Keys & Credentials
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">LinkedIn Access Token</label>
+                    <input type="password" class="form-control" name="linkedin_access_token"
+                        value="{{ settings.api_keys.linkedin_access_token }}" placeholder="Enter LinkedIn access token">
+                    <small class="text-muted">Get from LinkedIn Developer Portal</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">LinkedIn Person URN</label>
+                    <input type="text" class="form-control" name="linkedin_person_urn"
+                        value="{{ settings.api_keys.linkedin_person_urn }}" placeholder="urn:li:person:xxxxx">
+                    <small class="text-muted">Format: urn:li:person:xxxxx</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Facebook Page Access Token</label>
+                    <input type="password" class="form-control" name="facebook_page_access_token"
+                        value="{{ settings.api_keys.facebook_page_access_token }}"
+                        placeholder="Enter Facebook page access token">
+                    <small class="text-muted">Get from Facebook Developers</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Facebook Page ID</label>
+                    <input type="text" class="form-control" name="facebook_page_id"
+                        value="{{ settings.api_keys.facebook_page_id }}" placeholder="Enter Facebook page ID">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Instagram Business Account ID</label>
+                    <input type="text" class="form-control" name="instagram_business_account_id"
+                        value="{{ settings.api_keys.instagram_business_account_id }}"
+                        placeholder="Enter Instagram business account ID">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Instagram Access Token</label>
+                    <input type="password" class="form-control" name="instagram_access_token"
+                        value="{{ settings.api_keys.instagram_access_token }}"
+                        placeholder="Enter Instagram access token">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Ayrshare API Key (Alternative)</label>
+                    <input type="password" class="form-control" name="ayrshare_api_key"
+                        value="{{ settings.api_keys.ayrshare_api_key }}"
+                        placeholder="Enter Ayrshare API key (optional)">
+                    <small class="text-muted">Use Ayrshare for simpler unified API access. Sign up at
+                        ayrshare.com</small>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="testConnections()">
+                    <i class="bi bi-check-circle"></i> Test Connections
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduling Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-calendar-event"></i> Scheduling Settings
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="scheduling_enabled" id="scheduling_enabled"
+                        {{ 'checked' if settings.scheduling.enabled else '' }}>
+                    <label class="form-check-label" for="scheduling_enabled">
+                        <strong>Enable Daily Automation</strong>
+                    </label>
+                </div>
+                <small class="text-muted">When enabled, automation runs automatically according to schedule</small>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Videos Per Day</label>
+                    <input type="number" class="form-control" name="videos_per_day"
+                        value="{{ settings.scheduling.videos_per_day }}" min="1" max="10">
+                    <small class="text-muted">Number of videos to process per day</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Schedule Day</label>
+                    <select class="form-select" name="schedule_day">
+                        <option value="monday" {{ 'selected' if settings.scheduling.schedule_day=='monday' else '' }}>
+                            Monday</option>
+                        <option value="tuesday" {{ 'selected' if settings.scheduling.schedule_day=='tuesday' else '' }}>
+                            Tuesday</option>
+                        <option value="wednesday" {{ 'selected' if settings.scheduling.schedule_day=='wednesday' else ''
+                            }}>Wednesday</option>
+                        <option value="thursday" {{ 'selected' if settings.scheduling.schedule_day=='thursday' else ''
+                            }}>Thursday</option>
+                        <option value="friday" {{ 'selected' if settings.scheduling.schedule_day=='friday' else '' }}>
+                            Friday</option>
+                        <option value="saturday" {{ 'selected' if settings.scheduling.schedule_day=='saturday' else ''
+                            }}>Saturday</option>
+                        <option value="sunday" {{ 'selected' if settings.scheduling.schedule_day=='sunday' else '' }}>
+                            Sunday</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">YouTube Schedule Time (IST)</label>
+                    <input type="time" class="form-control" name="youtube_schedule_time"
+                        value="{{ settings.scheduling.youtube_schedule_time }}">
+                    <small class="text-muted">Time to schedule YouTube videos (default: 23:00 = 11:00 PM)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Social Media Schedule Time (IST)</label>
+                    <input type="time" class="form-control" name="social_media_schedule_time"
+                        value="{{ settings.scheduling.social_media_schedule_time }}">
+                    <small class="text-muted">Time to post on social media (default: 19:30 = 7:30 PM)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">YouTube Playlist ID</label>
+                    <input type="text" class="form-control" name="playlist_id"
+                        value="{{ settings.scheduling.playlist_id }}" placeholder="PLxxxx...">
+                    <small class="text-muted">Playlist ID for video scheduling (optional)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Export Type</label>
+                    <select class="form-select" name="export_type">
+                        <option value="shorts" {{ 'selected' if settings.scheduling.export_type=='shorts' else '' }}>
+                            Shorts Only</option>
+                        <option value="all" {{ 'selected' if settings.scheduling.export_type=='all' else '' }}>All
+                            Playlists</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Social Media Posting Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-share"></i> Social Media Posting
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="auto_post_social" id="auto_post_social"
+                        {{ 'checked' if settings.scheduling.auto_post_social else '' }}>
+                    <label class="form-check-label" for="auto_post_social">
+                        <strong>Automatically Post to Social Media</strong>
+                    </label>
+                </div>
+                <small class="text-muted">When enabled, posts will be automatically published to selected
+                    platforms</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Select Platforms</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="social_platforms" value="linkedin"
+                        id="platform_linkedin" {{ 'checked' if 'linkedin' in settings.scheduling.social_platforms
+                        else '' }}>
+                    <label class="form-check-label" for="platform_linkedin">LinkedIn</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="social_platforms" value="facebook"
+                        id="platform_facebook" {{ 'checked' if 'facebook' in settings.scheduling.social_platforms
+                        else '' }}>
+                    <label class="form-check-label" for="platform_facebook">Facebook</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="social_platforms" value="instagram"
+                        id="platform_instagram" {{ 'checked' if 'instagram' in settings.scheduling.social_platforms
+                        else '' }}>
+                    <label class="form-check-label" for="platform_instagram">Instagram</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save"></i> Save Configuration
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function testConnections() {
+        const platforms = ['linkedin', 'facebook', 'instagram', 'ayrshare'];
+        const results = [];
+
+        platforms.forEach(platform => {
+            fetch('/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ platform: platform })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    results.push({ platform: platform, ...data });
+                    if (results.length === platforms.length) {
+                        showTestResults(results);
+                    }
+                })
+                .catch(error => {
+                    results.push({ platform: platform, success: false, message: 'Error: ' + error });
+                    if (results.length === platforms.length) {
+                        showTestResults(results);
+                    }
+                });
+        });
+    }
+
+    function showTestResults(results) {
+        let message = 'Connection Test Results:\n\n';
+        results.forEach(result => {
+            const icon = result.success ? '✅' : '❌';
+            message += `${icon} ${result.platform.toUpperCase()}: ${result.message}\n`;
+        });
+        alert(message);
+    }
+</script>
+{% endblock %}
