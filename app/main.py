@@ -795,7 +795,17 @@ def insights():
             'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics)
         }
         
-        return render_template('insights.html', insights=insights_data)
+        # For now, return a simple page if template doesn't exist
+        try:
+            return render_template('insights.html', insights=insights_data)
+        except:
+            # Template doesn't exist yet, return simple message
+            return f"""
+            <h1>Insights Dashboard</h1>
+            <p>Insights page is being set up. Analytics data collection is ready.</p>
+            <pre>{json.dumps(insights_data, indent=2, default=str)}</pre>
+            <p><a href="/">Back to Dashboard</a></p>
+            """
     except Exception as e:
         import traceback
         return render_template('error.html', message=f"Error loading insights: {str(e)}\n{traceback.format_exc()}")
