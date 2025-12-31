@@ -680,16 +680,137 @@ def api_playlist_videos(playlist_id):
         
         videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_title)
         
-        # Add social media posts from database
+        # Add social media posts and tags from database
+        from tagging import derive_type_enhanced, derive_role_enhanced, suggest_tags
+        from database import get_video
+        
         for video in videos:
             video_id = video["videoId"]
             social_posts = get_video_social_posts_from_db(video_id)
             video["social_posts"] = social_posts
+            
+            # Get video from database for tags
+            db_video = get_video(video_id)
+            if db_video:
+                video["video_type"] = db_video.get("video_type", "")
+                video["role"] = db_video.get("role", "")
+                video["custom_tags"] = db_video.get("custom_tags", "")
+            else:
+                # Auto-derive type and role if not in DB
+                playlist_title = ""  # We don't have playlist title here, but can get from context
+                video_type = derive_type_enhanced(
+                    playlist_title,
+                    video.get("title", ""),
+                    video.get("description", ""),
+                    video.get("tags", "")
+                )
+                role = derive_role_enhanced(
+                    playlist_title,
+                    video.get("title", ""),
+                    video.get("description", ""),
+                    video.get("tags", "")
+                )
+                video["video_type"] = video_type
+                video["role"] = role
+                video["custom_tags"] = ""
+                
+                # Suggest tags
+                suggested_tags = suggest_tags(
+                    video.get("title", ""),
+                    video.get("description", ""),
+                    video_type,
+                    role
+                )
+                video["suggested_tags"] = suggested_tags
         
         return jsonify({'videos': videos})
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@app.route('/api/video/<video_id>/tags', methods=['GET', 'POST'])
+def api_video_tags(video_id):
+    """Get or update video tags."""
+    from database import get_video, get_db_connection
+    from tagging import parse_tags, format_tags
+    
+    if request.method == 'GET':
+        video = get_video(video_id)
+        if not video:
+            return jsonify({'error': 'Video not found'}), 404
+        
+        return jsonify({
+            'video_type': video.get('video_type', ''),
+            'role': video.get('role', ''),
+            'custom_tags': video.get('custom_tags', ''),
+            'tags': parse_tags(video.get('custom_tags', ''))
+        })
+    
+    elif request.method == 'POST':
+        data = request.json
+        video_type = data.get('video_type', '')
+        role = data.get('role', '')
+        custom_tags = format_tags(data.get('tags', []))
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE videos 
+            SET video_type = ?, role = ?, custom_tags = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE video_id = ?
+        ''', (video_type, role, custom_tags, video_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Tags updated successfully'})
+
+
+@app.route('/api/videos/search')
+def api_search_videos():
+    """Search videos by query, type, role, or tags."""
+    from database import get_db_connection
+    from tagging import search_videos, parse_tags
+    
+    query = request.args.get('q', '')
+    video_type = request.args.get('type', '')
+    role = request.args.get('role', '')
+    tags_param = request.args.get('tags', '')
+    
+    tags = parse_tags(tags_param) if tags_param else None
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Build query
+    sql = "SELECT * FROM videos "
+    where_clause = search_videos(query, video_type if video_type else None, 
+                                role if role else None, tags)
+    sql += where_clause
+    sql += " ORDER BY updated_at DESC LIMIT 100"
+    
+    # Build parameters
+    params = []
+    if query:
+        query_param = f"%{query}%"
+        params.extend([query_param, query_param, query_param, query_param])
+    if video_type:
+        params.append(video_type)
+    if role:
+        params.append(role)
+    if tags:
+        for tag in tags:
+            tag_param = f"%{tag}%"
+            params.extend([tag_param, tag_param])
+    
+    cursor.execute(sql, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    videos = [dict(row) for row in rows]
+    return jsonify({'videos': videos, 'count': len(videos)})
 
 
 @app.route('/calendar')

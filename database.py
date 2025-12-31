@@ -43,11 +43,18 @@ def init_database():
             privacy_status TEXT,
             video_type TEXT,
             role TEXT,
+            custom_tags TEXT,
             youtube_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Add custom_tags column if it doesn't exist (migration)
+    try:
+        cursor.execute('ALTER TABLE videos ADD COLUMN custom_tags TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Social media posts table - stores generated posts
     cursor.execute('''
@@ -76,10 +83,21 @@ def init_database():
             playlist_name TEXT,
             item_count INTEGER,
             published_at TEXT,
+            playlist_type TEXT,
+            playlist_role TEXT,
+            playlist_tags TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Add tag columns if they don't exist (migration)
+    try:
+        cursor.execute('ALTER TABLE playlists ADD COLUMN playlist_type TEXT')
+        cursor.execute('ALTER TABLE playlists ADD COLUMN playlist_role TEXT')
+        cursor.execute('ALTER TABLE playlists ADD COLUMN playlist_tags TEXT')
+    except sqlite3.OperationalError:
+        pass  # Columns already exist
     
     # Automation logs table - tracks automation runs
     cursor.execute('''
@@ -98,9 +116,14 @@ def init_database():
     # Create indexes for better performance
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_playlist_id ON videos(playlist_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_type ON videos(video_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_role ON videos(role)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_custom_tags ON videos(custom_tags)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_posts_video_id ON social_media_posts(video_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_posts_platform ON social_media_posts(platform)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_posts_status ON social_media_posts(status)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_playlists_type ON playlists(playlist_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_playlists_role ON playlists(playlist_role)')
     
     conn.commit()
     conn.close()

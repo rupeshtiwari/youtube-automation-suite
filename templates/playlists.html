@@ -4,6 +4,78 @@
 
 {% block extra_css %}
 <style>
+    .filter-bar {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    .search-box {
+        position: relative;
+    }
+    .search-box input {
+        padding-left: 2.5rem;
+    }
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+    }
+    .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .filter-tag {
+        padding: 0.5rem 1rem;
+        background: #f1f5f9;
+        border: 2px solid #e2e8f0;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .filter-tag:hover {
+        background: #e2e8f0;
+        border-color: #667eea;
+    }
+    .filter-tag.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+    .video-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    .video-tag {
+        padding: 0.25rem 0.75rem;
+        background: #e0e7ff;
+        color: #4338ca;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .video-tag.type {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    .video-tag.role {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .tag-edit-btn {
+        margin-left: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
     .playlist-card {
         margin-bottom: 2rem;
         border: none;
@@ -462,11 +534,215 @@ function renderSocialPosts(socialPosts) {
     return html;
 }
 
+function renderVideoTags(video) {
+    if (!video.video_type && !video.role && !video.custom_tags) {
+        return '';
+    }
+    
+    let html = '<div class="video-tags">';
+    
+    if (video.video_type) {
+        const typeLabels = {
+            'sys_design': 'System Design',
+            'leadership': 'Leadership',
+            'interview': 'Interview Prep',
+            'career': 'Career Growth',
+            'technical': 'Technical',
+            'product': 'Product Management'
+        };
+        html += `<span class="video-tag type">${typeLabels[video.video_type] || video.video_type}</span>`;
+    }
+    
+    if (video.role) {
+        const roleLabels = {
+            'spo': 'SPO',
+            'spm': 'SPM',
+            'vp': 'VP',
+            'dir': 'Director',
+            'em': 'EM',
+            'mgr': 'Manager',
+            'sa': 'SA',
+            'swe': 'SWE'
+        };
+        html += `<span class="video-tag role">${roleLabels[video.role] || video.role}</span>`;
+    }
+    
+    if (video.custom_tags) {
+        const tags = video.custom_tags.split(',').map(t => t.trim()).filter(t => t);
+        tags.forEach(tag => {
+            html += `<span class="video-tag">${escapeHtml(tag)}</span>`;
+        });
+    }
+    
+    html += '</div>';
+    return html;
+}
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function editVideoTags(videoId) {
+    // Fetch current tags
+    fetch(`/api/video/${videoId}/tags`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            // Show edit modal (simplified - you can enhance this)
+            const typeOptions = ['', 'sys_design', 'leadership', 'interview', 'career', 'technical', 'product'];
+            const roleOptions = ['', 'spo', 'spm', 'vp', 'dir', 'em', 'mgr', 'sa', 'swe'];
+            
+            const typeSelect = typeOptions.map(opt => 
+                `<option value="${opt}" ${opt === data.video_type ? 'selected' : ''}>${opt || 'None'}</option>`
+            ).join('');
+            
+            const roleSelect = roleOptions.map(opt => 
+                `<option value="${opt}" ${opt === data.role ? 'selected' : ''}>${opt || 'None'}</option>`
+            ).join('');
+            
+            const tagsInput = data.tags ? data.tags.join(', ') : '';
+            
+            const modalHtml = `
+                <div class="modal fade" id="tagModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Video Tags</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="edit-type">${typeSelect}</select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    <select class="form-select" id="edit-role">${roleSelect}</select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Custom Tags (comma-separated)</label>
+                                    <input type="text" class="form-control" id="edit-tags" value="${tagsInput}" placeholder="e.g., mock-interview, system-design">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="saveVideoTags('${videoId}')">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('tagModal'));
+            modal.show();
+            
+            // Clean up on close
+            document.getElementById('tagModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        });
+}
+
+function saveVideoTags(videoId) {
+    const video_type = document.getElementById('edit-type').value;
+    const role = document.getElementById('edit-role').value;
+    const tags = document.getElementById('edit-tags').value.split(',').map(t => t.trim()).filter(t => t);
+    
+    fetch(`/api/video/${videoId}/tags`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({video_type, role, tags})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
+            // Reload videos
+            const playlistCard = document.querySelector(`[data-video-id="${videoId}"]`).closest('.playlist-card');
+            const header = playlistCard.querySelector('.playlist-header');
+            const onclickAttr = header.getAttribute('onclick');
+            const match = onclickAttr.match(/togglePlaylist\([^,]+,\s*'([^']+)'\)/);
+            if (match && match[1]) {
+                const containerId = playlistCard.querySelector('.playlist-content').id.replace('playlist-', 'videos-container-');
+                loadPlaylistVideos(match[1], containerId);
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save tags'));
+        }
+    });
+}
+
+// Search and filter functionality
+let currentFilters = {query: '', type: '', role: ''};
+
+document.getElementById('search-input')?.addEventListener('input', function(e) {
+    currentFilters.query = e.target.value;
+    applyFilters();
+});
+
+document.getElementById('filter-type')?.addEventListener('change', function(e) {
+    currentFilters.type = e.target.value;
+    applyFilters();
+});
+
+document.getElementById('filter-role')?.addEventListener('change', function(e) {
+    currentFilters.role = e.target.value;
+    applyFilters();
+});
+
+document.querySelectorAll('.filter-tag').forEach(tag => {
+    tag.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        const [key, value] = filter.split(':');
+        
+        if (key === 'type') {
+            document.getElementById('filter-type').value = value;
+            currentFilters.type = value;
+        } else if (key === 'role') {
+            document.getElementById('filter-role').value = value;
+            currentFilters.role = value;
+        }
+        
+        applyFilters();
+        
+        // Update active state
+        document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+function applyFilters() {
+    const videoCards = document.querySelectorAll('.video-card');
+    videoCards.forEach(card => {
+        const videoType = card.dataset.videoType || '';
+        const role = card.dataset.role || '';
+        const title = card.querySelector('.video-title a')?.textContent.toLowerCase() || '';
+        
+        let show = true;
+        
+        if (currentFilters.query) {
+            const query = currentFilters.query.toLowerCase();
+            show = show && (title.includes(query) || card.textContent.toLowerCase().includes(query));
+        }
+        
+        if (currentFilters.type) {
+            show = show && videoType === currentFilters.type;
+        }
+        
+        if (currentFilters.role) {
+            show = show && role === currentFilters.role;
+        }
+        
+        card.style.display = show ? 'block' : 'none';
+    });
 }
 
 // Load first playlist on page load
