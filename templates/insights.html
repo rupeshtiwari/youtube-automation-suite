@@ -110,11 +110,96 @@
     </div>
     {% endif %}
 
+    <!-- Recommendations Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="bi bi-clock"></i> Best Posting Times</h6>
+                            {% if insights.optimal_posting_times and insights.optimal_posting_times.overall %}
+                            <p><strong>Recommended Time:</strong> {{ insights.optimal_posting_times.overall.hour }}:00 EDT</p>
+                            {% else %}
+                            <p><strong>Recommended Times for USA Students:</strong></p>
+                            <ul>
+                                <li><strong>2:00 PM EDT</strong> - After lunch, high engagement</li>
+                                <li><strong>5:00 PM EDT</strong> - After classes, evening study time</li>
+                                <li><strong>9:00 PM EDT</strong> - Prime evening hours, highest engagement</li>
+                            </ul>
+                            {% endif %}
+                            <p class="text-muted small">Based on USA student activity patterns</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="bi bi-calendar-week"></i> Best Days to Post</h6>
+                            <ul>
+                                <li><strong>Tuesday-Thursday:</strong> Highest engagement (mid-week focus)</li>
+                                <li><strong>Wednesday:</strong> Peak engagement day</li>
+                                <li><strong>Weekends:</strong> Lower engagement, avoid if possible</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="bi bi-graph-up"></i> Content Strategy</h6>
+                            <ul>
+                                <li><strong>Focus on Interview Prep:</strong> Coding interviews, system design, LeetCode</li>
+                                <li><strong>Target Student Roles:</strong> Intern, new grad, entry-level positions</li>
+                                <li><strong>Post Types:</strong> Mock interviews, tips, walkthroughs</li>
+                                <li><strong>Consistency:</strong> Post 3-5 times per week for best results</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="bi bi-hash"></i> Hashtag Recommendations</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-primary">#CodingInterview</span>
+                                <span class="badge bg-primary">#SystemDesign</span>
+                                <span class="badge bg-primary">#LeetCode</span>
+                                <span class="badge bg-primary">#TechInterview</span>
+                                <span class="badge bg-primary">#SoftwareEngineering</span>
+                                <span class="badge bg-primary">#NewGrad</span>
+                                <span class="badge bg-primary">#Internship</span>
+                                <span class="badge bg-primary">#TechCareer</span>
+                                <span class="badge bg-primary">#FAANG</span>
+                                <span class="badge bg-primary">#TechJobs</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6><i class="bi bi-target"></i> Targeting Strategy for USA Students</h6>
+                            <div class="alert alert-success">
+                                <strong>Current Focus:</strong> USA students preparing for tech interviews
+                                <ul class="mt-2 mb-0">
+                                    <li>Target interview types: Coding, System Design, LeetCode, Behavioral</li>
+                                    <li>Target roles: Intern, New Graduate, Entry Level, Student</li>
+                                    <li>Post during peak hours: 2 PM, 5 PM, 9 PM EDT</li>
+                                    <li>Use student-friendly hashtags and content</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> 
-                <strong>Note:</strong> This is a basic insights page. Rich visualizations with charts, demographics, and geography maps will be added soon.
+                <strong>Note:</strong> Rich visualizations with charts, demographics, and geography maps will be added soon. Use the recommendations above to optimize your posting strategy.
             </div>
         </div>
     </div>
