@@ -5,12 +5,15 @@ Uses SQLite for efficient data storage and querying.
 
 import sqlite3
 import json
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import pandas as pd
 
-DB_PATH = 'youtube_automation.db'
+# Support for NAS/Docker deployment with environment variable
+DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(__file__))
+DB_PATH = os.path.join(DATA_DIR, 'youtube_automation.db')
 
 
 def get_db_connection():

@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -17,8 +18,9 @@ import atexit
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Settings file
-SETTINGS_FILE = 'automation_settings.json'
+# Settings file - support NAS/Docker deployment
+DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(__file__))
+SETTINGS_FILE = os.path.join(DATA_DIR, 'automation_settings.json')
 SCHEDULER = BackgroundScheduler()
 SCHEDULER.start()
 
@@ -40,9 +42,10 @@ def load_settings():
             'social_media_schedule_time': '19:30',  # 7:30 PM IST
             'schedule_day': 'wednesday',  # Day of week
             'playlist_id': '',
-            'export_type': 'shorts',  # 'all' or 'shorts'
-            'auto_post_social': False,
-            'social_platforms': ['linkedin', 'facebook', 'instagram']
+        'export_type': 'shorts',  # 'all' or 'shorts'
+        'use_database': True,  # Use SQLite database instead of Excel
+        'auto_post_social': False,
+        'social_platforms': ['linkedin', 'facebook', 'instagram']
         },
         'last_run': None,
         'next_run': None
@@ -118,22 +121,42 @@ def run_daily_automation():
         
         # Step 1: Export videos
         export_type = scheduling.get('export_type', 'shorts')
-        if export_type == 'shorts':
+        use_database = scheduling.get('use_database', True)
+        
+        if use_database:
+            # Use database (recommended)
+            if export_type == 'shorts':
+                script = 'export_shorts_to_database.py'
+            else:
+                # For now, use Excel version for 'all' playlists
+                # TODO: Create export_playlists_to_database.py
+                script = 'export_playlists_videos_to_excel.py'
+            
             result = subprocess.run(
-                ['python', 'export_shorts_to_excel.py'],
+                ['python', script],
                 capture_output=True,
                 text=True,
                 timeout=600,
                 cwd=os.getcwd()
             )
         else:
-            result = subprocess.run(
-                ['python', 'export_playlists_videos_to_excel.py'],
-                capture_output=True,
-                text=True,
-                timeout=600,
-                cwd=os.getcwd()
-            )
+            # Use Excel (legacy)
+            if export_type == 'shorts':
+                result = subprocess.run(
+                    ['python', 'export_shorts_to_excel.py'],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                    cwd=os.getcwd()
+                )
+            else:
+                result = subprocess.run(
+                    ['python', 'export_playlists_videos_to_excel.py'],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                    cwd=os.getcwd()
+                )
         
         if result.returncode != 0:
             print(f"Export failed: {result.stderr}")
@@ -170,31 +193,76 @@ def run_daily_automation():
         # Step 3: Post to social media if enabled
         if scheduling.get('auto_post_social', False):
             platforms = scheduling.get('social_platforms', [])
-            excel_file = 'youtube_shorts_export.xlsx' if export_type == 'shorts' else 'youtube_playlists_videos_export.xlsx'
             
-            if os.path.exists(excel_file):
-                use_ayrshare = bool(settings.get('api_keys', {}).get('ayrshare_api_key'))
-                cmd = [
-                    'python', 'post_to_social_media.py',
-                    '--excel', excel_file,
-                    '--platforms'
-                ] + platforms
+            if use_database:
+                # Post from database (more efficient)
+                from database import get_pending_posts
+                from post_to_social_media import SocialMediaPoster
                 
-                if use_ayrshare:
-                    cmd.append('--use-ayrshare')
+                poster = SocialMediaPoster(use_ayrshare=bool(settings.get('api_keys', {}).get('ayrshare_api_key')))
                 
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=600,
-                    cwd=os.getcwd()
-                )
+                for platform in platforms:
+                    pending_posts = get_pending_posts(platform=platform.lower())
+                    print(f"Found {len(pending_posts)} pending posts for {platform}")
+                    
+                    for post in pending_posts:
+                        video_id = post['video_id']
+                        content = post['post_content']
+                        schedule_date = post['schedule_date']
+                        
+                        # Post to platform
+                        if platform.lower() == 'linkedin':
+                            result = poster.post_to_linkedin(content, schedule_date)
+                        elif platform.lower() == 'facebook':
+                            result = poster.post_to_facebook(content, schedule_date)
+                        elif platform.lower() == 'instagram':
+                            result = poster.post_to_instagram(content, None, schedule_date)
+                        else:
+                            continue
+                        
+                        # Update database
+                        from database import update_post_status
+                        if result.get('success'):
+                            update_post_status(
+                                video_id, platform.lower(), 
+                                result.get('status', 'scheduled'),
+                                result.get('scheduled_date'),
+                                result.get('post_id')
+                            )
+                        else:
+                            update_post_status(
+                                video_id, platform.lower(), 'error',
+                                error_message=result.get('error')
+                            )
+                        
+                        time.sleep(2)  # Rate limiting
+            else:
+                # Post from Excel (legacy)
+                excel_file = 'youtube_shorts_export.xlsx' if export_type == 'shorts' else 'youtube_playlists_videos_export.xlsx'
                 
-                if result.returncode != 0:
-                    print(f"Social media posting failed: {result.stderr}")
-                    if result.stdout:
-                        print(f"Output: {result.stdout}")
+                if os.path.exists(excel_file):
+                    use_ayrshare = bool(settings.get('api_keys', {}).get('ayrshare_api_key'))
+                    cmd = [
+                        'python', 'post_to_social_media.py',
+                        '--excel', excel_file,
+                        '--platforms'
+                    ] + platforms
+                    
+                    if use_ayrshare:
+                        cmd.append('--use-ayrshare')
+                    
+                    result = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=600,
+                        cwd=os.getcwd()
+                    )
+                    
+                    if result.returncode != 0:
+                        print(f"Social media posting failed: {result.stderr}")
+                        if result.stdout:
+                            print(f"Output: {result.stdout}")
         
         # Update last run time
         settings['last_run'] = datetime.now(IST).isoformat()
@@ -261,6 +329,17 @@ def index():
     return render_template('dashboard.html', settings=settings)
 
 
+@app.route('/health')
+def health():
+    """Health check endpoint for monitoring."""
+    from database import DB_PATH
+    return jsonify({
+        'status': 'healthy',
+        'database_exists': os.path.exists(DB_PATH),
+        'timestamp': datetime.now(IST).isoformat()
+    })
+
+
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     """Configuration page."""
@@ -287,6 +366,7 @@ def config():
             'schedule_day': request.form.get('schedule_day', 'wednesday'),
             'playlist_id': request.form.get('playlist_id', ''),
             'export_type': request.form.get('export_type', 'shorts'),
+            'use_database': request.form.get('use_database') == 'on',
             'auto_post_social': request.form.get('auto_post_social') == 'on',
             'social_platforms': request.form.getlist('social_platforms'),
         }
@@ -373,5 +453,12 @@ if __name__ == '__main__':
     schedule_daily_job()
     
     # Run Flask app
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use environment variable for port, default to 5001 (5000 often used by AirPlay on macOS)
+    port = int(os.getenv('PORT', 5001))
+    debug = os.getenv('FLASK_ENV') != 'production'
+    
+    print(f"\n🌐 Starting server on port {port}...")
+    print(f"📱 Open in browser: http://localhost:{port}\n")
+    
+    app.run(host='0.0.0.0', port=port, debug=debug)
 

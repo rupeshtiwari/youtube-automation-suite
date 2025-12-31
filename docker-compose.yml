@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  youtube-automation:
+    build: .
+    container_name: youtube-automation
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistent data storage (mount to NAS location)
+      - ./data:/app/data
+      # Credentials (read-only)
+      - ./client_secret.json:/app/client_secret.json:ro
+      - ./.env:/app/.env:ro
+      # Excel exports
+      - ./exports:/app/exports
+    environment:
+      - FLASK_ENV=production
+      - DATA_DIR=/app/data
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production-please}
+    networks:
+      - youtube-automation-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  youtube-automation-net:
+    driver: bridge
+

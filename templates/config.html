@@ -148,6 +148,19 @@
                             Playlists</option>
                     </select>
                 </div>
+                <div class="col-md-12 mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="use_database" id="use_database"
+                            {{ 'checked' if settings.scheduling.get('use_database', True) else '' }}>
+                        <label class="form-check-label" for="use_database">
+                            <strong>Use SQLite Database (Recommended)</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted">
+                        ✅ Database is faster, supports concurrent access, and is better for automation.
+                        You can still export to Excel for manual review anytime.
+                    </small>
+                </div>
             </div>
         </div>
     </div>
