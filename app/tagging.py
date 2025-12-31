@@ -6,8 +6,17 @@ import re
 from typing import Dict, List, Optional, Any
 
 
-# Role definitions
+# Role definitions (including student/entry-level roles)
 ROLES = {
+    # Student/Entry-level roles
+    'intern': 'Intern',
+    'new_grad': 'New Graduate',
+    'entry_level': 'Entry Level',
+    'student': 'Student',
+    'college_student': 'College Student',
+    'university_student': 'University Student',
+    
+    # Professional roles
     'spo': 'Senior Product Owner',
     'spm': 'Senior Product Manager',
     'vp': 'Vice President',
@@ -23,24 +32,42 @@ ROLES = {
     'principal': 'Principal Engineer'
 }
 
-# Type definitions
+# Type definitions (including interview types)
 TYPES = {
     'sys_design': 'System Design',
+    'sys_design_interview': 'System Design Interview',
+    'coding_interview': 'Coding Interview',
+    'leetcode': 'LeetCode',
+    'algorithm_interview': 'Algorithm Interview',
+    'behavioral_interview': 'Behavioral Interview',
     'leadership': 'Leadership',
     'interview': 'Interview Prep',
+    'mock_interview': 'Mock Interview',
     'career': 'Career Growth',
     'technical': 'Technical',
     'management': 'Management',
     'product': 'Product Management',
-    'architecture': 'Architecture'
+    'architecture': 'Architecture',
+    'resume': 'Resume/CV',
+    'job_search': 'Job Search'
 }
 
-# Common tags
+# Common tags (including student-focused tags)
 COMMON_TAGS = [
-    'mock-interview', 'system-design', 'leadership', 'career-advice',
-    'interview-prep', 'product-management', 'engineering', 'architecture',
-    'scalability', 'distributed-systems', 'microservices', 'api-design',
-    'team-management', 'strategy', 'executive', 'senior-level'
+    # Interview tags
+    'mock-interview', 'system-design', 'interview-prep', 'coding-interview',
+    'leetcode', 'algorithm', 'behavioral-interview', 'system-design-interview',
+    
+    # Career tags
+    'career-advice', 'resume', 'job-search', 'internship', 'new-grad',
+    'entry-level', 'student', 'college', 'university',
+    
+    # Technical tags
+    'product-management', 'engineering', 'architecture', 'scalability',
+    'distributed-systems', 'microservices', 'api-design',
+    
+    # Leadership tags
+    'leadership', 'team-management', 'strategy', 'executive', 'senior-level'
 ]
 
 
@@ -52,6 +79,15 @@ def derive_role_enhanced(playlist_title: str, video_title: str, video_descriptio
     
     # Check for role keywords (order matters - more specific first)
     role_patterns = {
+        # Student/Entry-level (check first as they're more specific)
+        'intern': r'\b(intern|internship)\b',
+        'new_grad': r'\b(new grad|new graduate|newgrad|recent graduate)\b',
+        'entry_level': r'\b(entry level|entry-level|junior|fresher)\b',
+        'college_student': r'\b(college student|undergraduate)\b',
+        'university_student': r'\b(university student|grad student|graduate student)\b',
+        'student': r'\b(student)\b',
+        
+        # Professional roles
         'vp': r'\b(vp|vice president|vice-president|executive)\b',
         'spo': r'\b(senior product owner|spo|senior po)\b',
         'spm': r'\b(senior product manager|spm|senior pm)\b',
@@ -81,18 +117,50 @@ def derive_type_enhanced(playlist_title: str, video_title: str, video_descriptio
     text = f"{playlist_title} {video_title} {video_description} {video_tags}".lower()
     
     type_patterns = {
+        # Interview types (check first as they're more specific)
+        'sys_design_interview': [
+            'system design interview', 'sys design interview', 'system design round',
+            'design interview', 'architecture interview'
+        ],
+        'coding_interview': [
+            'coding interview', 'programming interview', 'technical coding',
+            'code interview', 'coding round'
+        ],
+        'leetcode': [
+            'leetcode', 'leet code', 'leetcode problem', 'leetcode solution'
+        ],
+        'algorithm_interview': [
+            'algorithm interview', 'algorithms interview', 'dsa interview',
+            'data structure interview', 'algo interview'
+        ],
+        'behavioral_interview': [
+            'behavioral interview', 'behavior interview', 'cultural fit',
+            'soft skills interview', 'hr interview'
+        ],
+        'mock_interview': [
+            'mock interview', 'practice interview', 'simulated interview'
+        ],
+        
+        # General types
         'sys_design': [
             'system design', 'sys design', 'system architecture', 'architecture',
             'design pattern', 'scalability', 'distributed system', 'microservices',
             'database design', 'api design', 'infrastructure', 'system scaling'
         ],
+        'interview': [
+            'interview', 'interview prep', 'interview question',
+            'interview tips', 'interview guide', 'interview practice'
+        ],
+        'resume': [
+            'resume', 'cv', 'resume tips', 'resume review', 'resume writing'
+        ],
+        'job_search': [
+            'job search', 'finding job', 'job hunting', 'job application',
+            'applying jobs', 'job interview'
+        ],
         'leadership': [
             'leadership', 'management', 'team', 'people', 'career',
             'mentor', 'coaching', 'strategy', 'executive', 'decision'
-        ],
-        'interview': [
-            'interview', 'mock interview', 'interview prep', 'interview question',
-            'interview tips', 'interview guide', 'interview practice'
         ],
         'career': [
             'career', 'career growth', 'career advice', 'career development',

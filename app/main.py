@@ -75,6 +75,13 @@ def load_settings():
             'instagram_daily_limit': 25,  # Instagram allows ~25 posts/day
             'youtube_daily_limit': 10  # YouTube allows ~10 videos/day
         },
+        'targeting': {
+            'target_audience': 'usa_students',  # 'usa_students', 'all', 'professionals'
+            'interview_types': ['coding_interview', 'sys_design_interview', 'leetcode', 'algorithm_interview', 'behavioral_interview'],
+            'role_levels': ['intern', 'new_grad', 'entry_level', 'student'],  # Target student roles
+            'timezone': 'America/New_York',  # USA Eastern Time
+            'optimal_times': ['14:00', '17:00', '21:00']  # 2 PM, 5 PM, 9 PM EDT (USA student active times)
+        },
         'last_run': None,
         'next_run': None
     }
@@ -1052,20 +1059,80 @@ def api_autopilot_run():
         activities = []
         today_str = datetime.now(IST).strftime('%Y-%m-%d')
         
-        # Select one video from each playlist
+        # Get targeting settings
+        targeting = settings.get('targeting', {})
+        target_audience = targeting.get('target_audience', 'all')
+        interview_types = targeting.get('interview_types', [])
+        role_levels = targeting.get('role_levels', [])
+        
+        # Import tagging functions for filtering
+        from app.tagging import derive_type_enhanced, derive_role_enhanced
+        from app.database import get_video
+        
+        # Select one video from each playlist (with targeting filter)
         for playlist in shorts_playlists:
             playlist_id = playlist['playlistId']
             videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, playlist.get('channelTitle', ''))
             
             if videos:
-                # Select first video
-                selected_video = videos[0]
-                video_id = selected_video['videoId']
-                selected_videos.append({
-                    'video': selected_video,
-                    'playlist_id': playlist_id,
-                    'playlist_name': playlist.get('playlistTitle', '')
-                })
+                selected_video = None
+                playlist_title = playlist.get('playlistTitle', '')
+                
+                # Filter videos based on targeting criteria
+                for video in videos:
+                    video_id = video['videoId']
+                    
+                    # Get video from database or derive type/role
+                    db_video = get_video(video_id)
+                    if db_video:
+                        video_type = db_video.get('video_type', '')
+                        role = db_video.get('role', '')
+                    else:
+                        # Derive type and role from content
+                        video_type = derive_type_enhanced(
+                            playlist_title,
+                            video.get('title', ''),
+                            video.get('description', ''),
+                            video.get('tags', '')
+                        )
+                        role = derive_role_enhanced(
+                            playlist_title,
+                            video.get('title', ''),
+                            video.get('description', ''),
+                            video.get('tags', '')
+                        )
+                    
+                    # Apply targeting filters if targeting USA students
+                    if target_audience == 'usa_students':
+                        # Check if video type matches interview types
+                        type_matches = not interview_types or any(
+                            it in video_type for it in interview_types
+                        )
+                        
+                        # Check if role matches student roles
+                        role_matches = not role_levels or any(
+                            rl in role for rl in role_levels
+                        ) or role == ''  # Allow videos without specific role
+                        
+                        if type_matches or role_matches:
+                            selected_video = video
+                            break
+                    else:
+                        # No targeting - select first video
+                        selected_video = video
+                        break
+                
+                # If no video matched filters, select first one
+                if not selected_video and videos:
+                    selected_video = videos[0]
+                
+                if selected_video:
+                    video_id = selected_video['videoId']
+                    selected_videos.append({
+                        'video': selected_video,
+                        'playlist_id': playlist_id,
+                        'playlist_name': playlist.get('playlistTitle', '')
+                    })
         
         # Schedule selected videos to all platforms (respecting thresholds)
         scheduled_count = 0

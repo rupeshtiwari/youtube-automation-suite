@@ -362,6 +362,83 @@
         </div>
     </div>
 
+    <!-- Targeting Settings -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-bullseye"></i> Audience Targeting (USA Students)
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Configure targeting to reach USA students preparing for interviews.</p>
+            
+            <div class="mb-3">
+                <label class="form-label">Target Audience</label>
+                <select class="form-select" name="target_audience">
+                    <option value="usa_students" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else 'usa_students') == 'usa_students' else '' }}>USA Students (Interview Prep)</option>
+                    <option value="all" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'all' else '' }}>All Audiences</option>
+                    <option value="professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'professionals' else '' }}>Professionals Only</option>
+                </select>
+                <small class="text-muted">Target USA students preparing for tech interviews</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Interview Types to Target</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="coding_interview" 
+                        id="type_coding" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['coding_interview']) and 'coding_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_coding">Coding Interview</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="sys_design_interview" 
+                        id="type_sys_design" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['sys_design_interview']) and 'sys_design_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_sys_design">System Design Interview</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="leetcode" 
+                        id="type_leetcode" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['leetcode']) and 'leetcode' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_leetcode">LeetCode</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="algorithm_interview" 
+                        id="type_algorithm" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['algorithm_interview']) and 'algorithm_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_algorithm">Algorithm Interview</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="behavioral_interview" 
+                        id="type_behavioral" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['behavioral_interview']) and 'behavioral_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_behavioral">Behavioral Interview</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Role Levels to Target</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="intern" 
+                        id="role_intern" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['intern']) and 'intern' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_intern">Intern</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="new_grad" 
+                        id="role_new_grad" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['new_grad']) and 'new_grad' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_new_grad">New Graduate</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="entry_level" 
+                        id="role_entry_level" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['entry_level']) and 'entry_level' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_entry_level">Entry Level</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="student" 
+                        id="role_student" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['student']) and 'student' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_student">Student</label>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>Targeting Strategy:</strong> Auto-pilot will prioritize videos matching these interview types and role levels to reach USA students preparing for tech interviews.
+            </div>
+        </div>
+    </div>
+
     <!-- Save Button -->
     <div class="mt-4">
         <button type="submit" class="btn btn-primary">
