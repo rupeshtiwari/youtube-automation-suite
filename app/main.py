@@ -78,6 +78,8 @@ def update_env_file(settings):
     # Create mapping of keys
     api_keys = settings.get('api_keys', {})
     key_mapping = {
+        'LINKEDIN_CLIENT_ID': api_keys.get('linkedin_client_id', ''),
+        'LINKEDIN_CLIENT_SECRET': api_keys.get('linkedin_client_secret', ''),
         'LINKEDIN_ACCESS_TOKEN': api_keys.get('linkedin_access_token', ''),
         'LINKEDIN_PERSON_URN': api_keys.get('linkedin_person_urn', ''),
         'FACEBOOK_PAGE_ACCESS_TOKEN': api_keys.get('facebook_page_access_token', ''),
@@ -362,6 +364,8 @@ def config():
         
         # Update API keys
         settings['api_keys'] = {
+            'linkedin_client_id': request.form.get('linkedin_client_id', ''),
+            'linkedin_client_secret': request.form.get('linkedin_client_secret', ''),
             'linkedin_access_token': request.form.get('linkedin_access_token', ''),
             'linkedin_person_urn': request.form.get('linkedin_person_urn', ''),
             'facebook_page_access_token': request.form.get('facebook_page_access_token', ''),
@@ -1084,11 +1088,18 @@ def test_connection():
     
     # Simple validation - check if key exists
     if platform == 'linkedin':
+        has_client_id = bool(api_keys.get('linkedin_client_id'))
+        has_client_secret = bool(api_keys.get('linkedin_client_secret'))
         has_token = bool(api_keys.get('linkedin_access_token'))
         has_urn = bool(api_keys.get('linkedin_person_urn'))
+        
+        # Either Client ID + Secret OR Access Token is required
+        has_credentials = (has_client_id and has_client_secret) or has_token
+        is_configured = has_credentials and has_urn
+        
         return jsonify({
-            'success': has_token and has_urn,
-            'message': 'LinkedIn configured' if (has_token and has_urn) else 'Missing LinkedIn credentials'
+            'success': is_configured,
+            'message': 'LinkedIn configured' if is_configured else 'Missing LinkedIn credentials (need Client ID + Secret OR Access Token, and Person URN)'
         })
     elif platform == 'facebook':
         has_token = bool(api_keys.get('facebook_page_access_token'))

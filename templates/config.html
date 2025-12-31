@@ -27,37 +27,36 @@
                 <label class="form-label">Client Secret File</label>
                 <div class="youtube-status mb-3">
                     {% if youtube_status.client_secret_exists %}
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle"></i> 
-                            Client secret file is configured
-                        </div>
-                        {% if youtube_status.configured and youtube_status.channel_name %}
-                            <div class="alert alert-info">
-                                <i class="bi bi-broadcast"></i> 
-                                Connected to channel: <strong>{{ youtube_status.channel_name }}</strong>
-                                {% if youtube_status.channel_id %}
-                                    <br><small>Channel ID: {{ youtube_status.channel_id }}</small>
-                                {% endif %}
-                            </div>
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Client secret file is configured
+                    </div>
+                    {% if youtube_status.configured and youtube_status.channel_name %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-broadcast"></i>
+                        Connected to channel: <strong>{{ youtube_status.channel_name }}</strong>
+                        {% if youtube_status.channel_id %}
+                        <br><small>Channel ID: {{ youtube_status.channel_id }}</small>
                         {% endif %}
+                    </div>
+                    {% endif %}
                     {% else %}
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> 
-                            Client secret file not found. Please upload your client_secret.json file.
-                        </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Client secret file not found. Please upload your client_secret.json file.
+                    </div>
                     {% endif %}
                     {% if youtube_status.error %}
-                        <div class="alert alert-danger">
-                            <i class="bi bi-x-circle"></i> 
-                            Error: {{ youtube_status.error }}
-                        </div>
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle"></i>
+                        Error: {{ youtube_status.error }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="file-upload-area">
                     <form id="clientSecretUploadForm" enctype="multipart/form-data">
                         <div class="input-group">
-                            <input type="file" class="form-control" id="clientSecretFile" 
-                                   accept=".json" required>
+                            <input type="file" class="form-control" id="clientSecretFile" accept=".json" required>
                             <button class="btn btn-primary" type="submit" id="uploadClientSecretBtn">
                                 <i class="bi bi-upload"></i> Upload
                             </button>
@@ -81,16 +80,28 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Access Token</label>
+                    <label class="form-label">LinkedIn Client ID</label>
+                    <input type="text" class="form-control" name="linkedin_client_id"
+                        value="{{ settings.api_keys.linkedin_client_id }}" placeholder="Enter LinkedIn Client ID">
+                    <small class="text-muted">Get from LinkedIn Developer Portal → App → Auth tab</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">LinkedIn Client Secret</label>
+                    <input type="password" class="form-control" name="linkedin_client_secret"
+                        value="{{ settings.api_keys.linkedin_client_secret }}" placeholder="Enter LinkedIn Client Secret">
+                    <small class="text-muted">Get from LinkedIn Developer Portal → App → Auth tab</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">LinkedIn Access Token (Optional - if you have one)</label>
                     <input type="password" class="form-control" name="linkedin_access_token"
-                        value="{{ settings.api_keys.linkedin_access_token }}" placeholder="Enter LinkedIn access token">
-                    <small class="text-muted">Get from LinkedIn Developer Portal</small>
+                        value="{{ settings.api_keys.linkedin_access_token }}" placeholder="Enter LinkedIn access token (optional)">
+                    <small class="text-muted">Optional: If you already have an access token, you can use it directly</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">LinkedIn Person URN</label>
                     <input type="text" class="form-control" name="linkedin_person_urn"
                         value="{{ settings.api_keys.linkedin_person_urn }}" placeholder="urn:li:person:xxxxx">
-                    <small class="text-muted">Format: urn:li:person:xxxxx</small>
+                    <small class="text-muted">Format: urn:li:person:xxxxx (required for posting)</small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Facebook Page Access Token</label>
@@ -274,54 +285,54 @@
 {% block extra_js %}
 <script>
     // Handle client secret file upload
-    document.getElementById('clientSecretUploadForm').addEventListener('submit', function(e) {
+    document.getElementById('clientSecretUploadForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const fileInput = document.getElementById('clientSecretFile');
         const uploadBtn = document.getElementById('uploadClientSecretBtn');
         const statusDiv = document.getElementById('uploadStatus');
-        
+
         if (!fileInput.files.length) {
             statusDiv.innerHTML = '<div class="alert alert-danger">Please select a file</div>';
             statusDiv.style.display = 'block';
             return;
         }
-        
+
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
-        
+
         uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
         statusDiv.style.display = 'none';
-        
+
         fetch('/api/config/upload-client-secret', {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                statusDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+                    statusDiv.style.display = 'block';
+                    fileInput.value = '';
+
+                    // Refresh page after 2 seconds to show updated status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + (data.error || 'Upload failed') + '</div>';
+                    statusDiv.style.display = 'block';
+                }
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+            })
+            .catch(error => {
+                statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + error.message + '</div>';
                 statusDiv.style.display = 'block';
-                fileInput.value = '';
-                
-                // Refresh page after 2 seconds to show updated status
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            } else {
-                statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + (data.error || 'Upload failed') + '</div>';
-                statusDiv.style.display = 'block';
-            }
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
-        })
-        .catch(error => {
-            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ' + error.message + '</div>';
-            statusDiv.style.display = 'block';
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
-        });
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+            });
     });
 
     function testConnections() {
