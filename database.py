@@ -139,8 +139,8 @@ def insert_or_update_video(video_data: Dict[str, Any]) -> int:
         INSERT OR REPLACE INTO videos (
             video_id, playlist_id, playlist_name, title, description, tags,
             youtube_schedule_date, youtube_published_date, privacy_status,
-            video_type, role, youtube_url, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            video_type, role, custom_tags, youtube_url, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ''', (
         video_data.get('video_id'),
         video_data.get('playlist_id'),
@@ -153,6 +153,7 @@ def insert_or_update_video(video_data: Dict[str, Any]) -> int:
         video_data.get('privacy_status'),
         video_data.get('video_type'),
         video_data.get('role'),
+        video_data.get('custom_tags'),
         video_data.get('youtube_url')
     ))
     
