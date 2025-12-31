@@ -12,37 +12,37 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
             rel="stylesheet">
         <style>
-        :root {
-            /* Buffer-inspired colors - Light Mode */
-            --buffer-primary: #1a1a1a;
-            --buffer-text: #2c3e50;
-            --buffer-text-light: #6c757d;
-            --buffer-bg: #ffffff;
-            --buffer-bg-light: #f8f9fa;
-            --buffer-border: #e9ecef;
-            --buffer-hover: #f1f3f5;
-            --buffer-card-bg: #ffffff;
-            --buffer-input-bg: #ffffff;
-            
-            /* Platform colors */
-            --linkedin: #0077b5;
-            --facebook: #1877f2;
-            --instagram: #e4405f;
-            --youtube: #ff0000;
-        }
+            :root {
+                /* Buffer-inspired colors - Light Mode */
+                --buffer-primary: #1a1a1a;
+                --buffer-text: #2c3e50;
+                --buffer-text-light: #6c757d;
+                --buffer-bg: #ffffff;
+                --buffer-bg-light: #f8f9fa;
+                --buffer-border: #e9ecef;
+                --buffer-hover: #f1f3f5;
+                --buffer-card-bg: #ffffff;
+                --buffer-input-bg: #ffffff;
 
-        [data-theme="dark"] {
-            /* Dark Mode Colors */
-            --buffer-primary: #ffffff;
-            --buffer-text: #e5e7eb;
-            --buffer-text-light: #9ca3af;
-            --buffer-bg: #111827;
-            --buffer-bg-light: #1f2937;
-            --buffer-border: #374151;
-            --buffer-hover: #374151;
-            --buffer-card-bg: #1f2937;
-            --buffer-input-bg: #111827;
-        }
+                /* Platform colors */
+                --linkedin: #0077b5;
+                --facebook: #1877f2;
+                --instagram: #e4405f;
+                --youtube: #ff0000;
+            }
+
+            [data-theme="dark"] {
+                /* Dark Mode Colors */
+                --buffer-primary: #ffffff;
+                --buffer-text: #e5e7eb;
+                --buffer-text-light: #9ca3af;
+                --buffer-bg: #111827;
+                --buffer-bg-light: #1f2937;
+                --buffer-border: #374151;
+                --buffer-hover: #374151;
+                --buffer-card-bg: #1f2937;
+                --buffer-input-bg: #111827;
+            }
 
             * {
                 margin: 0;
@@ -50,36 +50,36 @@
                 box-sizing: border-box;
             }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--buffer-bg-light);
-            color: var(--buffer-text);
-            font-size: 14px;
-            line-height: 1.5;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: var(--buffer-bg-light);
+                color: var(--buffer-text);
+                font-size: 14px;
+                line-height: 1.5;
+                transition: background-color 0.3s ease, color 0.3s ease;
+            }
 
-        /* Sidebar Navigation - Buffer Style */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 240px;
-            height: 100vh;
-            background: var(--buffer-bg);
-            border-right: 1px solid var(--buffer-border);
-            padding: 24px 0;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
+            /* Sidebar Navigation - Buffer Style */
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 240px;
+                height: 100vh;
+                background: var(--buffer-bg);
+                border-right: 1px solid var(--buffer-border);
+                padding: 24px 0;
+                overflow-y: auto;
+                z-index: 1000;
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
 
-        .sidebar-brand {
-            padding: 0 24px 32px;
-            border-bottom: 1px solid var(--buffer-border);
-            margin-bottom: 24px;
-            transition: border-color 0.3s ease;
-        }
+            .sidebar-brand {
+                padding: 0 24px 32px;
+                border-bottom: 1px solid var(--buffer-border);
+                margin-bottom: 24px;
+                transition: border-color 0.3s ease;
+            }
 
             .sidebar-brand h1 {
                 font-size: 20px;
@@ -134,26 +134,26 @@
                 background: var(--buffer-bg-light);
             }
 
-        /* Top Bar */
-        .top-bar {
-            background: var(--buffer-bg);
-            border-bottom: 1px solid var(--buffer-border);
-            padding: 16px 32px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+            /* Top Bar */
+            .top-bar {
+                background: var(--buffer-bg);
+                border-bottom: 1px solid var(--buffer-border);
+                padding: 16px 32px;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-        .top-bar h2 {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--buffer-text);
-            margin: 0;
-        }
+            .top-bar h2 {
+                font-size: 24px;
+                font-weight: 600;
+                color: var(--buffer-text);
+                margin: 0;
+            }
 
             /* Content Container */
             .content-container {
@@ -161,27 +161,27 @@
                 max-width: 1400px;
             }
 
-        /* Cards - Buffer Style */
-        .card {
-            background: var(--buffer-card-bg);
-            border: 1px solid var(--buffer-border);
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: none;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
+            /* Cards - Buffer Style */
+            .card {
+                background: var(--buffer-card-bg);
+                border: 1px solid var(--buffer-border);
+                border-radius: 8px;
+                padding: 24px;
+                margin-bottom: 24px;
+                box-shadow: none;
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
 
-        .card-header {
-            background: transparent;
-            border-bottom: 1px solid var(--buffer-border);
-            padding: 0 0 16px;
-            margin-bottom: 16px;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--buffer-text);
-            transition: color 0.3s ease, border-color 0.3s ease;
-        }
+            .card-header {
+                background: transparent;
+                border-bottom: 1px solid var(--buffer-border);
+                padding: 0 0 16px;
+                margin-bottom: 16px;
+                font-weight: 600;
+                font-size: 16px;
+                color: var(--buffer-text);
+                transition: color 0.3s ease, border-color 0.3s ease;
+            }
 
             /* Buttons - Buffer Style */
             .btn {
@@ -415,38 +415,38 @@
                         Settings
                     </a>
                 </li>
-            <li>
-                <a href="/docs" id="nav-docs">
-                    <i class="bi bi-book"></i>
-                    Help
-                </a>
-            </li>
-        </ul>
+                <li>
+                    <a href="/docs" id="nav-docs">
+                        <i class="bi bi-book"></i>
+                        Help
+                    </a>
+                </li>
+            </ul>
 
-        <!-- Theme Switcher -->
-        <div class="theme-switcher" onclick="toggleThemeMenu()">
-            <i class="bi bi-circle-half" id="theme-icon"></i>
-            <span id="theme-text">System</span>
-        </div>
+            <!-- Theme Switcher -->
+            <div class="theme-switcher" onclick="toggleThemeMenu()">
+                <i class="bi bi-circle-half" id="theme-icon"></i>
+                <span id="theme-text">System</span>
+            </div>
 
-        <div class="theme-menu" id="theme-menu">
-            <div class="theme-option" onclick="setTheme('light')">
-                <i class="bi bi-sun"></i>
-                <span>Light</span>
-                <i class="bi bi-check ms-auto" id="check-light" style="display: none;"></i>
+            <div class="theme-menu" id="theme-menu">
+                <div class="theme-option" onclick="setTheme('light')">
+                    <i class="bi bi-sun"></i>
+                    <span>Light</span>
+                    <i class="bi bi-check ms-auto" id="check-light" style="display: none;"></i>
+                </div>
+                <div class="theme-option" onclick="setTheme('dark')">
+                    <i class="bi bi-moon"></i>
+                    <span>Dark</span>
+                    <i class="bi bi-check ms-auto" id="check-dark" style="display: none;"></i>
+                </div>
+                <div class="theme-option active" onclick="setTheme('system')">
+                    <i class="bi bi-circle-half"></i>
+                    <span>System</span>
+                    <i class="bi bi-check ms-auto" id="check-system"></i>
+                </div>
             </div>
-            <div class="theme-option" onclick="setTheme('dark')">
-                <i class="bi bi-moon"></i>
-                <span>Dark</span>
-                <i class="bi bi-check ms-auto" id="check-dark" style="display: none;"></i>
-            </div>
-            <div class="theme-option active" onclick="setTheme('system')">
-                <i class="bi bi-circle-half"></i>
-                <span>System</span>
-                <i class="bi bi-check ms-auto" id="check-system"></i>
-            </div>
-        </div>
-    </nav>
+        </nav>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -467,7 +467,7 @@
 
             function applyTheme(theme) {
                 const html = document.documentElement;
-                
+
                 if (theme === 'system') {
                     const systemTheme = getSystemTheme();
                     html.setAttribute('data-theme', systemTheme);
@@ -492,14 +492,14 @@
                 document.getElementById('check-light').style.display = theme === 'light' ? 'inline' : 'none';
                 document.getElementById('check-dark').style.display = theme === 'dark' ? 'inline' : 'none';
                 document.getElementById('check-system').style.display = theme === 'system' ? 'inline' : 'none';
-                
+
                 // Update active class
                 document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
                 const activeOption = theme === 'light' ? document.querySelectorAll('.theme-option')[0] :
-                                    theme === 'dark' ? document.querySelectorAll('.theme-option')[1] :
-                                    document.querySelectorAll('.theme-option')[2];
+                    theme === 'dark' ? document.querySelectorAll('.theme-option')[1] :
+                        document.querySelectorAll('.theme-option')[2];
                 if (activeOption) activeOption.classList.add('active');
-                
+
                 // Update icon and text
                 const icon = document.getElementById('theme-icon');
                 const text = document.getElementById('theme-text');
@@ -558,7 +558,7 @@
             });
 
             // Close theme menu when clicking outside
-            document.addEventListener('click', function(event) {
+            document.addEventListener('click', function (event) {
                 const themeSwitcher = document.querySelector('.theme-switcher');
                 const themeMenu = document.getElementById('theme-menu');
                 if (themeSwitcher && themeMenu && !themeSwitcher.contains(event.target) && !themeMenu.contains(event.target)) {

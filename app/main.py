@@ -6,6 +6,7 @@ Provides a web interface to configure API keys and schedule daily automation.
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 import json
 import os
+import sys
 import subprocess
 import threading
 import time
@@ -14,6 +15,12 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.database import init_database
+from app import views
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -822,7 +829,7 @@ def calendar():
 @app.route('/api/calendar-data')
 def api_calendar_data():
     """API endpoint for calendar data (JSON)."""
-    from database import get_videos_for_export
+    from app.database import get_videos_for_export
     import pandas as pd
     
     try:
