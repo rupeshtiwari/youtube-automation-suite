@@ -38,6 +38,10 @@ automation_settings.json
 *.db-wal
 *.db-shm
 
+# Data directory (runtime files)
+data/
+*.xlsx
+
 # OS
 .DS_Store
 Thumbs.db

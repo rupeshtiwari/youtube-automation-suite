@@ -143,7 +143,7 @@ def fetch_playlist_videos_from_youtube(youtube, playlist_id: str) -> List[Dict[s
 
 def get_video_social_posts_from_db(video_id: str) -> Dict[str, Any]:
     """Get social media posts for a video from database."""
-    from database import get_db_connection
+    from app.database import get_db_connection
     
     conn = get_db_connection()
     cursor = conn.cursor()
