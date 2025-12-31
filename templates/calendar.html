@@ -479,9 +479,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dateStr = event.date + 'T' + timeStr;
                 const platformLower = event.platform.toLowerCase();
                 
+                // Create a more descriptive title with video details
+                const typeLabel = event.video_type ? `[${event.video_type}] ` : '';
+                const roleLabel = event.role ? `[${event.role}] ` : '';
+                const titleShort = event.video_title.length > 40 ? event.video_title.substring(0, 40) + '...' : event.video_title;
+                
                 return {
                     id: event.video_id + '-' + platformLower,
-                    title: `${event.platform}: ${event.video_title}`,
+                    title: `${event.platform}: ${typeLabel}${roleLabel}${titleShort}`,
                     start: dateStr,
                     backgroundColor: platformLower === 'linkedin' ? '#0077b5' : 
                                    (platformLower === 'facebook' ? '#1877f2' : '#e4405f'),
@@ -495,7 +500,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         post_content: event.post_content,
                         status: event.status,
                         date: event.date,
-                        time: event.time
+                        time: event.time,
+                        video_type: event.video_type || '',
+                        role: event.role || '',
+                        custom_tags: event.custom_tags || '',
+                        playlist_name: event.playlist_name || '',
+                        channel_name: event.channel_name || '',
+                        description: event.description || ''
                     },
                     className: `fc-event-${platformLower}`
                 };
