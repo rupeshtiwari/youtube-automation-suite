@@ -113,6 +113,28 @@ def init_database():
         )
     ''')
     
+    # Activity logs table - tracks individual actions (detailed activity log)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action_type TEXT NOT NULL,
+            platform TEXT,
+            video_id TEXT,
+            video_title TEXT,
+            playlist_id TEXT,
+            playlist_name TEXT,
+            status TEXT NOT NULL,
+            message TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Add indexes for activity logs
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_action_type ON activity_logs(action_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_platform ON activity_logs(platform)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_created_at ON activity_logs(created_at)')
+    
     # Create indexes for better performance
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_playlist_id ON videos(playlist_id)')
@@ -369,6 +391,81 @@ def get_recent_logs(limit: int = 10) -> List[Dict[str, Any]]:
     conn.close()
     
     return [dict(row) for row in rows]
+
+
+def log_activity(action_type: str, platform: Optional[str] = None,
+                video_id: Optional[str] = None, video_title: Optional[str] = None,
+                playlist_id: Optional[str] = None, playlist_name: Optional[str] = None,
+                status: str = 'success', message: str = '', details: Optional[str] = None):
+    """Log individual activity/action."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Convert details to JSON string if it's a dict
+    if details and isinstance(details, dict):
+        details = json.dumps(details)
+    
+    cursor.execute('''
+        INSERT INTO activity_logs (
+            action_type, platform, video_id, video_title, playlist_id, 
+            playlist_name, status, message, details
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (action_type, platform, video_id, video_title, playlist_id, 
+          playlist_name, status, message, details))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_activity_logs(limit: int = 100, platform: Optional[str] = None,
+                     action_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get activity logs with optional filters."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = 'SELECT * FROM activity_logs WHERE 1=1'
+    params = []
+    
+    if platform:
+        query += ' AND platform = ?'
+        params.append(platform)
+    
+    if action_type:
+        query += ' AND action_type = ?'
+        params.append(action_type)
+    
+    query += ' ORDER BY created_at DESC LIMIT ?'
+    params.append(limit)
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_scheduled_count_today(platform: str, date: Optional[str] = None) -> int:
+    """Get count of posts scheduled today for a platform."""
+    from datetime import datetime
+    
+    if not date:
+        date = datetime.now().strftime('%Y-%m-%d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT COUNT(*) as count FROM activity_logs
+        WHERE platform = ? 
+        AND action_type = 'schedule_post'
+        AND status = 'success'
+        AND DATE(created_at) = DATE(?)
+    ''', (platform, date))
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    return result['count'] if result else 0
 
 
 def export_to_excel(output_path: str, playlist_id: Optional[str] = None):

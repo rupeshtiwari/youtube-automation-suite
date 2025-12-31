@@ -323,6 +323,45 @@
         </div>
     </div>
 
+    <!-- Threshold Settings -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-speedometer2"></i> Daily Posting Limits (Thresholds)
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Set daily limits for each platform to stay within API rate limits and best practices. Auto-pilot mode will respect these thresholds.</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">LinkedIn Daily Limit</label>
+                    <input type="number" class="form-control" name="linkedin_daily_limit"
+                        value="{{ settings.thresholds.linkedin_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
+                    <small class="text-muted">Recommended: 25 posts/day (LinkedIn limit)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Facebook Daily Limit</label>
+                    <input type="number" class="form-control" name="facebook_daily_limit"
+                        value="{{ settings.thresholds.facebook_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
+                    <small class="text-muted">Recommended: 25 posts/day (Facebook limit)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Instagram Daily Limit</label>
+                    <input type="number" class="form-control" name="instagram_daily_limit"
+                        value="{{ settings.thresholds.instagram_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
+                    <small class="text-muted">Recommended: 25 posts/day (Instagram limit)</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">YouTube Daily Limit</label>
+                    <input type="number" class="form-control" name="youtube_daily_limit"
+                        value="{{ settings.thresholds.youtube_daily_limit if settings.thresholds else 10 }}" min="1" max="20">
+                    <small class="text-muted">Recommended: 10 videos/day (YouTube limit)</small>
+                </div>
+            </div>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> These limits prevent exceeding platform rate limits. Auto-pilot mode will respect these thresholds.
+            </div>
+        </div>
+    </div>
+
     <!-- Save Button -->
     <div class="mt-4">
         <button type="submit" class="btn btn-primary">

@@ -64,10 +64,16 @@ def load_settings():
             'social_media_schedule_time': '19:30',  # 7:30 PM IST
             'schedule_day': 'wednesday',  # Day of week
             'playlist_id': '',
-        'export_type': 'shorts',  # 'all' or 'shorts'
-        'use_database': True,  # Use SQLite database instead of Excel
-        'auto_post_social': False,
-        'social_platforms': ['linkedin', 'facebook', 'instagram']
+            'export_type': 'shorts',  # 'all' or 'shorts'
+            'use_database': True,  # Use SQLite database instead of Excel
+            'auto_post_social': False,
+            'social_platforms': ['linkedin', 'facebook', 'instagram']
+        },
+        'thresholds': {
+            'linkedin_daily_limit': 25,  # LinkedIn allows ~25 posts/day
+            'facebook_daily_limit': 25,  # Facebook allows ~25 posts/day
+            'instagram_daily_limit': 25,  # Instagram allows ~25 posts/day
+            'youtube_daily_limit': 10  # YouTube allows ~10 videos/day
         },
         'last_run': None,
         'next_run': None
@@ -408,6 +414,14 @@ def config():
             'social_platforms': request.form.getlist('social_platforms'),
         }
         
+        # Update thresholds
+        settings['thresholds'] = {
+            'linkedin_daily_limit': int(request.form.get('linkedin_daily_limit', 25)),
+            'facebook_daily_limit': int(request.form.get('facebook_daily_limit', 25)),
+            'instagram_daily_limit': int(request.form.get('instagram_daily_limit', 25)),
+            'youtube_daily_limit': int(request.form.get('youtube_daily_limit', 10)),
+        }
+        
         save_settings(settings)
         schedule_daily_job()
         
@@ -669,7 +683,7 @@ def fetch_playlist_videos_from_youtube(youtube, playlist_id: str, channel_title:
 
 def get_video_social_posts_from_db(video_id: str):
     """Get social media posts for a video from database."""
-    from database import get_db_connection
+    from app.database import get_db_connection
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -685,6 +699,7 @@ def get_video_social_posts_from_db(video_id: str):
         row = cursor.fetchone()
         if row:
             posts[platform] = {
+                'platform': platform,
                 'post_content': row[0],
                 'schedule_date': row[1],
                 'actual_scheduled_date': row[2],
@@ -694,7 +709,8 @@ def get_video_social_posts_from_db(video_id: str):
             posts[platform] = None
     
     conn.close()
-    return posts
+    # Return as list for compatibility
+    return [posts[platform] for platform in ['linkedin', 'facebook', 'instagram'] if posts.get(platform)]
 
 
 @app.route('/playlists')
@@ -989,6 +1005,176 @@ def calculate_optimal_posting_times(youtube_data, facebook_data, linkedin_data):
         return optimal_times
     except Exception as e:
         return {'error': f'Error calculating optimal times: {str(e)}'}
+
+
+@app.route('/activity')
+def activity():
+    """Activity log page showing all automation activities."""
+    from app.database import get_activity_logs
+    
+    # Get activity logs (last 200 by default)
+    logs = get_activity_logs(limit=200)
+    
+    return render_template('activity.html', logs=logs)
+
+
+@app.route('/api/autopilot/run', methods=['POST'])
+def api_autopilot_run():
+    """Run auto-pilot mode: select one video from each playlist and schedule on all channels."""
+    try:
+        from app.database import (
+            log_activity, get_scheduled_count_today,
+            insert_or_update_social_post, get_video, get_video_social_posts_from_db
+        )
+        
+        settings = load_settings()
+        thresholds = settings.get('thresholds', {})
+        platforms = settings.get('scheduling', {}).get('social_platforms', ['linkedin', 'facebook', 'instagram'])
+        
+        youtube = get_youtube_service()
+        if not youtube:
+            return jsonify({'error': 'YouTube API not configured'}), 400
+        
+        channel_id = get_my_channel_id_helper(youtube)
+        if not channel_id:
+            return jsonify({'error': 'Could not find YouTube channel'}), 400
+        
+        # Get all playlists
+        playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
+        
+        # Filter to Shorts playlists only (you can change this filter)
+        shorts_playlists = [pl for pl in playlists_data if "short" in pl.get("playlistTitle", "").lower()]
+        
+        if not shorts_playlists:
+            return jsonify({'error': 'No playlists found'}), 400
+        
+        selected_videos = []
+        activities = []
+        today_str = datetime.now(IST).strftime('%Y-%m-%d')
+        
+        # Select one video from each playlist
+        for playlist in shorts_playlists:
+            playlist_id = playlist['playlistId']
+            videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, playlist.get('channelTitle', ''))
+            
+            if videos:
+                # Select first video
+                selected_video = videos[0]
+                video_id = selected_video['videoId']
+                selected_videos.append({
+                    'video': selected_video,
+                    'playlist_id': playlist_id,
+                    'playlist_name': playlist.get('playlistTitle', '')
+                })
+        
+        # Schedule selected videos to all platforms (respecting thresholds)
+        scheduled_count = 0
+        for item in selected_videos:
+            video = item['video']
+            video_id = video['videoId']
+            video_title = video.get('title', '')
+            playlist_id = item['playlist_id']
+            playlist_name = item['playlist_name']
+            
+            # Get existing social posts or generate new ones
+            existing_posts = get_video_social_posts_from_db(video_id)
+            
+            # Get or generate social media posts
+            for platform in platforms:
+                # Check threshold
+                platform_limit_key = f'{platform}_daily_limit'
+                daily_limit = thresholds.get(platform_limit_key, 25)
+                scheduled_today = get_scheduled_count_today(platform, today_str)
+                
+                if scheduled_today >= daily_limit:
+                    log_activity(
+                        'schedule_post',
+                        platform=platform,
+                        video_id=video_id,
+                        video_title=video_title,
+                        playlist_id=playlist_id,
+                        playlist_name=playlist_name,
+                        status='skipped',
+                        message=f'Daily limit reached ({scheduled_today}/{daily_limit})'
+                    )
+                    activities.append({
+                        'action': 'skipped',
+                        'platform': platform,
+                        'video_title': video_title,
+                        'reason': f'Daily limit reached'
+                    })
+                    continue
+                
+                # Get existing post content or use placeholder
+                post_content = None
+                for post in existing_posts:
+                    if post.get('platform') == platform:
+                        post_content = post.get('post_content', '')
+                        break
+                
+                if not post_content:
+                    # Generate simple post content
+                    db_video = get_video(video_id)
+                    title = db_video.get('title', video_title) if db_video else video_title
+                    description = db_video.get('description', video.get('description', '')) if db_video else video.get('description', '')
+                    youtube_url = f"https://youtube.com/watch?v={video_id}"
+                    post_content = f"{title}\n\n{youtube_url}"
+                
+                # Calculate schedule date (next scheduled day/time)
+                schedule_time = settings.get('scheduling', {}).get('social_media_schedule_time', '19:30')
+                schedule_day = settings.get('scheduling', {}).get('schedule_day', 'wednesday')
+                
+                # Calculate next occurrence
+                today = datetime.now(IST)
+                days_ahead = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 
+                             'friday': 4, 'saturday': 5, 'sunday': 6}[schedule_day.lower()]
+                next_date = today + timedelta(days=(days_ahead - today.weekday()) % 7)
+                if next_date <= today:
+                    next_date += timedelta(days=7)
+                
+                schedule_datetime = f"{next_date.strftime('%Y-%m-%d')} {schedule_time}"
+                
+                # Save to database
+                insert_or_update_social_post(video_id, platform, {
+                    'post_content': post_content,
+                    'schedule_date': schedule_datetime,
+                    'status': 'pending'
+                })
+                
+                log_activity(
+                    'schedule_post',
+                    platform=platform,
+                    video_id=video_id,
+                    video_title=video_title,
+                    playlist_id=playlist_id,
+                    playlist_name=playlist_name,
+                    status='success',
+                    message=f'Scheduled for {schedule_datetime}',
+                    details={'schedule_date': schedule_datetime}
+                )
+                
+                activities.append({
+                    'action': 'scheduled',
+                    'platform': platform,
+                    'video_title': video_title,
+                    'schedule_date': schedule_datetime
+                })
+                scheduled_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'Auto-pilot completed: {len(selected_videos)} videos selected, {scheduled_count} posts scheduled',
+            'activities': activities,
+            'videos_selected': len(selected_videos),
+            'posts_scheduled': scheduled_count
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/playlist/<playlist_id>/videos')

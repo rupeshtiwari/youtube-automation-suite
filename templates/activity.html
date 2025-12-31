@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Log - YouTube Automation{% endblock %}
+
+{% block page_title %}Activity Log{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-activity"></i> All Activities
+                    </h5>
+                    <button class="btn btn-sm btn-primary" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if logs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Action</th>
+                                    <th>Platform</th>
+                                    <th>Video</th>
+                                    <th>Playlist</th>
+                                    <th>Status</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>
+                                        <small>{{ log.created_at }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ log.action_type }}</span>
+                                    </td>
+                                    <td>
+                                        {% if log.platform %}
+                                        <span class="badge bg-primary">{{ log.platform|upper }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.video_title %}
+                                        <a href="https://youtube.com/watch?v={{ log.video_id }}" target="_blank">
+                                            {{ log.video_title[:50] }}{% if log.video_title|length > 50 %}...{% endif %}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.playlist_name %}
+                                        {{ log.playlist_name[:30] }}{% if log.playlist_name|length > 30 %}...{% endif %}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.status == 'success' %}
+                                        <span class="badge bg-success">{{ log.status }}</span>
+                                        {% elif log.status == 'error' %}
+                                        <span class="badge bg-danger">{{ log.status }}</span>
+                                        {% elif log.status == 'skipped' %}
+                                        <span class="badge bg-warning">{{ log.status }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ log.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ log.message }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No activity logs found. Activity will appear here when you run auto-pilot or other automation tasks.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
