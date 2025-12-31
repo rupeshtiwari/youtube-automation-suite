@@ -774,6 +774,219 @@ def shorts():
         return render_template('error.html', message=f"Error fetching Shorts: {str(e)}\n{traceback.format_exc()}")
 
 
+@app.route('/insights')
+def insights():
+    """Rich insights dashboard showing analytics from all platforms."""
+    try:
+        # Get YouTube Analytics if available
+        youtube_analytics = get_youtube_analytics()
+        
+        # Get Facebook Insights if available
+        facebook_insights = get_facebook_insights()
+        
+        # Get LinkedIn Analytics if available
+        linkedin_analytics = get_linkedin_analytics()
+        
+        # Combine all insights
+        insights_data = {
+            'youtube': youtube_analytics,
+            'facebook': facebook_insights,
+            'linkedin': linkedin_analytics,
+            'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics)
+        }
+        
+        return render_template('insights.html', insights=insights_data)
+    except Exception as e:
+        import traceback
+        return render_template('error.html', message=f"Error loading insights: {str(e)}\n{traceback.format_exc()}")
+
+
+def get_youtube_analytics():
+    """Get YouTube Analytics data."""
+    try:
+        youtube = get_youtube_service()
+        if not youtube:
+            return {'error': 'YouTube API not configured'}
+        
+        # Need YouTube Analytics API (different from Data API)
+        from googleapiclient.discovery import build
+        from google.oauth2.credentials import Credentials
+        import os
+        
+        SCOPES_ANALYTICS = ["https://www.googleapis.com/auth/yt-analytics.readonly"]
+        TOKEN_FILE = "token.json"
+        
+        creds = None
+        if os.path.exists(TOKEN_FILE):
+            from google.oauth2.credentials import Credentials
+            # Try to load with analytics scope
+            try:
+                creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES_ANALYTICS)
+            except:
+                # If token doesn't have analytics scope, return error
+                return {'error': 'YouTube Analytics API not authenticated. Please re-authenticate with analytics scope.'}
+        
+        if not creds or not creds.valid:
+            return {'error': 'YouTube Analytics not authenticated'}
+        
+        analytics = build('youtubeAnalytics', 'v2', credentials=creds)
+        channel_id = get_my_channel_id_helper(youtube)
+        
+        if not channel_id:
+            return {'error': 'Channel ID not found'}
+        
+        # Get views, watch time, subscribers
+        end_date = datetime.now(IST).strftime('%Y-%m-%d')
+        start_date = (datetime.now(IST) - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        try:
+            # Views and watch time
+            views_response = analytics.reports().query(
+                ids=f'channel=={channel_id}',
+                startDate=start_date,
+                endDate=end_date,
+                metrics='views,estimatedMinutesWatched,subscribersGained',
+                dimensions='day'
+            ).execute()
+            
+            # Demographics - Geography
+            geo_response = analytics.reports().query(
+                ids=f'channel=={channel_id}',
+                startDate=start_date,
+                endDate=end_date,
+                metrics='views',
+                dimensions='country'
+            ).execute()
+            
+            # Demographics - Age and Gender
+            demo_response = analytics.reports().query(
+                ids=f'channel=={channel_id}',
+                startDate=start_date,
+                endDate=end_date,
+                metrics='views',
+                dimensions='ageGroup,gender'
+            ).execute()
+            
+            # Audience activity by hour
+            hourly_response = analytics.reports().query(
+                ids=f'channel=={channel_id}',
+                startDate=start_date,
+                endDate=end_date,
+                metrics='views',
+                dimensions='day,hour'
+            ).execute()
+            
+            return {
+                'views_data': views_response.get('rows', []),
+                'geography': geo_response.get('rows', []),
+                'demographics': demo_response.get('rows', []),
+                'hourly_activity': hourly_response.get('rows', []),
+                'channel_id': channel_id
+            }
+        except Exception as e:
+            return {'error': f'YouTube Analytics API error: {str(e)}', 'note': 'YouTube Analytics API may need to be enabled in Google Cloud Console'}
+    except Exception as e:
+        return {'error': f'Error getting YouTube Analytics: {str(e)}'}
+
+
+def get_facebook_insights():
+    """Get Facebook Page Insights."""
+    try:
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        page_id = api_keys.get('facebook_page_id', '')
+        access_token = api_keys.get('facebook_page_access_token', '')
+        
+        if not page_id or not access_token:
+            return {'error': 'Facebook credentials not configured'}
+        
+        import requests
+        
+        # Get page insights
+        url = f'https://graph.facebook.com/v18.0/{page_id}/insights'
+        params = {
+            'metric': 'page_impressions,page_reach,page_engaged_users,page_fans',
+            'period': 'day',
+            'since': int((datetime.now(IST) - timedelta(days=30)).timestamp()),
+            'until': int(datetime.now(IST).timestamp()),
+            'access_token': access_token
+        }
+        
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            return {'insights': data.get('data', [])}
+        else:
+            return {'error': f'Facebook API error: {response.text}'}
+    except Exception as e:
+        return {'error': f'Error getting Facebook Insights: {str(e)}'}
+
+
+def get_linkedin_analytics():
+    """Get LinkedIn Analytics data."""
+    try:
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        access_token = api_keys.get('linkedin_access_token', '')
+        
+        if not access_token:
+            return {'error': 'LinkedIn credentials not configured'}
+        
+        import requests
+        
+        # LinkedIn Analytics API endpoint
+        url = 'https://api.linkedin.com/v2/analytics'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Note: LinkedIn Analytics API requires specific permissions
+        # This is a placeholder - actual implementation depends on LinkedIn API version
+        return {'note': 'LinkedIn Analytics requires specific API access', 'error': 'Not fully implemented'}
+    except Exception as e:
+        return {'error': f'Error getting LinkedIn Analytics: {str(e)}'}
+
+
+def calculate_optimal_posting_times(youtube_data, facebook_data, linkedin_data):
+    """Calculate optimal posting times based on audience activity."""
+    optimal_times = {
+        'youtube': None,
+        'facebook': None,
+        'linkedin': None,
+        'overall': None
+    }
+    
+    try:
+        # Analyze YouTube hourly activity
+        if youtube_data and 'hourly_activity' in youtube_data and youtube_data.get('hourly_activity'):
+            hourly_views = {}
+            for row in youtube_data['hourly_activity']:
+                hour = row[1] if len(row) > 1 else 0
+                views = row[2] if len(row) > 2 else 0
+                hourly_views[hour] = hourly_views.get(hour, 0) + views
+            
+            if hourly_views:
+                best_hour = max(hourly_views.items(), key=lambda x: x[1])[0]
+                optimal_times['youtube'] = {
+                    'hour': best_hour,
+                    'best_times': sorted(hourly_views.items(), key=lambda x: x[1], reverse=True)[:3]
+                }
+        
+        # Analyze Facebook insights for best posting times
+        if facebook_data and 'insights' in facebook_data:
+            # Facebook provides insights data - would need to parse for time patterns
+            optimal_times['facebook'] = {'note': 'Analyze Facebook insights data for time patterns'}
+        
+        # Overall recommendation
+        if optimal_times['youtube']:
+            optimal_times['overall'] = optimal_times['youtube']
+        
+        return optimal_times
+    except Exception as e:
+        return {'error': f'Error calculating optimal times: {str(e)}'}
+
+
 @app.route('/api/playlist/<playlist_id>/videos')
 def api_playlist_videos(playlist_id):
     """API endpoint to fetch videos for a playlist (lazy loading)."""
