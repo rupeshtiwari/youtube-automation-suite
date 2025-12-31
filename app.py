@@ -648,19 +648,12 @@ def playlists():
         playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
         channel_title = playlists_data[0].get("channelTitle", "") if playlists_data else ""
         
-        # Get videos for all playlists (load on demand in template)
-        # We'll load videos when playlist is expanded
+        # Videos will be loaded on demand via AJAX
         for playlist in playlists_data:
-            playlist["videos"] = []  # Will be loaded on demand
+            playlist["videos"] = []
             playlist["videosLoaded"] = False
-            
-            # Add social media posts from database
-            for video in videos:
-                video_id = video["videoId"]
-                social_posts = get_video_social_posts_from_db(video_id)
-                video["social_posts"] = social_posts
         
-        return render_template('playlists.html', playlists=playlists_data)
+        return render_template('playlists.html', playlists=playlists_data, channel_title=channel_title)
     except Exception as e:
         import traceback
         return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
