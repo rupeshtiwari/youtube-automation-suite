@@ -406,6 +406,344 @@ def run_now():
     return jsonify({'status': 'started', 'message': 'Automation started in background'})
 
 
+def get_my_channel_id_helper(youtube):
+    """Helper to get channel ID."""
+    try:
+        resp = youtube.channels().list(part="id", mine=True).execute()
+        items = resp.get("items", [])
+        if not items:
+            return None
+        return items[0]["id"]
+    except:
+        return None
+
+
+def get_youtube_service():
+    """Get YouTube API service."""
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+        
+        SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
+        CLIENT_SECRET_FILE = "client_secret.json"
+        TOKEN_FILE = "token.json"
+        
+        creds = None
+        if os.path.exists(TOKEN_FILE):
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if not os.path.exists(CLIENT_SECRET_FILE):
+                    return None
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)
+            
+            with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+                f.write(creds.to_json())
+        
+        return build("youtube", "v3", credentials=creds)
+    except Exception as e:
+        print(f"Error getting YouTube service: {e}")
+        return None
+
+
+def fetch_all_playlists_from_youtube(youtube, channel_id: str):
+    """Fetch all playlists from YouTube."""
+    playlists = []
+    page_token = None
+    
+    while True:
+        try:
+            if page_token:
+                response = youtube.playlists().list(
+                    part="id,snippet,contentDetails",
+                    channelId=channel_id,
+                    maxResults=50,
+                    pageToken=page_token
+                ).execute()
+            else:
+                response = youtube.playlists().list(
+                    part="id,snippet,contentDetails",
+                    channelId=channel_id,
+                    maxResults=50
+                ).execute()
+            
+            for pl in response.get("items", []):
+                snippet = pl.get("snippet", {})
+                playlists.append({
+                    "playlistId": pl["id"],
+                    "playlistTitle": snippet.get("title", ""),
+                    "playlistDescription": snippet.get("description", ""),
+                    "playlistUrl": f"https://www.youtube.com/playlist?list={pl['id']}",
+                    "itemCount": pl.get("contentDetails", {}).get("itemCount", 0),
+                    "publishedAt": snippet.get("publishedAt", ""),
+                    "thumbnail": snippet.get("thumbnails", {}).get("default", {}).get("url", "")
+                })
+            
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+        except Exception as e:
+            print(f"Error fetching playlists: {e}")
+            break
+    
+    return playlists
+
+
+def fetch_playlist_videos_from_youtube(youtube, playlist_id: str):
+    """Fetch all videos in a playlist from YouTube."""
+    videos = []
+    page_token = None
+    
+    while True:
+        try:
+            if page_token:
+                response = youtube.playlistItems().list(
+                    part="id,snippet,contentDetails",
+                    playlistId=playlist_id,
+                    maxResults=50,
+                    pageToken=page_token
+                ).execute()
+            else:
+                response = youtube.playlistItems().list(
+                    part="id,snippet,contentDetails",
+                    playlistId=playlist_id,
+                    maxResults=50
+                ).execute()
+            
+            video_ids = [item["contentDetails"]["videoId"] for item in response.get("items", [])]
+            
+            if video_ids:
+                # Get video details in batches
+                for i in range(0, len(video_ids), 50):
+                    batch = video_ids[i:i+50]
+                    videos_response = youtube.videos().list(
+                        part="id,snippet,status",
+                        id=",".join(batch),
+                        maxResults=50
+                    ).execute()
+                    
+                    for video in videos_response.get("items", []):
+                        snippet = video.get("snippet", {})
+                        status = video.get("status", {})
+                        video_id = video["id"]
+                        
+                        videos.append({
+                            "videoId": video_id,
+                            "title": snippet.get("title", ""),
+                            "description": snippet.get("description", ""),
+                            "thumbnail": snippet.get("thumbnails", {}).get("medium", {}).get("url", ""),
+                            "publishedAt": snippet.get("publishedAt", ""),
+                            "publishAt": status.get("publishAt", ""),
+                            "privacyStatus": status.get("privacyStatus", ""),
+                            "videoUrl": f"https://www.youtube.com/watch?v={video_id}",
+                            "tags": ", ".join(snippet.get("tags", []))
+                        })
+            
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+        except Exception as e:
+            print(f"Error fetching playlist videos: {e}")
+            break
+    
+    return videos
+
+
+def get_video_social_posts_from_db(video_id: str):
+    """Get social media posts for a video from database."""
+    from database import get_db_connection
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    posts = {}
+    for platform in ['linkedin', 'facebook', 'instagram']:
+        cursor.execute('''
+            SELECT post_content, schedule_date, actual_scheduled_date, status
+            FROM social_media_posts
+            WHERE video_id = ? AND platform = ?
+        ''', (video_id, platform))
+        
+        row = cursor.fetchone()
+        if row:
+            posts[platform] = {
+                'post_content': row[0],
+                'schedule_date': row[1],
+                'actual_scheduled_date': row[2],
+                'status': row[3]
+            }
+        else:
+            posts[platform] = None
+    
+    conn.close()
+    return posts
+
+
+@app.route('/playlists')
+def playlists():
+    """Display all playlists and videos."""
+    youtube = get_youtube_service()
+    if not youtube:
+        return render_template('error.html', 
+                             message="YouTube API not configured. Please set up client_secret.json")
+    
+    try:
+        channel_id = get_my_channel_id_helper(youtube)
+        if not channel_id:
+            return render_template('error.html', 
+                                 message="Could not find your YouTube channel. Please check authentication.")
+        
+        playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
+        
+        # Get videos for each playlist (limit to first 10 playlists for performance)
+        for playlist in playlists_data[:10]:  # Limit to 10 playlists for initial load
+            videos = fetch_playlist_videos_from_youtube(youtube, playlist["playlistId"])
+            playlist["videos"] = videos
+            
+            # Add social media posts from database
+            for video in videos:
+                video_id = video["videoId"]
+                social_posts = get_video_social_posts_from_db(video_id)
+                video["social_posts"] = social_posts
+        
+        return render_template('playlists.html', playlists=playlists_data)
+    except Exception as e:
+        import traceback
+        return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
+
+
+@app.route('/calendar')
+def calendar():
+    """Display calendar view of scheduled posts."""
+    from database import get_videos_for_export
+    from datetime import datetime, timedelta
+    import pandas as pd
+    
+    try:
+        # Get all videos with social media posts
+        df = get_videos_for_export()
+        
+        # Prepare calendar data
+        calendar_events = []
+        
+        for _, row in df.iterrows():
+            video_id = row.get('Video Name', '')
+            title = row.get('Title', '')
+            youtube_url = row.get('YouTube URL', '')
+            
+            # LinkedIn
+            linkedin_date = row.get('LinkedIn Schedule Date') or row.get('LinkedIn Actual Scheduled Date')
+            if pd.notna(linkedin_date) and linkedin_date:
+                try:
+                    dt = pd.to_datetime(linkedin_date)
+                    calendar_events.append({
+                        'date': dt.strftime('%Y-%m-%d'),
+                        'time': dt.strftime('%H:%M'),
+                        'platform': 'LinkedIn',
+                        'video_title': title,
+                        'video_id': video_id,
+                        'youtube_url': youtube_url,
+                        'status': row.get('LinkedIn Status', 'pending'),
+                        'post_content': row.get('LinkedIn Post', '')[:100] + '...' if len(str(row.get('LinkedIn Post', ''))) > 100 else row.get('LinkedIn Post', '')
+                    })
+                except:
+                    pass
+            
+            # Facebook
+            facebook_date = row.get('Facebook Schedule Date') or row.get('Facebook Actual Scheduled Date')
+            if pd.notna(facebook_date) and facebook_date:
+                try:
+                    dt = pd.to_datetime(facebook_date)
+                    calendar_events.append({
+                        'date': dt.strftime('%Y-%m-%d'),
+                        'time': dt.strftime('%H:%M'),
+                        'platform': 'Facebook',
+                        'video_title': title,
+                        'video_id': video_id,
+                        'youtube_url': youtube_url,
+                        'status': row.get('Facebook Status', 'pending'),
+                        'post_content': row.get('Facebook Post', '')[:100] + '...' if len(str(row.get('Facebook Post', ''))) > 100 else row.get('Facebook Post', '')
+                    })
+                except:
+                    pass
+            
+            # Instagram
+            instagram_date = row.get('Instagram Schedule Date') or row.get('Instagram Actual Scheduled Date')
+            if pd.notna(instagram_date) and instagram_date:
+                try:
+                    dt = pd.to_datetime(instagram_date)
+                    calendar_events.append({
+                        'date': dt.strftime('%Y-%m-%d'),
+                        'time': dt.strftime('%H:%M'),
+                        'platform': 'Instagram',
+                        'video_title': title,
+                        'video_id': video_id,
+                        'youtube_url': youtube_url,
+                        'status': row.get('Instagram Status', 'pending'),
+                        'post_content': row.get('Instagram Post', '')[:100] + '...' if len(str(row.get('Instagram Post', ''))) > 100 else row.get('Instagram Post', '')
+                    })
+                except:
+                    pass
+        
+        # Sort by date
+        calendar_events.sort(key=lambda x: x['date'] + ' ' + x['time'])
+        
+        return render_template('calendar.html', events=calendar_events)
+    except Exception as e:
+        return render_template('error.html', message=f"Error loading calendar: {str(e)}")
+
+
+@app.route('/api/calendar-data')
+def api_calendar_data():
+    """API endpoint for calendar data (JSON)."""
+    from database import get_videos_for_export
+    import pandas as pd
+    
+    try:
+        df = get_videos_for_export()
+        calendar_events = []
+        
+        for _, row in df.iterrows():
+            video_id = row.get('Video Name', '')
+            title = row.get('Title', '')
+            youtube_url = row.get('YouTube URL', '')
+            
+            for platform in ['LinkedIn', 'Facebook', 'Instagram']:
+                schedule_col = f'{platform} Schedule Date'
+                actual_col = f'{platform} Actual Scheduled Date'
+                status_col = f'{platform} Status'
+                post_col = f'{platform} Post'
+                
+                date = row.get(schedule_col) or row.get(actual_col)
+                if pd.notna(date) and date:
+                    try:
+                        dt = pd.to_datetime(date)
+                        calendar_events.append({
+                            'date': dt.strftime('%Y-%m-%d'),
+                            'time': dt.strftime('%H:%M'),
+                            'datetime': dt.isoformat(),
+                            'platform': platform,
+                            'video_title': title,
+                            'video_id': video_id,
+                            'youtube_url': youtube_url,
+                            'status': row.get(status_col, 'pending'),
+                            'post_content': row.get(post_col, '')
+                        })
+                    except:
+                        pass
+        
+        calendar_events.sort(key=lambda x: x['datetime'])
+        return jsonify(calendar_events)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/test-connection', methods=['POST'])
 def test_connection():
     """Test API connection."""

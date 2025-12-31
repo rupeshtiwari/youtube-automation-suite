@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar View - YouTube Automation{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet">
+<style>
+    #calendar {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+    .fc-event.linkedin {
+        background-color: #0077b5;
+        border-color: #0077b5;
+    }
+    .fc-event.facebook {
+        background-color: #1877f2;
+        border-color: #1877f2;
+    }
+    .fc-event.instagram {
+        background-color: #e4405f;
+        border-color: #e4405f;
+    }
+    .fc-event.pending {
+        opacity: 0.7;
+    }
+    .fc-event.scheduled {
+        opacity: 1;
+    }
+    .event-details-modal .modal-body {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .post-content {
+        white-space: pre-wrap;
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-calendar-event"></i> Content Calendar
+        </h1>
+        <p class="text-muted">View all scheduled posts across LinkedIn, Facebook, and Instagram</p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5>Legend</h5>
+                        <div class="d-flex gap-3">
+                            <span><span class="badge" style="background-color: #0077b5;">LinkedIn</span></span>
+                            <span><span class="badge" style="background-color: #1877f2;">Facebook</span></span>
+                            <span><span class="badge" style="background-color: #e4405f;">Instagram</span></span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="calendar.gotoToday()">
+                            <i class="bi bi-calendar-check"></i> Today
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="calendar.prev()">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="calendar.next()">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade event-details-modal" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalTitle">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eventModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="eventYoutubeLink" target="_blank" class="btn btn-danger">
+                    <i class="bi bi-youtube"></i> View on YouTube
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script>
+let calendar;
+let events = {{ events|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    
+    // Format events for FullCalendar
+    const calendarEvents = events.map(event => ({
+        id: event.video_id + '-' + event.platform,
+        title: `${event.platform}: ${event.video_title.substring(0, 50)}${event.video_title.length > 50 ? '...' : ''}`,
+        start: event.date + 'T' + event.time,
+        className: event.platform.toLowerCase() + ' ' + event.status,
+        extendedProps: {
+            platform: event.platform,
+            video_title: event.video_title,
+            video_id: event.video_id,
+            youtube_url: event.youtube_url,
+            status: event.status,
+            post_content: event.post_content,
+            date: event.date,
+            time: event.time
+        }
+    }));
+    
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: calendarEvents,
+        eventClick: function(info) {
+            const event = info.event;
+            const props = event.extendedProps;
+            
+            document.getElementById('eventModalTitle').textContent = 
+                props.platform + ' - ' + props.video_title;
+            
+            document.getElementById('eventYoutubeLink').href = props.youtube_url;
+            
+            const modalBody = document.getElementById('eventModalBody');
+            modalBody.innerHTML = `
+                <div class="mb-3">
+                    <strong>Platform:</strong> <span class="badge" style="background-color: ${
+                        props.platform === 'LinkedIn' ? '#0077b5' : 
+                        props.platform === 'Facebook' ? '#1877f2' : '#e4405f'
+                    };">${props.platform}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong> <span class="badge badge-${props.status}">${props.status}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Scheduled:</strong> ${props.date} at ${props.time}
+                </div>
+                <div class="mb-3">
+                    <strong>Video:</strong> <a href="${props.youtube_url}" target="_blank">${props.video_title}</a>
+                </div>
+                <div>
+                    <strong>Post Content:</strong>
+                    <div class="post-content">${props.post_content}</div>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+            modal.show();
+        },
+        eventDisplay: 'block',
+        height: 'auto'
+    });
+    
+    calendar.render();
+});
+</script>
+{% endblock %}
+
