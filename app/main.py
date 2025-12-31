@@ -361,7 +361,7 @@ def documentation():
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring."""
-    from database import DB_PATH
+    from app.database import DB_PATH
     return jsonify({
         'status': 'healthy',
         'database_exists': os.path.exists(DB_PATH),
