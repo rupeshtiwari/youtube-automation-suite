@@ -392,7 +392,43 @@ def config():
         return redirect(url_for('config'))
     
     settings = load_settings()
-    return render_template('config.html', settings=settings)
+    
+    # Check YouTube API status
+    youtube_status = {
+        'configured': False,
+        'client_secret_exists': False,
+        'channel_name': None,
+        'channel_id': None,
+        'error': None
+    }
+    
+    try:
+        client_secret_path = os.path.join(os.path.dirname(__file__), '..', 'client_secret.json')
+        client_secret_path = os.path.abspath(client_secret_path)
+        youtube_status['client_secret_exists'] = os.path.exists(client_secret_path)
+        
+        if youtube_status['client_secret_exists']:
+            # Try to get YouTube service to verify connection
+            try:
+                youtube = views.get_youtube_service()
+                if youtube:
+                    channel_id = get_my_channel_id_helper(youtube)
+                    if channel_id:
+                        youtube_status['channel_id'] = channel_id
+                        youtube_status['configured'] = True
+                        # Get channel name
+                        try:
+                            channel_response = youtube.channels().list(part="snippet", id=channel_id).execute()
+                            if channel_response.get("items"):
+                                youtube_status['channel_name'] = channel_response["items"][0].get("snippet", {}).get("title", "")
+                        except:
+                            pass
+            except Exception as e:
+                youtube_status['error'] = str(e)
+    except Exception as e:
+        youtube_status['error'] = str(e)
+    
+    return render_template('config.html', settings=settings, youtube_status=youtube_status)
 
 
 @app.route('/api/status')
