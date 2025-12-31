@@ -56,26 +56,21 @@ pip install -r requirements.txt
 
 ### Step 5: (Optional) Set Up Social Media APIs
 
-For automated posting, you'll need API credentials. Create a `.env` file in the project root:
+For automated posting, you'll need API credentials. 
 
-```bash
-# LinkedIn API
-LINKEDIN_ACCESS_TOKEN=your_token_here
-LINKEDIN_PERSON_URN=urn:li:person:xxxxx
+**📖 Complete Setup Guide:** See [API_KEYS_SETUP.md](API_KEYS_SETUP.md) for detailed step-by-step instructions on getting all API keys.
 
-# Facebook Graph API
-FACEBOOK_PAGE_ACCESS_TOKEN=your_token_here
-FACEBOOK_PAGE_ID=your_page_id_here
+**Quick Overview:**
+- **LinkedIn**: Get access token from [LinkedIn Developers](https://www.linkedin.com/developers/)
+- **Facebook**: Get page access token from [Facebook Developers](https://developers.facebook.com/)
+- **Instagram**: Use Facebook Graph API (requires Instagram Business Account)
+- **Ayrshare**: Sign up at [Ayrshare.com](https://www.ayrshare.com/) - easiest option!
 
-# Instagram Graph API
-INSTAGRAM_BUSINESS_ACCOUNT_ID=your_account_id_here
-INSTAGRAM_ACCESS_TOKEN=your_token_here
+**Configuration Options:**
+1. **Via Web Interface** (Recommended): Enter all keys in the Configuration page
+2. **Via .env file**: Create `.env` file in project root (see `API_KEYS_SETUP.md` for format)
 
-# Ayrshare (Alternative - simpler unified API)
-AYRSHARE_API_KEY=your_api_key_here
-```
-
-**Note**: You can use either native APIs (LinkedIn, Facebook, Instagram) or Ayrshare's unified API. Ayrshare is simpler to set up but requires a paid account for production use.
+**Note**: You can use either native APIs (LinkedIn, Facebook, Instagram) or Ayrshare's unified API. Ayrshare is simpler to set up and handles Instagram images automatically.
 
 ## 📖 Usage
 
@@ -215,23 +210,17 @@ youtube-automation/
 
 ### Social Media API Setup
 
-#### LinkedIn
-1. Create app at [LinkedIn Developers](https://www.linkedin.com/developers/)
-2. Request access to "Marketing Developer Platform"
-3. Get OAuth 2.0 access token
-4. Get your Person URN from your profile
+**📖 For detailed step-by-step instructions, see [API_KEYS_SETUP.md](API_KEYS_SETUP.md)**
 
-#### Facebook & Instagram
-1. Create app at [Facebook Developers](https://developers.facebook.com/)
-2. Add "Instagram Graph API" and "Pages" products
-3. Get Page Access Token
-4. Connect Instagram Business Account to Facebook Page
-5. Get Instagram Business Account ID
+**Quick Links:**
+- **LinkedIn**: [LinkedIn Developers](https://www.linkedin.com/developers/) - Request Marketing Developer Platform access
+- **Facebook**: [Facebook Developers](https://developers.facebook.com/) - Create app, add Pages product
+- **Instagram**: Requires Facebook Page + Instagram Business Account
+- **Ayrshare**: [Ayrshare.com](https://www.ayrshare.com/) - Easiest option, unified API for all platforms
 
-#### Ayrshare (Alternative)
-1. Sign up at [Ayrshare](https://www.ayrshare.com/)
-2. Connect your social media accounts
-3. Get API key from dashboard
+**Recommended Approach:**
+1. Start with **Ayrshare** (simplest, handles everything)
+2. Or use native APIs for more control (see detailed guide)
 
 ## 📊 Excel File Format
 
