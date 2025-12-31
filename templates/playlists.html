@@ -5,74 +5,118 @@
 {% block extra_css %}
 <style>
     .playlist-card {
-        margin-bottom: 30px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
+        margin-bottom: 2rem;
+        border: none;
+        border-radius: 16px;
         overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background: white;
     }
     .playlist-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 20px;
+        padding: 1.5rem;
         cursor: pointer;
+        transition: all 0.3s ease;
     }
     .playlist-header:hover {
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
     .playlist-content {
         display: none;
-        padding: 20px;
-        background: white;
+        padding: 1.5rem;
+        background: #f8fafc;
     }
     .playlist-content.active {
         display: block;
     }
     .video-card {
-        border: 1px solid #eee;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background: #f9f9f9;
+        border: none;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+    }
+    .video-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
     }
     .video-thumbnail {
-        width: 120px;
-        height: 90px;
+        width: 160px;
+        height: 120px;
         object-fit: cover;
-        border-radius: 5px;
+        border-radius: 12px;
         float: left;
-        margin-right: 15px;
+        margin-right: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     .video-info {
         overflow: hidden;
     }
     .video-title {
-        font-weight: 600;
-        font-size: 1.1em;
-        margin-bottom: 8px;
+        font-weight: 700;
+        font-size: 1.125rem;
+        margin-bottom: 0.75rem;
+        color: #1e293b;
     }
     .video-title a {
-        color: #333;
+        color: #1e293b;
         text-decoration: none;
     }
     .video-title a:hover {
-        color: #ff0000;
+        color: #667eea;
     }
     .video-meta {
-        font-size: 0.9em;
-        color: #666;
-        margin-bottom: 10px;
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+    .video-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .video-meta-item i {
+        color: #667eea;
+    }
+    .status-badge-video {
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .badge-public {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    .badge-scheduled {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+    }
+    .badge-private {
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        color: white;
     }
     .social-posts {
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px solid #ddd;
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 2px solid #e2e8f0;
     }
     .social-post {
         background: white;
-        padding: 12px;
+        padding: 1rem;
         border-left: 4px solid #0077b5;
-        margin-bottom: 10px;
-        border-radius: 4px;
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     .social-post.facebook {
         border-left-color: #1877f2;
@@ -82,55 +126,73 @@
     }
     .social-post-header {
         font-weight: 600;
-        margin-bottom: 8px;
+        margin-bottom: 0.75rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     .social-post-content {
-        font-size: 0.9em;
-        color: #555;
+        font-size: 0.9rem;
+        color: #475569;
         white-space: pre-wrap;
         max-height: 150px;
         overflow-y: auto;
+        line-height: 1.6;
     }
     .badge-status {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8em;
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
         font-weight: 600;
     }
     .badge-pending {
-        background: #ffc107;
-        color: #000;
+        background: #fef3c7;
+        color: #92400e;
     }
     .badge-scheduled {
-        background: #28a745;
-        color: white;
+        background: #dbeafe;
+        color: #1e40af;
     }
     .badge-error {
-        background: #dc3545;
-        color: white;
+        background: #fee2e2;
+        color: #991b1b;
     }
     .stats-bar {
         display: flex;
-        gap: 20px;
-        padding: 15px;
-        background: #f0f0f0;
-        border-radius: 5px;
-        margin-bottom: 20px;
+        gap: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        color: white;
     }
     .stat-item {
         text-align: center;
     }
     .stat-number {
-        font-size: 2em;
-        font-weight: bold;
-        color: #667eea;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
     }
     .stat-label {
-        font-size: 0.9em;
-        color: #666;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 0.5rem;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+    }
+    .no-videos {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+    .no-videos i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
     }
 </style>
 {% endblock %}
@@ -138,7 +200,7 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">
+        <h1 class="mb-4" style="font-weight: 700; color: #1e293b;">
             <i class="bi bi-collection-play"></i> Playlists & Videos
         </h1>
     </div>
@@ -155,10 +217,12 @@
                 <div class="stat-number">{{ playlists|sum(attribute='itemCount') }}</div>
                 <div class="stat-label">Total Videos</div>
             </div>
+            {% if channel_title %}
             <div class="stat-item">
-                <div class="stat-number">{{ playlists|selectattr('videos')|list|length }}</div>
-                <div class="stat-label">Playlists Loaded</div>
+                <div class="stat-number" style="font-size: 1.5rem;">{{ channel_title }}</div>
+                <div class="stat-label">Channel</div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -167,20 +231,23 @@
     <div class="col-12">
         {% for playlist in playlists %}
         <div class="playlist-card">
-            <div class="playlist-header" onclick="togglePlaylist('playlist-{{ loop.index }}')">
+            <div class="playlist-header" onclick="togglePlaylist('playlist-{{ loop.index }}', '{{ playlist.playlistId }}')">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h3 class="mb-1">
-                            <i class="bi bi-{{ 'chevron-down' if loop.index == 1 else 'chevron-right' }}"></i>
+                        <h3 class="mb-2" style="font-weight: 700; color: white;">
+                            <i class="bi bi-{{ 'chevron-down' if loop.index == 1 else 'chevron-right' }}" id="icon-{{ loop.index }}"></i>
                             {{ playlist.playlistTitle }}
                         </h3>
-                        <div class="small">
+                        <div style="font-size: 0.95rem; opacity: 0.9;">
                             <i class="bi bi-film"></i> {{ playlist.itemCount }} videos
                             <span class="ms-3"><i class="bi bi-calendar"></i> {{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}</span>
+                            {% if playlist.channelTitle %}
+                            <span class="ms-3"><i class="bi bi-broadcast"></i> {{ playlist.channelTitle }}</span>
+                            {% endif %}
                         </div>
                     </div>
                     <div>
-                        <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm btn-light" onclick="event.stopPropagation();">
+                        <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-light btn-sm" onclick="event.stopPropagation();">
                             <i class="bi bi-youtube"></i> View on YouTube
                         </a>
                     </div>
@@ -188,90 +255,16 @@
             </div>
             
             <div class="playlist-content {{ 'active' if loop.index == 1 else '' }}" id="playlist-{{ loop.index }}">
-                {% if playlist.videos %}
-                    {% for video in playlist.videos %}
-                    <div class="video-card">
-                        {% if video.thumbnail %}
-                        <img src="{{ video.thumbnail }}" alt="Thumbnail" class="video-thumbnail">
-                        {% endif %}
-                        <div class="video-info">
-                            <div class="video-title">
-                                <a href="{{ video.videoUrl }}" target="_blank">{{ video.title }}</a>
-                            </div>
-                            <div class="video-meta">
-                                <span><i class="bi bi-calendar"></i> Published: {{ video.publishedAt[:10] if video.publishedAt else 'N/A' }}</span>
-                                {% if video.publishAt %}
-                                <span class="ms-3"><i class="bi bi-clock"></i> Scheduled: {{ video.publishAt[:10] }}</span>
-                                {% endif %}
-                                <span class="ms-3"><i class="bi bi-shield-check"></i> {{ video.privacyStatus|title }}</span>
-                                <a href="{{ video.videoUrl }}" target="_blank" class="btn btn-sm btn-outline-danger ms-3">
-                                    <i class="bi bi-youtube"></i> Watch
-                                </a>
-                            </div>
-                            
-                            {% if video.social_posts %}
-                            <div class="social-posts">
-                                <h6 class="mb-3"><i class="bi bi-share"></i> Social Media Posts</h6>
-                                
-                                {% if video.social_posts.linkedin %}
-                                <div class="social-post">
-                                    <div class="social-post-header">
-                                        <span><i class="bi bi-linkedin"></i> LinkedIn</span>
-                                        <div>
-                                            {% if video.social_posts.linkedin.schedule_date %}
-                                            <small class="text-muted me-2">{{ video.social_posts.linkedin.schedule_date[:16] }}</small>
-                                            {% endif %}
-                                            <span class="badge-status badge-{{ video.social_posts.linkedin.status }}">
-                                                {{ video.social_posts.linkedin.status|title }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="social-post-content">{{ video.social_posts.linkedin.post_content }}</div>
-                                </div>
-                                {% endif %}
-                                
-                                {% if video.social_posts.facebook %}
-                                <div class="social-post facebook">
-                                    <div class="social-post-header">
-                                        <span><i class="bi bi-facebook"></i> Facebook</span>
-                                        <div>
-                                            {% if video.social_posts.facebook.schedule_date %}
-                                            <small class="text-muted me-2">{{ video.social_posts.facebook.schedule_date[:16] }}</small>
-                                            {% endif %}
-                                            <span class="badge-status badge-{{ video.social_posts.facebook.status }}">
-                                                {{ video.social_posts.facebook.status|title }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="social-post-content">{{ video.social_posts.facebook.post_content }}</div>
-                                </div>
-                                {% endif %}
-                                
-                                {% if video.social_posts.instagram %}
-                                <div class="social-post instagram">
-                                    <div class="social-post-header">
-                                        <span><i class="bi bi-instagram"></i> Instagram</span>
-                                        <div>
-                                            {% if video.social_posts.instagram.schedule_date %}
-                                            <small class="text-muted me-2">{{ video.social_posts.instagram.schedule_date[:16] }}</small>
-                                            {% endif %}
-                                            <span class="badge-status badge-{{ video.social_posts.instagram.status }}">
-                                                {{ video.social_posts.instagram.status|title }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="social-post-content">{{ video.social_posts.instagram.post_content }}</div>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
+                <div id="videos-container-{{ loop.index }}">
+                    {% if loop.index == 1 %}
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
-                        <div style="clear: both;"></div>
+                        <p class="mt-2">Loading videos...</p>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-muted p-3">No videos found in this playlist.</p>
-                {% endif %}
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -281,10 +274,14 @@
 
 {% block extra_js %}
 <script>
-function togglePlaylist(playlistId) {
+let loadedPlaylists = new Set();
+
+function togglePlaylist(playlistId, playlistApiId) {
     const content = document.getElementById(playlistId);
-    const header = content.previousElementSibling;
-    const icon = header.querySelector('i');
+    const iconId = playlistId.replace('playlist-', 'icon-');
+    const icon = document.getElementById(iconId);
+    const containerId = playlistId.replace('playlist-', 'videos-container-');
+    const container = document.getElementById(containerId);
     
     if (content.classList.contains('active')) {
         content.classList.remove('active');
@@ -292,8 +289,163 @@ function togglePlaylist(playlistId) {
     } else {
         content.classList.add('active');
         icon.className = 'bi bi-chevron-down';
+        
+        // Load videos if not already loaded
+        if (!loadedPlaylists.has(playlistApiId)) {
+            loadPlaylistVideos(playlistApiId, containerId);
+            loadedPlaylists.add(playlistApiId);
+        }
     }
 }
+
+function loadPlaylistVideos(playlistId, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading videos...</p>
+        </div>
+    `;
+    
+    fetch(`/api/playlist/${playlistId}/videos`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                container.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                return;
+            }
+            
+            const videos = data.videos || [];
+            
+            if (videos.length === 0) {
+                container.innerHTML = `
+                    <div class="no-videos">
+                        <i class="bi bi-inbox"></i>
+                        <p>No videos found in this playlist.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            videos.forEach(video => {
+                const dateDisplay = formatVideoDate(video);
+                const statusBadge = getStatusBadge(video);
+                
+                html += `
+                    <div class="video-card">
+                        ${video.thumbnail ? `<img src="${video.thumbnail}" alt="Thumbnail" class="video-thumbnail">` : ''}
+                        <div class="video-info">
+                            <div class="video-title">
+                                <a href="${video.videoUrl}" target="_blank">${escapeHtml(video.title)}</a>
+                            </div>
+                            <div class="video-meta">
+                                ${dateDisplay}
+                                ${statusBadge}
+                                ${video.channelTitle ? `<span class="video-meta-item"><i class="bi bi-broadcast"></i> ${escapeHtml(video.channelTitle)}</span>` : ''}
+                                <a href="${video.videoUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-youtube"></i> Watch
+                                </a>
+                            </div>
+                            
+                            ${renderSocialPosts(video.social_posts)}
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
+        });
+}
+
+function formatVideoDate(video) {
+    if (!video.displayDate) return '';
+    
+    const date = new Date(video.displayDate);
+    const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    return `<span class="video-meta-item">
+        <i class="bi bi-${video.isScheduled ? 'clock' : 'calendar-check'}"></i> 
+        <strong>${video.dateLabel}:</strong> ${formattedDate}
+    </span>`;
+}
+
+function getStatusBadge(video) {
+    const status = video.privacyStatus || 'unknown';
+    let badgeClass = 'badge-private';
+    let badgeText = status.charAt(0).toUpperCase() + status.slice(1);
+    
+    if (status === 'public') {
+        badgeClass = 'badge-public';
+        badgeText = 'Public';
+    } else if (video.isScheduled || (status === 'private' && video.publishAt)) {
+        badgeClass = 'badge-scheduled';
+        badgeText = 'Scheduled';
+    }
+    
+    return `<span class="status-badge-video ${badgeClass}">${badgeText}</span>`;
+}
+
+function renderSocialPosts(socialPosts) {
+    if (!socialPosts) return '';
+    
+    let html = '<div class="social-posts"><h6 class="mb-3"><i class="bi bi-share"></i> Social Media Posts</h6>';
+    
+    ['linkedin', 'facebook', 'instagram'].forEach(platform => {
+        const post = socialPosts[platform];
+        if (post) {
+            const platformTitle = platform.charAt(0).toUpperCase() + platform.slice(1);
+            const platformIcon = platform === 'linkedin' ? 'linkedin' : (platform === 'facebook' ? 'facebook' : 'instagram');
+            const scheduleDate = post.schedule_date || post.actual_scheduled_date || '';
+            const formattedDate = scheduleDate ? new Date(scheduleDate).toLocaleString() : 'Not scheduled';
+            
+            html += `
+                <div class="social-post ${platform}">
+                    <div class="social-post-header">
+                        <span><i class="bi bi-${platformIcon}"></i> ${platformTitle}</span>
+                        <div>
+                            ${scheduleDate ? `<small class="text-muted me-2">${formattedDate}</small>` : ''}
+                            <span class="badge-status badge-${post.status}">${post.status.charAt(0).toUpperCase() + post.status.slice(1)}</span>
+                        </div>
+                    </div>
+                    <div class="social-post-content">${escapeHtml(post.post_content || '')}</div>
+                </div>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load first playlist on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const firstPlaylist = document.querySelector('.playlist-content.active');
+    if (firstPlaylist) {
+        const containerId = firstPlaylist.id.replace('playlist-', 'videos-container-');
+        const playlistCard = firstPlaylist.closest('.playlist-card');
+        const header = playlistCard.querySelector('.playlist-header');
+        const onclickAttr = header.getAttribute('onclick');
+        const match = onclickAttr.match(/'([^']+)'/g);
+        if (match && match.length >= 2) {
+            const playlistApiId = match[1].replace(/'/g, '');
+            loadPlaylistVideos(playlistApiId, containerId);
+            loadedPlaylists.add(playlistApiId);
+        }
+    }
+});
 </script>
 {% endblock %}
-

@@ -502,7 +502,7 @@ def fetch_all_playlists_from_youtube(youtube, channel_id: str):
     return playlists
 
 
-def fetch_playlist_videos_from_youtube(youtube, playlist_id: str):
+def fetch_playlist_videos_from_youtube(youtube, playlist_id: str, channel_title: str = ""):
     """Fetch all videos in a playlist from YouTube."""
     videos = []
     page_token = None
@@ -540,16 +540,53 @@ def fetch_playlist_videos_from_youtube(youtube, playlist_id: str):
                         status = video.get("status", {})
                         video_id = video["id"]
                         
+                        # Get channel title from snippet
+                        channel_name = snippet.get("channelTitle", channel_title)
+                        
+                        # Determine publish date vs schedule date
+                        published_at = snippet.get("publishedAt", "")
+                        publish_at = status.get("publishAt", "")
+                        privacy_status = status.get("privacyStatus", "")
+                        
+                        # Determine if scheduled (future date) or published
+                        from datetime import datetime
+                        is_scheduled = False
+                        display_date = published_at
+                        date_label = "Published"
+                        
+                        if publish_at:
+                            try:
+                                pub_date = datetime.fromisoformat(publish_at.replace('Z', '+00:00'))
+                                # If publishAt is in the future, it's scheduled
+                                if pub_date > datetime.now(pub_date.tzinfo):
+                                    is_scheduled = True
+                                    display_date = publish_at
+                                    date_label = "Scheduled"
+                            except:
+                                pass
+                        
+                        if privacy_status == "private" and publish_at:
+                            is_scheduled = True
+                            display_date = publish_at
+                            date_label = "Scheduled"
+                        elif privacy_status == "public":
+                            date_label = "Published"
+                            display_date = published_at
+                        
                         videos.append({
                             "videoId": video_id,
                             "title": snippet.get("title", ""),
                             "description": snippet.get("description", ""),
                             "thumbnail": snippet.get("thumbnails", {}).get("medium", {}).get("url", ""),
-                            "publishedAt": snippet.get("publishedAt", ""),
-                            "publishAt": status.get("publishAt", ""),
-                            "privacyStatus": status.get("privacyStatus", ""),
+                            "publishedAt": published_at,
+                            "publishAt": publish_at,
+                            "privacyStatus": privacy_status,
                             "videoUrl": f"https://www.youtube.com/watch?v={video_id}",
-                            "tags": ", ".join(snippet.get("tags", []))
+                            "tags": ", ".join(snippet.get("tags", [])),
+                            "channelTitle": channel_name,
+                            "displayDate": display_date,
+                            "dateLabel": date_label,
+                            "isScheduled": is_scheduled
                         })
             
             page_token = response.get("nextPageToken")
@@ -557,6 +594,8 @@ def fetch_playlist_videos_from_youtube(youtube, playlist_id: str):
                 break
         except Exception as e:
             print(f"Error fetching playlist videos: {e}")
+            import traceback
+            traceback.print_exc()
             break
     
     return videos
@@ -607,11 +646,13 @@ def playlists():
                                  message="Could not find your YouTube channel. Please check authentication.")
         
         playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
+        channel_title = playlists_data[0].get("channelTitle", "") if playlists_data else ""
         
-        # Get videos for each playlist (limit to first 10 playlists for performance)
-        for playlist in playlists_data[:10]:  # Limit to 10 playlists for initial load
-            videos = fetch_playlist_videos_from_youtube(youtube, playlist["playlistId"])
-            playlist["videos"] = videos
+        # Get videos for all playlists (load on demand in template)
+        # We'll load videos when playlist is expanded
+        for playlist in playlists_data:
+            playlist["videos"] = []  # Will be loaded on demand
+            playlist["videosLoaded"] = False
             
             # Add social media posts from database
             for video in videos:
