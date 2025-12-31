@@ -728,6 +728,52 @@ def playlists():
         return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
 
 
+@app.route('/shorts')
+def shorts():
+    """Display only Shorts playlists for weekly scheduling automation."""
+    youtube = get_youtube_service()
+    if not youtube:
+        return render_template('error.html', 
+                             message="YouTube API not configured. Please set up client_secret.json")
+    
+    try:
+        channel_id = get_my_channel_id_helper(youtube)
+        if not channel_id:
+            return render_template('error.html', 
+                                 message="Could not find your YouTube channel. Please check authentication.")
+        
+        # Fetch all playlists and filter for Shorts
+        all_playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+        
+        # Filter for Shorts playlists (case-insensitive check for "short" in title)
+        shorts_playlists = [
+            pl for pl in all_playlists 
+            if 'short' in pl.get('playlistTitle', '').lower()
+        ]
+        
+        # Initialize videos as empty (will be loaded on demand)
+        for playlist in shorts_playlists:
+            playlist["videos"] = []
+            playlist["videosLoaded"] = False
+        
+        # Get settings for weekly schedule info
+        settings = load_settings()
+        weekly_schedule = settings.get('scheduling', {}).get('youtube_schedule_time', '23:00')
+        schedule_day = settings.get('scheduling', {}).get('schedule_day', 'wednesday')
+        
+        response = make_response(render_template(
+            'shorts.html', 
+            playlists=shorts_playlists,
+            weekly_schedule=weekly_schedule,
+            schedule_day=schedule_day
+        ))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    except Exception as e:
+        import traceback
+        return render_template('error.html', message=f"Error fetching Shorts: {str(e)}\n{traceback.format_exc()}")
+
+
 @app.route('/api/playlist/<playlist_id>/videos')
 def api_playlist_videos(playlist_id):
     """API endpoint to fetch videos for a playlist (lazy loading)."""
