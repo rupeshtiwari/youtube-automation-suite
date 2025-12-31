@@ -429,6 +429,15 @@ def config():
             'youtube_daily_limit': int(request.form.get('youtube_daily_limit', 10)),
         }
         
+        # Update targeting
+        settings['targeting'] = {
+            'target_audience': request.form.get('target_audience', 'usa_students'),
+            'interview_types': request.form.getlist('interview_types'),
+            'role_levels': request.form.getlist('role_levels'),
+            'timezone': 'America/New_York',  # USA Eastern Time
+            'optimal_times': ['14:00', '17:00', '21:00']  # 2 PM, 5 PM, 9 PM EDT
+        }
+        
         save_settings(settings)
         schedule_daily_job()
         
