@@ -235,7 +235,7 @@ def run_daily_automation():
             
             if use_database:
                 # Post from database (more efficient)
-                from database import get_pending_posts
+                from app.database import get_pending_posts
                 from post_to_social_media import SocialMediaPoster
                 
                 poster = SocialMediaPoster(use_ayrshare=bool(settings.get('api_keys', {}).get('ayrshare_api_key')))
@@ -260,7 +260,7 @@ def run_daily_automation():
                             continue
                         
                         # Update database
-                        from database import update_post_status
+                        from app.database import update_post_status
                         if result.get('success'):
                             update_post_status(
                                 video_id, platform.lower(), 
@@ -1275,8 +1275,8 @@ def api_playlist_videos(playlist_id):
         videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_title)
         
         # Add social media posts and tags from database
-        from tagging import derive_type_enhanced, derive_role_enhanced, suggest_tags
-        from database import get_video
+        from app.tagging import derive_type_enhanced, derive_role_enhanced, suggest_tags
+        from app.database import get_video
         
         for video in videos:
             video_id = video["videoId"]
@@ -1331,8 +1331,8 @@ def api_playlist_videos(playlist_id):
 @app.route('/api/video/<video_id>/tags', methods=['GET', 'POST'])
 def api_video_tags(video_id):
     """Get or update video tags."""
-    from database import get_video, get_db_connection
-    from tagging import parse_tags, format_tags
+    from app.database import get_video, get_db_connection
+    from app.tagging import parse_tags, format_tags
     
     if request.method == 'GET':
         video = get_video(video_id)
@@ -1370,8 +1370,8 @@ def api_video_tags(video_id):
 @app.route('/api/videos/search')
 def api_search_videos():
     """Search videos by query, type, role, or tags."""
-    from database import get_db_connection
-    from tagging import search_videos, parse_tags
+    from app.database import get_db_connection
+    from app.tagging import search_videos, parse_tags
     
     query = request.args.get('q', '')
     video_type = request.args.get('type', '')
