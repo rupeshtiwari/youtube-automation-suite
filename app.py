@@ -816,82 +816,7 @@ def api_search_videos():
 @app.route('/calendar')
 def calendar():
     """Display calendar view of scheduled posts."""
-    from database import get_videos_for_export
-    from datetime import datetime, timedelta
-    import pandas as pd
-    
-    try:
-        # Get all videos with social media posts
-        df = get_videos_for_export()
-        
-        # Prepare calendar data
-        calendar_events = []
-        
-        for _, row in df.iterrows():
-            video_id = row.get('Video Name', '')
-            title = row.get('Title', '')
-            youtube_url = row.get('YouTube URL', '')
-            
-            # LinkedIn
-            linkedin_date = row.get('LinkedIn Schedule Date') or row.get('LinkedIn Actual Scheduled Date')
-            if pd.notna(linkedin_date) and linkedin_date:
-                try:
-                    dt = pd.to_datetime(linkedin_date)
-                    calendar_events.append({
-                        'date': dt.strftime('%Y-%m-%d'),
-                        'time': dt.strftime('%H:%M'),
-                        'platform': 'LinkedIn',
-                        'video_title': title,
-                        'video_id': video_id,
-                        'youtube_url': youtube_url,
-                        'status': row.get('LinkedIn Status', 'pending'),
-                        'post_content': row.get('LinkedIn Post', '')[:100] + '...' if len(str(row.get('LinkedIn Post', ''))) > 100 else row.get('LinkedIn Post', '')
-                    })
-                except:
-                    pass
-            
-            # Facebook
-            facebook_date = row.get('Facebook Schedule Date') or row.get('Facebook Actual Scheduled Date')
-            if pd.notna(facebook_date) and facebook_date:
-                try:
-                    dt = pd.to_datetime(facebook_date)
-                    calendar_events.append({
-                        'date': dt.strftime('%Y-%m-%d'),
-                        'time': dt.strftime('%H:%M'),
-                        'platform': 'Facebook',
-                        'video_title': title,
-                        'video_id': video_id,
-                        'youtube_url': youtube_url,
-                        'status': row.get('Facebook Status', 'pending'),
-                        'post_content': row.get('Facebook Post', '')[:100] + '...' if len(str(row.get('Facebook Post', ''))) > 100 else row.get('Facebook Post', '')
-                    })
-                except:
-                    pass
-            
-            # Instagram
-            instagram_date = row.get('Instagram Schedule Date') or row.get('Instagram Actual Scheduled Date')
-            if pd.notna(instagram_date) and instagram_date:
-                try:
-                    dt = pd.to_datetime(instagram_date)
-                    calendar_events.append({
-                        'date': dt.strftime('%Y-%m-%d'),
-                        'time': dt.strftime('%H:%M'),
-                        'platform': 'Instagram',
-                        'video_title': title,
-                        'video_id': video_id,
-                        'youtube_url': youtube_url,
-                        'status': row.get('Instagram Status', 'pending'),
-                        'post_content': row.get('Instagram Post', '')[:100] + '...' if len(str(row.get('Instagram Post', ''))) > 100 else row.get('Instagram Post', '')
-                    })
-                except:
-                    pass
-        
-        # Sort by date
-        calendar_events.sort(key=lambda x: x['date'] + ' ' + x['time'])
-        
-        return render_template('calendar.html', events=calendar_events)
-    except Exception as e:
-        return render_template('error.html', message=f"Error loading calendar: {str(e)}")
+    return render_template('calendar.html')
 
 
 @app.route('/api/calendar-data')
@@ -921,7 +846,7 @@ def api_calendar_data():
                         dt = pd.to_datetime(date)
                         calendar_events.append({
                             'date': dt.strftime('%Y-%m-%d'),
-                            'time': dt.strftime('%H:%M'),
+                            'time': dt.strftime('%H:%M:%S') if len(str(dt.time())) > 5 else dt.strftime('%H:%M') + ':00',
                             'datetime': dt.isoformat(),
                             'platform': platform,
                             'video_title': title,
@@ -934,9 +859,10 @@ def api_calendar_data():
                         pass
         
         calendar_events.sort(key=lambda x: x['datetime'])
-        return jsonify(calendar_events)
+        return jsonify({'events': calendar_events})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc(), 'events': []}), 500
 
 
 @app.route('/api/test-connection', methods=['POST'])

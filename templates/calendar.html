@@ -331,7 +331,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Format events for FullCalendar
             const calendarEvents = events.map(event => {
-                const dateStr = event.date + 'T' + (event.time || '12:00:00');
+                // Ensure time format is correct
+                let timeStr = event.time || '12:00:00';
+                if (!timeStr.includes(':')) {
+                    timeStr = '12:00:00';
+                } else if (timeStr.split(':').length === 2) {
+                    timeStr = timeStr + ':00';
+                }
+                const dateStr = event.date + 'T' + timeStr;
                 const platformLower = event.platform.toLowerCase();
                 
                 return {

@@ -2,24 +2,22 @@
 
 {% block title %}Configuration - YouTube Automation{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">
-            <i class="bi bi-gear"></i> Configuration
-        </h1>
-    </div>
-</div>
+{% block page_title %}Settings{% endblock %}
 
-<div class="info-box">
-    <h5><i class="bi bi-info-circle"></i> Setup Instructions</h5>
-    <p class="mb-0">Configure your API keys and scheduling settings below. All settings are saved automatically and the
-        automation will run according to your schedule.</p>
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-info-circle"></i> Setup Instructions
+    </div>
+    <div class="card-body">
+        <p class="mb-0">Configure your API keys and scheduling settings below. All settings are saved automatically and the
+            automation will run according to your schedule.</p>
+    </div>
 </div>
 
 <form method="POST" action="/config">
     <!-- API Keys Section -->
-    <div class="card mb-4">
+    <div class="card">
         <div class="card-header">
             <i class="bi bi-key"></i> API Keys & Credentials
         </div>
@@ -71,7 +69,7 @@
                 </div>
             </div>
             <div class="mt-3">
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="testConnections()">
+                <button type="button" class="btn btn-outline-secondary" onclick="testConnections()">
                     <i class="bi bi-check-circle"></i> Test Connections
                 </button>
             </div>
