@@ -852,6 +852,11 @@ def api_calendar_data():
             video_id = row.get('Video Name', '')
             title = row.get('Title', '')
             youtube_url = row.get('YouTube URL', '')
+            video_type = row.get('Type', '') or ''
+            role = row.get('Role', '') or ''
+            custom_tags = row.get('Custom Tags', '') or ''
+            playlist_name = row.get('Playlist Name', '') or ''
+            description = row.get('Description', '') or ''
             
             for platform in ['LinkedIn', 'Facebook', 'Instagram']:
                 schedule_col = f'{platform} Schedule Date'
@@ -872,7 +877,12 @@ def api_calendar_data():
                             'video_id': video_id,
                             'youtube_url': youtube_url,
                             'status': row.get(status_col, 'pending'),
-                            'post_content': row.get(post_col, '')
+                            'post_content': row.get(post_col, ''),
+                            'video_type': video_type,
+                            'role': role,
+                            'custom_tags': custom_tags,
+                            'playlist_name': playlist_name,
+                            'description': description[:200] + '...' if description and len(description) > 200 else description
                         })
                     except:
                         pass
