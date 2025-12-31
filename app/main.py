@@ -1107,18 +1107,32 @@ def test_connection():
             'message': 'LinkedIn configured' if is_configured else 'Missing LinkedIn credentials (need Client ID + Secret OR Access Token, and Person URN)'
         })
     elif platform == 'facebook':
+        has_app_id = bool(api_keys.get('facebook_app_id'))
+        has_app_secret = bool(api_keys.get('facebook_app_secret'))
         has_token = bool(api_keys.get('facebook_page_access_token'))
-        has_id = bool(api_keys.get('facebook_page_id'))
+        has_page_id = bool(api_keys.get('facebook_page_id'))
+        
+        # Either App ID + Secret OR Page Access Token is required
+        has_credentials = (has_app_id and has_app_secret) or has_token
+        is_configured = has_credentials and has_page_id
+        
         return jsonify({
-            'success': has_token and has_id,
-            'message': 'Facebook configured' if (has_token and has_id) else 'Missing Facebook credentials'
+            'success': is_configured,
+            'message': 'Facebook configured' if is_configured else 'Missing Facebook credentials (need App ID + Secret OR Page Access Token, and Page ID)'
         })
     elif platform == 'instagram':
+        has_app_id = bool(api_keys.get('facebook_app_id'))
+        has_app_secret = bool(api_keys.get('facebook_app_secret'))
         has_account = bool(api_keys.get('instagram_business_account_id'))
         has_token = bool(api_keys.get('instagram_access_token'))
+        
+        # Either Facebook App ID/Secret OR Instagram Access Token is required
+        has_credentials = (has_app_id and has_app_secret) or has_token
+        is_configured = has_credentials and has_account
+        
         return jsonify({
-            'success': has_account and has_token,
-            'message': 'Instagram configured' if (has_account and has_token) else 'Missing Instagram credentials'
+            'success': is_configured,
+            'message': 'Instagram configured' if is_configured else 'Missing Instagram credentials (need Facebook App ID + Secret OR Instagram Access Token, and Business Account ID)'
         })
     elif platform == 'ayrshare':
         has_key = bool(api_keys.get('ayrshare_api_key'))
