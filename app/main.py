@@ -3,7 +3,7 @@ Flask web application for YouTube automation configuration and scheduling.
 Provides a web interface to configure API keys and schedule daily automation.
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response
 import json
 import os
 import sys
@@ -640,27 +640,34 @@ def get_video_social_posts_from_db(video_id: str):
 
 @app.route('/playlists')
 def playlists():
-    """Display all playlists and videos."""
+    """Display all playlists and videos - always fetches fresh data from YouTube."""
     youtube = get_youtube_service()
     if not youtube:
         return render_template('error.html', 
                              message="YouTube API not configured. Please set up client_secret.json")
     
     try:
+        # Always fetch fresh data from YouTube API (no caching)
         channel_id = get_my_channel_id_helper(youtube)
         if not channel_id:
             return render_template('error.html', 
                                  message="Could not find your YouTube channel. Please check authentication.")
         
+        # Fetch latest playlists from YouTube API
         playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
         channel_title = playlists_data[0].get("channelTitle", "") if playlists_data else ""
         
-        # Videos will be loaded on demand via AJAX
+        # Videos will be loaded on demand via AJAX (also fetches fresh from YouTube)
         for playlist in playlists_data:
             playlist["videos"] = []
             playlist["videosLoaded"] = False
         
-        return render_template('playlists.html', playlists=playlists_data, channel_title=channel_title)
+        # Add cache control headers to prevent browser caching
+        response = make_response(render_template('playlists.html', playlists=playlists_data, channel_title=channel_title))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         import traceback
         return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
@@ -730,7 +737,12 @@ def api_playlist_videos(playlist_id):
                 )
                 video["suggested_tags"] = suggested_tags
         
-        return jsonify({'videos': videos})
+        # Add cache control headers to prevent browser caching
+        response = make_response(jsonify({'videos': videos}))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500

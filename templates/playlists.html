@@ -6,6 +6,63 @@
 
 {% block extra_css %}
 <style>
+    .refresh-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    
+    .refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--buffer-primary);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .refresh-btn:hover {
+        opacity: 0.9;
+    }
+    
+    .refresh-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .refresh-btn.refreshing {
+        animation: spin 1s linear infinite;
+    }
+    
+    .refresh-btn .bi-arrow-clockwise {
+        transition: transform 0.3s;
+    }
+    
+    .refresh-btn.refreshing .bi-arrow-clockwise {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    .last-updated {
+        font-size: 13px;
+        color: var(--buffer-text-light);
+    }
+</style>
+{% endblock %}
+
+{% block extra_css %}
+<style>
     .filter-bar {
         background: white;
         padding: 1.5rem;
@@ -458,7 +515,14 @@ function loadPlaylistVideos(playlistId, containerId) {
         </div>
     `;
     
-    fetch(`/api/playlist/${playlistId}/videos`)
+            // Always fetch fresh data (add timestamp to prevent caching)
+            const timestamp = new Date().getTime();
+            fetch(`/api/playlist/${playlistId}/videos?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            })
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -882,7 +946,31 @@ function applyFilters() {
 }
 
 // Load first playlist on page load
+// Update last updated time
+function updateLastUpdated() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString();
+    const dateStr = now.toLocaleDateString();
+    document.getElementById('lastUpdated').innerHTML = `<i class="bi bi-clock"></i> Last updated: ${dateStr} ${timeStr}`;
+}
+
+// Refresh playlists and videos from YouTube
+function refreshPlaylists() {
+    const btn = document.getElementById('refreshBtn');
+    const originalHTML = btn.innerHTML;
+    
+    // Disable button and show loading state
+    btn.disabled = true;
+    btn.classList.add('refreshing');
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refreshing...';
+    
+    // Reload the page to fetch fresh data
+    window.location.reload();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Update last updated time on load
+    updateLastUpdated();
     const firstPlaylist = document.querySelector('.playlist-content.active');
     if (firstPlaylist) {
         const containerId = firstPlaylist.id.replace('playlist-', 'videos-container-');
