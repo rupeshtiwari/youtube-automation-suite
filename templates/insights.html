@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Insights Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-graph-up-arrow"></i> Insights Dashboard
+            </h1>
+            <p class="text-muted">Analytics from YouTube, Facebook, and LinkedIn</p>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">YouTube</h5>
+                    {% if insights.youtube and not insights.youtube.error %}
+                        <p class="text-muted">Analytics available</p>
+                    {% else %}
+                        <p class="text-danger">{{ insights.youtube.error if insights.youtube else 'Not configured' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Facebook</h5>
+                    {% if insights.facebook and not insights.facebook.error %}
+                        <p class="text-muted">Insights available</p>
+                    {% else %}
+                        <p class="text-danger">{{ insights.facebook.error if insights.facebook else 'Not configured' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">LinkedIn</h5>
+                    {% if insights.linkedin and not insights.linkedin.error %}
+                        <p class="text-muted">Analytics available</p>
+                    {% else %}
+                        <p class="text-danger">{{ insights.linkedin.error if insights.linkedin else 'Not configured' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimal Posting Times -->
+    {% if insights.optimal_posting_times %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Optimal Posting Times</h5>
+                </div>
+                <div class="card-body">
+                    {% if insights.optimal_posting_times.youtube %}
+                        <p><strong>YouTube Best Time:</strong> Hour {{ insights.optimal_posting_times.youtube.hour }}:00</p>
+                    {% endif %}
+                    {% if insights.optimal_posting_times.overall %}
+                        <p><strong>Overall Recommendation:</strong> Post at hour {{ insights.optimal_posting_times.overall.hour }}:00 for maximum engagement</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- YouTube Analytics Details -->
+    {% if insights.youtube and not insights.youtube.error %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>YouTube Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Channel ID:</strong> {{ insights.youtube.channel_id }}</p>
+                    <p><strong>Views Data Points:</strong> {{ insights.youtube.views_data|length if insights.youtube.views_data else 0 }}</p>
+                    <p><strong>Geography Data Points:</strong> {{ insights.youtube.geography|length if insights.youtube.geography else 0 }}</p>
+                    <p><strong>Demographics Data Points:</strong> {{ insights.youtube.demographics|length if insights.youtube.demographics else 0 }}</p>
+                    <p><strong>Hourly Activity Points:</strong> {{ insights.youtube.hourly_activity|length if insights.youtube.hourly_activity else 0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Facebook Insights Details -->
+    {% if insights.facebook and not insights.facebook.error %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Facebook Insights</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Insights Available:</strong> {{ insights.facebook.insights|length if insights.facebook.insights else 0 }} metrics</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Note:</strong> This is a basic insights page. Rich visualizations with charts, demographics, and geography maps will be added soon.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -138,3 +138,4 @@ python3 scripts/schedule_youtube.py
 5. **Entry Point**: Use `run.py` as the main entry point
 6. **Deployment Scripts**: Organized in `scripts/deployment/`
 
+

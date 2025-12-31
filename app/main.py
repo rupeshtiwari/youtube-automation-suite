@@ -22,7 +22,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.database import init_database
 from app import views
 
-app = Flask(__name__)
+# Get project root (parent of app/)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+template_dir = os.path.join(project_root, 'templates')
+
+app = Flask(__name__, template_folder=template_dir)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Settings file - support NAS/Docker deployment
@@ -795,17 +799,7 @@ def insights():
             'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics)
         }
         
-        # For now, return a simple page if template doesn't exist
-        try:
-            return render_template('insights.html', insights=insights_data)
-        except:
-            # Template doesn't exist yet, return simple message
-            return f"""
-            <h1>Insights Dashboard</h1>
-            <p>Insights page is being set up. Analytics data collection is ready.</p>
-            <pre>{json.dumps(insights_data, indent=2, default=str)}</pre>
-            <p><a href="/">Back to Dashboard</a></p>
-            """
+        return render_template('insights.html', insights=insights_data)
     except Exception as e:
         import traceback
         return render_template('error.html', message=f"Error loading insights: {str(e)}\n{traceback.format_exc()}")
