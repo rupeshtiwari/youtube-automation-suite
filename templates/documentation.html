@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation - YouTube Automation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doc-section {
+        margin-bottom: 40px;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .doc-section h2 {
+        color: #667eea;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .doc-section h3 {
+        color: #333;
+        margin-top: 25px;
+        margin-bottom: 15px;
+    }
+    .doc-section h4 {
+        color: #555;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    .feature-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-left: 4px solid #667eea;
+        margin: 15px 0;
+        border-radius: 5px;
+    }
+    .code-block {
+        background: #282c34;
+        color: #abb2bf;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        margin: 10px 0;
+    }
+    .step-list {
+        counter-reset: step-counter;
+        list-style: none;
+        padding-left: 0;
+    }
+    .step-list li {
+        counter-increment: step-counter;
+        margin-bottom: 15px;
+        padding-left: 40px;
+        position: relative;
+    }
+    .step-list li::before {
+        content: counter(step-counter);
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: #667eea;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.85em;
+        font-weight: 600;
+        margin: 5px;
+    }
+    .badge-pending { background: #ffc107; color: #000; }
+    .badge-scheduled { background: #28a745; color: white; }
+    .badge-error { background: #dc3545; color: white; }
+    .badge-posted { background: #6c757d; color: white; }
+    .nav-link-doc {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .nav-link-doc:hover {
+        text-decoration: underline;
+    }
+    .toc {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .toc ul {
+        list-style: none;
+        padding-left: 0;
+    }
+    .toc li {
+        margin: 8px 0;
+    }
+    .toc a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    .toc a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-book"></i> UI Documentation
+        </h1>
+        <p class="lead text-muted">Complete guide to using the YouTube Automation Suite web interface</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><a href="#playlists">Playlists & Videos</a></li>
+                <li><a href="#calendar">Calendar View</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section" id="getting-started">
+    <h2>🚀 Getting Started</h2>
+    
+    <h3>Accessing the Web Interface</h3>
+    <div class="feature-box">
+        <ol>
+            <li><strong>Start the Server</strong>
+                <div class="code-block">./run_local.sh</div>
+            </li>
+            <li><strong>Open in Browser</strong>
+                <ul>
+                    <li>Local: <a href="http://localhost:5001">http://localhost:5001</a></li>
+                    <li>Network: http://YOUR_IP:5001</li>
+                </ul>
+            </li>
+            <li><strong>Initial Setup</strong>
+                <ul>
+                    <li>First time: Configure API keys in <a href="/config" class="nav-link-doc">Configuration page</a></li>
+                    <li>Set up scheduling preferences</li>
+                    <li>Enable automation</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+</div>
+
+<div class="doc-section" id="dashboard">
+    <h2>📊 Dashboard</h2>
+    
+    <p>The dashboard provides a central overview of your automation system.</p>
+    
+    <h3>Features</h3>
+    
+    <h4>Status Cards</h4>
+    <ul>
+        <li><strong>Automation Status</strong>: Shows if daily automation is enabled/disabled</li>
+        <li><strong>Last Run</strong>: Timestamp of the last automation execution</li>
+        <li><strong>Next Run</strong>: When the next scheduled run will occur</li>
+        <li><strong>Database Status</strong>: Whether SQLite database is active</li>
+    </ul>
+    
+    <h4>Quick Actions</h4>
+    <ul>
+        <li><strong>Run Now</strong>: Manually trigger automation immediately</li>
+        <li><strong>View Playlists</strong>: Link to playlists page</li>
+        <li><strong>View Calendar</strong>: Link to calendar view</li>
+        <li><strong>Configure</strong>: Link to configuration page</li>
+    </ul>
+    
+    <div class="feature-box">
+        <strong>💡 Tip:</strong> Use the dashboard to monitor automation status and quickly access all features.
+    </div>
+</div>
+
+<div class="doc-section" id="playlists">
+    <h2>📋 Playlists & Videos</h2>
+    
+    <p>View all your YouTube playlists, videos, and their associated social media posts in one place.</p>
+    <p><a href="/playlists" class="btn btn-primary">View Playlists Page</a></p>
+    
+    <h3>Features</h3>
+    
+    <h4>Playlist List</h4>
+    <ul>
+        <li><strong>Playlist Cards</strong>: Each playlist shown as an expandable card</li>
+        <li><strong>Playlist Metadata</strong>:
+            <ul>
+                <li>Title and description</li>
+                <li>Number of videos</li>
+                <li>Published date</li>
+                <li>Direct link to YouTube playlist</li>
+                <li>Thumbnail</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h4>Video Details</h4>
+    <p>For each video, you can see:</p>
+    
+    <div class="feature-box">
+        <h5>1. Video Information</h5>
+        <ul>
+            <li>Title (clickable link to YouTube)</li>
+            <li>Thumbnail image</li>
+            <li>Published date</li>
+            <li>Scheduled publish date (if private/scheduled)</li>
+            <li>Privacy status (Public/Private/Unlisted)</li>
+            <li>Tags</li>
+        </ul>
+        
+        <h5>2. Social Media Posts</h5>
+        <ul>
+            <li><strong>LinkedIn Post</strong>: Content, schedule date, status</li>
+            <li><strong>Facebook Post</strong>: Content, schedule date, status</li>
+            <li><strong>Instagram Post</strong>: Content, schedule date, status</li>
+        </ul>
+    </div>
+    
+    <h4>Status Badges</h4>
+    <p>
+        <span class="status-badge badge-pending">Pending</span>
+        <span class="status-badge badge-scheduled">Scheduled</span>
+        <span class="status-badge badge-error">Error</span>
+        <span class="status-badge badge-posted">Posted</span>
+    </p>
+    
+    <h3>How to Use</h3>
+    <ol class="step-list">
+        <li><strong>View Playlists</strong>: Page loads all playlists automatically. Click playlist header to expand/collapse.</li>
+        <li><strong>Navigate Videos</strong>: Scroll through videos. Click video title to open on YouTube.</li>
+        <li><strong>Check Social Posts</strong>: Expand playlist to see video social media posts with content and dates.</li>
+        <li><strong>Performance</strong>: Only first 10 playlists load videos by default. Click individual playlists to load more.</li>
+    </ol>
+</div>
+
+<div class="doc-section" id="calendar">
+    <h2>📅 Calendar View</h2>
+    
+    <p>Visual calendar representation of all scheduled social media posts, similar to Buffer.com's calendar interface.</p>
+    <p><a href="/calendar" class="btn btn-primary">View Calendar</a></p>
+    
+    <h3>Features</h3>
+    
+    <h4>Calendar Interface</h4>
+    <div class="feature-box">
+        <h5>Views</h5>
+        <ul>
+            <li><strong>Month View</strong>: Overview of entire month</li>
+            <li><strong>Week View</strong>: Detailed weekly schedule</li>
+            <li><strong>Day View</strong>: Hour-by-hour breakdown</li>
+        </ul>
+        
+        <h5>Event Display</h5>
+        <ul>
+            <li>Color-coded by platform:
+                <ul>
+                    <li><span style="color: #0077b5; font-weight: bold;">🔵 LinkedIn</span>: Blue (#0077b5)</li>
+                    <li><span style="color: #1877f2; font-weight: bold;">🔵 Facebook</span>: Blue (#1877f2)</li>
+                    <li><span style="color: #e4405f; font-weight: bold;">🔴 Instagram</span>: Pink (#e4405f)</li>
+                </ul>
+            </li>
+            <li>Event title shows: <code>Platform: Video Title</code></li>
+            <li>Status indicated by opacity (pending = lighter)</li>
+        </ul>
+    </div>
+    
+    <h4>Event Details Modal</h4>
+    <p>Click any event to see:</p>
+    <ul>
+        <li><strong>Platform</strong>: Which social network</li>
+        <li><strong>Video Title</strong>: Full title with YouTube link</li>
+        <li><strong>Scheduled Time</strong>: Exact date and time</li>
+        <li><strong>Status</strong>: Current post status</li>
+        <li><strong>Post Content</strong>: Full text of the post</li>
+        <li><strong>Action</strong>: Link to view video on YouTube</li>
+    </ul>
+    
+    <h3>How to Use</h3>
+    <ol class="step-list">
+        <li><strong>Navigate Calendar</strong>: Use arrows to move between months. Click "Today" to return to current date.</li>
+        <li><strong>View Events</strong>: Hover over events for preview. Click event for full details.</li>
+        <li><strong>Filter by Platform</strong>: Events are color-coded. Use legend to identify platforms.</li>
+        <li><strong>Check Schedules</strong>: Verify all posts are scheduled correctly and spot conflicts.</li>
+    </ol>
+</div>
+
+<div class="doc-section" id="configuration">
+    <h2>⚙️ Configuration</h2>
+    
+    <p>Configure API keys, scheduling preferences, and automation settings.</p>
+    <p><a href="/config" class="btn btn-primary">Open Configuration</a></p>
+    
+    <h3>Sections</h3>
+    
+    <h4>1. API Keys</h4>
+    <div class="feature-box">
+        <h5>Social Media APIs</h5>
+        <ul>
+            <li><strong>LinkedIn</strong>: Access Token, Person URN</li>
+            <li><strong>Facebook</strong>: Page Access Token, Page ID</li>
+            <li><strong>Instagram</strong>: Business Account ID, Access Token</li>
+        </ul>
+        <p><strong>How to get:</strong> See <a href="/static/API_KEYS_SETUP.md" class="nav-link-doc">API_KEYS_SETUP.md</a> for detailed instructions.</p>
+        
+        <h5>Ayrshare (Alternative)</h5>
+        <ul>
+            <li>Single API key for all platforms</li>
+            <li>Simpler setup, unified posting</li>
+        </ul>
+        
+        <h5>Testing APIs</h5>
+        <ul>
+            <li>Click "Test Connection" buttons to verify API keys</li>
+            <li>Shows success/error messages</li>
+            <li>Tests authentication without posting</li>
+        </ul>
+    </div>
+    
+    <h4>2. Scheduling Settings</h4>
+    <div class="feature-box">
+        <ul>
+            <li><strong>Automation Toggle</strong>: Enable/disable daily automation</li>
+            <li><strong>Videos Per Day</strong>: Number of videos to process (1-10 recommended)</li>
+            <li><strong>YouTube Schedule Time</strong>: When to schedule videos (HH:MM format, default: 23:00)</li>
+            <li><strong>Social Media Schedule Time</strong>: When to schedule posts (HH:MM format, default: 19:30)</li>
+            <li><strong>Schedule Day</strong>: Day of week to run automation (default: Wednesday)</li>
+            <li><strong>Playlist ID</strong>: YouTube playlist ID to process (optional)</li>
+            <li><strong>Export Type</strong>: shorts (default) or all playlists</li>
+        </ul>
+    </div>
+    
+    <h4>3. Storage Options</h4>
+    <div class="feature-box">
+        <ul>
+            <li><strong>Use Database</strong>: SQLite storage (recommended)
+                <ul>
+                    <li>Better performance</li>
+                    <li>Concurrent access</li>
+                    <li>Query capabilities</li>
+                </ul>
+            </li>
+            <li><strong>Use Excel</strong>: Excel file storage (legacy)
+                <ul>
+                    <li>Easier manual editing</li>
+                    <li>Spreadsheet view</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    
+    <h3>How to Configure</h3>
+    <ol class="step-list">
+        <li><strong>Configure API Keys</strong>: Get keys, paste into fields, test connections, save.</li>
+        <li><strong>Set Scheduling</strong>: Enable automation, set videos per day, choose times, select day, enter playlist ID, save.</li>
+        <li><strong>Save Changes</strong>: Always click "Save Configuration" after changes. Settings are saved to <code>automation_settings.json</code>.</li>
+    </ol>
+</div>
+
+<div class="doc-section" id="troubleshooting">
+    <h2>🔧 Troubleshooting</h2>
+    
+    <h3>Common Issues</h3>
+    
+    <h4>1. "YouTube API not configured"</h4>
+    <div class="feature-box">
+        <p><strong>Problem:</strong> Can't access playlists page</p>
+        <p><strong>Solution:</strong></p>
+        <ul>
+            <li>Ensure <code>client_secret.json</code> exists in project root</li>
+            <li>Run YouTube export scripts to authenticate</li>
+            <li>Check <code>token.json</code> exists</li>
+        </ul>
+    </div>
+    
+    <h4>2. "Could not find your YouTube channel"</h4>
+    <div class="feature-box">
+        <p><strong>Problem:</strong> Authentication error</p>
+        <p><strong>Solution:</strong></p>
+        <ul>
+            <li>Delete <code>token.json</code></li>
+            <li>Re-run authentication flow</li>
+            <li>Use correct Google account</li>
+        </ul>
+    </div>
+    
+    <h4>3. Calendar shows no events</h4>
+    <div class="feature-box">
+        <p><strong>Problem:</strong> Empty calendar</p>
+        <p><strong>Solution:</strong></p>
+        <ul>
+            <li>Run automation or export scripts first</li>
+            <li>Check database/Excel has data</li>
+            <li>Verify schedule dates are set</li>
+        </ul>
+    </div>
+    
+    <h4>4. API Test fails</h4>
+    <div class="feature-box">
+        <p><strong>Problem:</strong> Connection test errors</p>
+        <p><strong>Solution:</strong></p>
+        <ul>
+            <li>Verify API keys are correct</li>
+            <li>Check tokens haven't expired</li>
+            <li>Re-generate keys if needed</li>
+            <li>See API_KEYS_SETUP.md for details</li>
+        </ul>
+    </div>
+    
+    <h4>5. Server won't start</h4>
+    <div class="feature-box">
+        <p><strong>Problem:</strong> Port 5001 already in use</p>
+        <p><strong>Solution:</strong></p>
+        <div class="code-block"># Find process using port
+lsof -i :5001
+
+# Kill process
+kill -9 &lt;PID&gt;
+
+# Or use different port
+PORT=5002 python3 app.py</div>
+    </div>
+    
+    <h3>Getting Help</h3>
+    <ol>
+        <li><strong>Check Logs</strong>: Server logs in terminal, database logs, error messages in UI</li>
+        <li><strong>Verify Configuration</strong>: Check API keys are saved, verify scheduling settings, ensure automation is enabled</li>
+        <li><strong>Test Components</strong>: Use "Test Connection" buttons, run manual execution, check database/Excel files</li>
+    </ol>
+</div>
+
+<div class="doc-section">
+    <h2>📚 Additional Resources</h2>
+    <ul>
+        <li><a href="/">Dashboard</a>: Return to main dashboard</li>
+        <li><a href="/playlists">Playlists</a>: View all playlists and videos</li>
+        <li><a href="/calendar">Calendar</a>: Calendar view of scheduled posts</li>
+        <li><a href="/config">Configuration</a>: Settings and API keys</li>
+    </ul>
+</div>
+{% endblock %}
+

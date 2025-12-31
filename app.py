@@ -329,6 +329,13 @@ def index():
     return render_template('dashboard.html', settings=settings)
 
 
+@app.route('/docs')
+@app.route('/documentation')
+def documentation():
+    """Documentation page."""
+    return render_template('documentation.html')
+
+
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring."""
