@@ -83,16 +83,26 @@ The easiest way to configure and run automation is through the web interface:
 python app.py
 ```
 
-Then open your browser to: **http://localhost:5000**
+Then open your browser to: **http://localhost:5001**
 
-**Features:**
+**Available Pages:**
+- **📊 Dashboard** (`/`): Overview of automation status, quick actions, recent activity
+- **📋 Playlists** (`/playlists`): View all YouTube playlists and videos with social media posts
+- **📅 Calendar** (`/calendar`): Visual calendar view of scheduled posts (Buffer.com style)
+- **⚙️ Configuration** (`/config`): Set API keys, scheduling preferences, automation settings
+- **📚 Documentation** (`/docs`): Complete UI documentation and guides
+
+**Key Features:**
 - **Dashboard**: View automation status, last run time, next scheduled run
+- **Playlists Page**: Browse all playlists, videos, thumbnails, and social media posts
+- **Calendar View**: Visual calendar with color-coded scheduled posts across platforms
 - **Configuration Page**: 
   - Enter all API keys in one place
   - Configure scheduling settings (videos per day, schedule time, day of week)
   - Enable/disable automation
   - Test API connections
   - Configure social media posting
+- **Built-in Documentation**: Complete user guide accessible from the UI
 
 **Configuration Options:**
 - Videos per day: Number of videos to process daily (1-10)
@@ -102,12 +112,15 @@ Then open your browser to: **http://localhost:5000**
 - Export type: All playlists or Shorts only
 - Auto-post social: Enable automatic social media posting
 - Platform selection: Choose LinkedIn, Facebook, Instagram
+- Storage: Choose between SQLite database or Excel files
 
 The web interface automatically:
 - Saves settings to `automation_settings.json`
 - Updates `.env` file for compatibility
 - Schedules daily automation tasks
 - Runs in background (keeps running even after closing browser)
+
+**📖 For complete UI documentation, see [UI_DOCUMENTATION.md](./UI_DOCUMENTATION.md) or click "Documentation" in the web interface.**
 
 ### Command Line Usage
 
