@@ -41,7 +41,12 @@ def load_settings():
         with open(SETTINGS_FILE, 'r') as f:
             return json.load(f)
     return {
-        'api_keys': {},
+        'api_keys': {
+            'linkedin_client_id': '',
+            'linkedin_client_secret': '',
+            'linkedin_access_token': '',
+            'linkedin_person_urn': '',
+        },
         'scheduling': {
             'enabled': False,
             'videos_per_day': 1,
