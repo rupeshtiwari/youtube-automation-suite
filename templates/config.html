@@ -332,6 +332,80 @@
 </form>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Help Icon Styles */
+    .help-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--buffer-primary);
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: 6px;
+        vertical-align: middle;
+        transition: all 0.2s;
+    }
+    
+    .help-icon:hover {
+        background: var(--buffer-primary);
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+    
+    .form-label {
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Help Modal Styles */
+    .help-modal .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .help-content {
+        line-height: 1.8;
+    }
+    
+    .help-content ol, .help-content ul {
+        padding-left: 24px;
+        margin: 12px 0;
+    }
+    
+    .help-content li {
+        margin: 8px 0;
+    }
+    
+    .help-content code {
+        background: var(--buffer-bg-light);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: var(--buffer-primary);
+    }
+    
+    .help-content .alert {
+        margin: 12px 0;
+    }
+    
+    .help-link {
+        color: var(--buffer-primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .help-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
 <!-- Help Modal -->
 <div class="modal fade help-modal" id="helpModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
