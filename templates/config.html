@@ -17,6 +17,62 @@
 </div>
 
 <form method="POST" action="/config">
+    <!-- YouTube API Configuration -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-youtube"></i> YouTube API Configuration
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Client Secret File</label>
+                <div class="youtube-status mb-3">
+                    {% if youtube_status.client_secret_exists %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> 
+                            Client secret file is configured
+                        </div>
+                        {% if youtube_status.configured and youtube_status.channel_name %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-broadcast"></i> 
+                                Connected to channel: <strong>{{ youtube_status.channel_name }}</strong>
+                                {% if youtube_status.channel_id %}
+                                    <br><small>Channel ID: {{ youtube_status.channel_id }}</small>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            Client secret file not found. Please upload your client_secret.json file.
+                        </div>
+                    {% endif %}
+                    {% if youtube_status.error %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> 
+                            Error: {{ youtube_status.error }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="file-upload-area">
+                    <form id="clientSecretUploadForm" enctype="multipart/form-data">
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="clientSecretFile" 
+                                   accept=".json" required>
+                            <button class="btn btn-primary" type="submit" id="uploadClientSecretBtn">
+                                <i class="bi bi-upload"></i> Upload
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            Upload your client_secret.json file from Google Cloud Console.
+                            <a href="/docs#youtube-setup" target="_blank">Learn how to get it</a>
+                        </small>
+                    </form>
+                    <div id="uploadStatus" class="mt-2" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- API Keys Section -->
     <div class="card">
         <div class="card-header">
