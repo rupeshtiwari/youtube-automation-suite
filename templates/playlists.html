@@ -439,11 +439,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const playlistCard = firstPlaylist.closest('.playlist-card');
         const header = playlistCard.querySelector('.playlist-header');
         const onclickAttr = header.getAttribute('onclick');
-        const match = onclickAttr.match(/'([^']+)'/g);
-        if (match && match.length >= 2) {
-            const playlistApiId = match[1].replace(/'/g, '');
+        
+        // Extract playlist ID from onclick attribute: togglePlaylist('playlist-1', 'PLAYLIST_ID')
+        const match = onclickAttr.match(/togglePlaylist\([^,]+,\s*'([^']+)'\)/);
+        if (match && match[1]) {
+            const playlistApiId = match[1];
             loadPlaylistVideos(playlistApiId, containerId);
             loadedPlaylists.add(playlistApiId);
+        } else {
+            // Fallback: try alternative pattern
+            const matches = onclickAttr.match(/'([^']+)'/g);
+            if (matches && matches.length >= 2) {
+                const playlistApiId = matches[1].replace(/'/g, '');
+                loadPlaylistVideos(playlistApiId, containerId);
+                loadedPlaylists.add(playlistApiId);
+            }
         }
     }
 });

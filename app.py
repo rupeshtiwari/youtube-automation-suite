@@ -659,6 +659,39 @@ def playlists():
         return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
 
 
+@app.route('/api/playlist/<playlist_id>/videos')
+def api_playlist_videos(playlist_id):
+    """API endpoint to fetch videos for a playlist (lazy loading)."""
+    youtube = get_youtube_service()
+    if not youtube:
+        return jsonify({'error': 'YouTube API not configured'}), 500
+    
+    try:
+        # Get channel info for channel title
+        channel_id = get_my_channel_id_helper(youtube)
+        channel_title = ""
+        if channel_id:
+            try:
+                channel_response = youtube.channels().list(part="snippet", id=channel_id).execute()
+                if channel_response.get("items"):
+                    channel_title = channel_response["items"][0].get("snippet", {}).get("title", "")
+            except:
+                pass
+        
+        videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_title)
+        
+        # Add social media posts from database
+        for video in videos:
+            video_id = video["videoId"]
+            social_posts = get_video_social_posts_from_db(video_id)
+            video["social_posts"] = social_posts
+        
+        return jsonify({'videos': videos})
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
 @app.route('/calendar')
 def calendar():
     """Display calendar view of scheduled posts."""
