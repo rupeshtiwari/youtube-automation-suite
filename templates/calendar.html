@@ -270,6 +270,117 @@
         white-space: pre-wrap;
         transition: background-color 0.3s ease, color 0.3s ease;
     }
+    
+    .event-video-details {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--buffer-border);
+    }
+    
+    .event-detail-row {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+    
+    .event-detail-label {
+        font-weight: 600;
+        color: var(--buffer-text-light);
+        min-width: 120px;
+        margin-right: 12px;
+    }
+    
+    .event-detail-value {
+        color: var(--buffer-text);
+        flex: 1;
+    }
+    
+    .event-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .event-tag {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .event-tag.type {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .event-tag.role {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .event-tag.custom {
+        background: #e9d5ff;
+        color: #6b21a8;
+    }
+    
+    /* Schedule Button */
+    .schedule-new-btn {
+        position: fixed;
+        bottom: 32px;
+        right: 32px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--buffer-primary);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        transition: all 0.3s;
+    }
+    
+    .schedule-new-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+    
+    [data-theme="dark"] .schedule-new-btn {
+        background: var(--buffer-primary);
+        color: var(--buffer-bg-light);
+    }
+    
+    /* Schedule Modal */
+    .schedule-modal .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .video-select-item {
+        padding: 12px;
+        border: 1px solid var(--buffer-border);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .video-select-item:hover {
+        background: var(--buffer-hover);
+        border-color: var(--buffer-primary);
+    }
+    
+    .video-select-item.selected {
+        background: var(--buffer-hover);
+        border-color: var(--buffer-primary);
+        border-width: 2px;
+    }
 
     .event-meta {
         display: flex;
@@ -320,7 +431,7 @@
             </div>
             <div class="modal-body">
                 <div id="eventModalPlatform" class="event-platform"></div>
-                <div id="eventModalVideoTitle" style="font-weight: 600; font-size: 16px; margin-bottom: 8px;"></div>
+                <div id="eventModalVideoTitle" style="font-weight: 600; font-size: 18px; margin-bottom: 12px; color: var(--buffer-text);"></div>
                 <div id="eventModalContent" class="event-content"></div>
                 <div class="event-meta">
                     <div class="event-meta-item">
@@ -426,6 +537,45 @@ document.addEventListener('DOMContentLoaded', function() {
                         props.status.charAt(0).toUpperCase() + props.status.slice(1);
                     document.getElementById('eventModalLink').href = props.youtube_url || '#';
                     
+                    // Add video details
+                    const detailsHtml = `
+                        <div class="event-video-details">
+                            ${props.channel_name ? `
+                            <div class="event-detail-row">
+                                <span class="event-detail-label"><i class="bi bi-broadcast"></i> Channel:</span>
+                                <span class="event-detail-value">${escapeHtml(props.channel_name)}</span>
+                            </div>` : ''}
+                            ${props.playlist_name ? `
+                            <div class="event-detail-row">
+                                <span class="event-detail-label"><i class="bi bi-collection-play"></i> Playlist:</span>
+                                <span class="event-detail-value">${escapeHtml(props.playlist_name)}</span>
+                            </div>` : ''}
+                            ${props.video_type || props.role || props.custom_tags ? `
+                            <div class="event-detail-row">
+                                <span class="event-detail-label"><i class="bi bi-tags"></i> Tags:</span>
+                                <span class="event-detail-value">
+                                    <div class="event-tags">
+                                        ${props.video_type ? `<span class="event-tag type">Type: ${escapeHtml(props.video_type)}</span>` : ''}
+                                        ${props.role ? `<span class="event-tag role">Role: ${escapeHtml(props.role)}</span>` : ''}
+                                        ${props.custom_tags ? props.custom_tags.split(',').map(tag => `<span class="event-tag custom">${escapeHtml(tag.trim())}</span>`).join('') : ''}
+                                    </div>
+                                </span>
+                            </div>` : ''}
+                            ${props.description ? `
+                            <div class="event-detail-row">
+                                <span class="event-detail-label"><i class="bi bi-file-text"></i> Description:</span>
+                                <span class="event-detail-value" style="font-size: 13px; color: var(--buffer-text-light);">${escapeHtml(props.description)}</span>
+                            </div>` : ''}
+                        </div>
+                    `;
+                    
+                    const modalBody = document.getElementById('eventModalContent').parentElement;
+                    // Remove old details if any
+                    const oldDetails = modalBody.querySelector('.event-video-details');
+                    if (oldDetails) oldDetails.remove();
+                    // Insert new details after post content
+                    document.getElementById('eventModalContent').insertAdjacentHTML('afterend', detailsHtml);
+                    
                     modal.show();
                 },
                 height: 'auto',
@@ -446,5 +596,19 @@ document.addEventListener('DOMContentLoaded', function() {
             calendarEl.innerHTML = '<div class="alert alert-danger">Error loading calendar data</div>';
         });
 });
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Schedule new video function (to be implemented)
+function scheduleNewVideo() {
+    // Open modal to select video and schedule
+    alert('Schedule new video feature - Coming soon!\n\nThis will allow you to:\n- Select a video\n- Choose platform\n- Set date/time\n- Create/schedule post');
+}
 </script>
 {% endblock %}
