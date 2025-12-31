@@ -838,6 +838,106 @@ def calendar():
     return render_template('calendar.html')
 
 
+@app.route('/content')
+def content():
+    """Content management page - view and schedule videos across all channels."""
+    return render_template('content.html')
+
+
+@app.route('/api/content/videos')
+def api_content_videos():
+    """API endpoint to fetch videos with social media post status for content page."""
+    from app.database import get_db_connection
+    import pandas as pd
+    
+    try:
+        conn = get_db_connection()
+        
+        # Get all videos that are public or scheduled
+        query = '''
+            SELECT 
+                v.video_id,
+                v.title,
+                v.description,
+                v.tags,
+                v.youtube_url,
+                v.video_type,
+                v.role,
+                v.custom_tags,
+                v.playlist_name,
+                v.youtube_published_date,
+                v.youtube_schedule_date,
+                v.privacy_status,
+                smp_linkedin.status as linkedin_status,
+                smp_linkedin.schedule_date as linkedin_schedule_date,
+                smp_linkedin.post_content as linkedin_post,
+                smp_facebook.status as facebook_status,
+                smp_facebook.schedule_date as facebook_schedule_date,
+                smp_facebook.post_content as facebook_post,
+                smp_instagram.status as instagram_status,
+                smp_instagram.schedule_date as instagram_schedule_date,
+                smp_instagram.post_content as instagram_post
+            FROM videos v
+            LEFT JOIN social_media_posts smp_linkedin ON v.video_id = smp_linkedin.video_id AND smp_linkedin.platform = 'linkedin'
+            LEFT JOIN social_media_posts smp_facebook ON v.video_id = smp_facebook.video_id AND smp_facebook.platform = 'facebook'
+            LEFT JOIN social_media_posts smp_instagram ON v.video_id = smp_instagram.video_id AND smp_instagram.platform = 'instagram'
+            WHERE v.privacy_status = 'public' OR v.youtube_schedule_date IS NOT NULL
+            ORDER BY COALESCE(v.youtube_schedule_date, v.youtube_published_date) DESC
+        '''
+        
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        videos = []
+        for _, row in df.iterrows():
+            video = {
+                'video_id': row.get('video_id', ''),
+                'title': row.get('title', ''),
+                'description': row.get('description', '') or '',
+                'tags': row.get('tags', '') or '',
+                'youtube_url': row.get('youtube_url', ''),
+                'video_type': row.get('video_type', '') or '',
+                'role': row.get('role', '') or '',
+                'custom_tags': row.get('custom_tags', '') or '',
+                'playlist_name': row.get('playlist_name', '') or '',
+                'youtube_published_date': str(row.get('youtube_published_date', '')) if pd.notna(row.get('youtube_published_date')) else '',
+                'youtube_schedule_date': str(row.get('youtube_schedule_date', '')) if pd.notna(row.get('youtube_schedule_date')) else '',
+                'privacy_status': row.get('privacy_status', ''),
+                'platforms': {
+                    'linkedin': {
+                        'status': row.get('linkedin_status', '') or 'not_scheduled',
+                        'schedule_date': str(row.get('linkedin_schedule_date', '')) if pd.notna(row.get('linkedin_schedule_date')) else '',
+                        'post_content': row.get('linkedin_post', '') or ''
+                    },
+                    'facebook': {
+                        'status': row.get('facebook_status', '') or 'not_scheduled',
+                        'schedule_date': str(row.get('facebook_schedule_date', '')) if pd.notna(row.get('facebook_schedule_date')) else '',
+                        'post_content': row.get('facebook_post', '') or ''
+                    },
+                    'instagram': {
+                        'status': row.get('instagram_status', '') or 'not_scheduled',
+                        'schedule_date': str(row.get('instagram_schedule_date', '')) if pd.notna(row.get('instagram_schedule_date')) else '',
+                        'post_content': row.get('instagram_post', '') or ''
+                    }
+                }
+            }
+            videos.append(video)
+        
+        return jsonify({'videos': videos})
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc(), 'videos': []}), 500
+
+
+@app.route('/api/config/platforms')
+def api_config_platforms():
+    """API endpoint to get configured social media platforms."""
+    settings = load_settings()
+    scheduling = settings.get('scheduling', {})
+    platforms = scheduling.get('social_platforms', ['linkedin', 'facebook', 'instagram'])
+    return jsonify({'platforms': platforms})
+
+
 @app.route('/api/calendar-data')
 def api_calendar_data():
     """API endpoint for calendar data (JSON)."""
