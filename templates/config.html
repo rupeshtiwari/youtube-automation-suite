@@ -783,10 +783,25 @@
             return;
         }
 
+    function showHelp(helpKey) {
+        const help = helpContent[helpKey];
+        if (!help) {
+            console.error('Help content not found for:', helpKey);
+            alert('Help content not available for this field.');
+            return;
+        }
+        
         document.getElementById('helpModalTitle').textContent = help.title;
         document.getElementById('helpModalContent').innerHTML = help.content;
 
-        const modal = new bootstrap.Modal(document.getElementById('helpModal'));
+        const modalElement = document.getElementById('helpModal');
+        if (!modalElement) {
+            console.error('Help modal not found');
+            alert('Help modal not found. Please refresh the page.');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     }
 
