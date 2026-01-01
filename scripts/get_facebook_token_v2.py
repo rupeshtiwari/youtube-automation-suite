@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import load_settings_from_db, save_settings_to_db
 
-def get_token_via_graph_explorer():
+def get_token_via_graph_explorer(user_token=None):
     """
     Guide user to get token via Graph API Explorer (most reliable method).
     This is the recommended way when OAuth is unavailable.
@@ -38,33 +38,44 @@ def get_token_via_graph_explorer():
     print(f"📄 Page ID: {page_id}")
     print()
     
-    print("=" * 70)
-    print("📋 Step-by-Step Instructions")
-    print("=" * 70)
-    print()
-    print("Step 1: Open Graph API Explorer")
-    print("   👉 https://developers.facebook.com/tools/explorer/")
-    print()
-    print("Step 2: Select Your App")
-    print(f"   - Click the dropdown (top right) that says 'Meta App' or 'Select an app'")
-    print(f"   - Select your app: {app_id}")
-    print()
-    print("Step 3: Get User Access Token")
-    print("   - Click 'Get Token' button (top right)")
-    print("   - Select 'Get User Access Token'")
-    print("   - In the popup, check these permissions:")
-    print("     ✅ pages_manage_posts")
-    print("     ✅ pages_read_engagement")
-    print("     ✅ pages_show_list")
-    print("     ✅ instagram_basic")
-    print("     ✅ instagram_content_publish")
-    print("     ✅ business_management")
-    print("   - Click 'Generate Access Token'")
-    print("   - Authorize if prompted")
-    print("   - Copy the token that appears")
-    print()
+    # If token not provided, show instructions
+    if not user_token:
+        print("=" * 70)
+        print("📋 Step-by-Step Instructions")
+        print("=" * 70)
+        print()
+        print("Step 1: Open Graph API Explorer")
+        print("   👉 https://developers.facebook.com/tools/explorer/")
+        print()
+        print("Step 2: Select Your App")
+        print(f"   - Click the dropdown (top right) that says 'Meta App' or 'Select an app'")
+        print(f"   - Select your app: {app_id}")
+        print()
+        print("Step 3: Get User Access Token")
+        print("   - Click 'Get Token' button (top right)")
+        print("   - Select 'Get User Access Token'")
+        print("   - In the popup, check these permissions:")
+        print("     ✅ pages_manage_posts")
+        print("     ✅ pages_read_engagement")
+        print("     ✅ pages_show_list")
+        print("     ✅ instagram_basic")
+        print("     ✅ instagram_content_publish")
+        print("     ✅ business_management")
+        print("   - Click 'Generate Access Token'")
+        print("   - Authorize if prompted")
+        print("   - Copy the token that appears")
+        print()
+        print("=" * 70)
+        print()
+        print("💡 Usage:")
+        print("   python3 scripts/get_facebook_token_v2.py <your-user-token>")
+        print()
+        print("   Or provide token as environment variable:")
+        print("   FACEBOOK_USER_TOKEN=your_token python3 scripts/get_facebook_token_v2.py")
+        print()
+        return False
     
-    user_token = input("Paste your User Access Token here: ").strip()
+    user_token = user_token.strip()
     
     if user_token:
         print()
