@@ -2556,11 +2556,11 @@ def api_save_config_section():
             }
         elif section == 'targeting':
             settings['targeting'] = {
-                'target_audience': data.get('target_audience', 'professionals'),
+                'target_audience': data.get('target_audience', 'usa_professionals'),
                 'interview_types': data.get('interview_types', []),
                 'role_levels': data.get('role_levels', []),
-                'timezone': 'America/New_York',
-                'optimal_times': ['14:00', '17:00', '21:00']
+                'timezone': data.get('timezone', 'America/New_York'),
+                'optimal_times': data.get('optimal_times', []) if isinstance(data.get('optimal_times'), list) else ['14:00', '17:00', '21:00']
             }
         elif section == 'cta':
             settings['cta'] = {
