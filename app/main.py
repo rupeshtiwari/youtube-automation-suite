@@ -153,6 +153,71 @@ def load_settings():
     }
 
 
+def validate_config():
+    """Validate configuration and return warnings for missing required fields."""
+    settings = load_settings()
+    warnings = []
+    api_keys = settings.get('api_keys', {})
+    
+    # Check LinkedIn configuration
+    linkedin_client_id = api_keys.get('linkedin_client_id', '').strip()
+    linkedin_client_secret = api_keys.get('linkedin_client_secret', '').strip()
+    linkedin_person_urn = api_keys.get('linkedin_person_urn', '').strip()
+    
+    if not linkedin_client_id or not linkedin_client_secret:
+        warnings.append({
+            'platform': 'LinkedIn',
+            'severity': 'error',
+            'message': 'LinkedIn Client ID and Client Secret are required',
+            'fields': ['LinkedIn Client ID', 'LinkedIn Client Secret'],
+            'link': '/config#linkedin'
+        })
+    elif not linkedin_person_urn:
+        warnings.append({
+            'platform': 'LinkedIn',
+            'severity': 'warning',
+            'message': 'LinkedIn Person URN is recommended for posting',
+            'fields': ['LinkedIn Person URN'],
+            'link': '/config#linkedin'
+        })
+    
+    # Check Facebook configuration
+    facebook_app_id = api_keys.get('facebook_app_id', '').strip()
+    facebook_app_secret = api_keys.get('facebook_app_secret', '').strip()
+    facebook_page_id = api_keys.get('facebook_page_id', '').strip()
+    
+    if not facebook_app_id or not facebook_app_secret:
+        warnings.append({
+            'platform': 'Facebook',
+            'severity': 'error',
+            'message': 'Facebook App ID and App Secret are required',
+            'fields': ['Facebook App ID', 'Facebook App Secret'],
+            'link': '/config#facebook'
+        })
+    elif not facebook_page_id:
+        warnings.append({
+            'platform': 'Facebook',
+            'severity': 'warning',
+            'message': 'Facebook Page ID is required for posting',
+            'fields': ['Facebook Page ID'],
+            'link': '/config#facebook'
+        })
+    
+    # Check Instagram configuration
+    instagram_account_id = api_keys.get('instagram_business_account_id', '').strip()
+    
+    if not instagram_account_id:
+        warnings.append({
+            'platform': 'Instagram',
+            'severity': 'warning',
+            'message': 'Instagram Business Account ID is required for posting',
+            'fields': ['Instagram Business Account ID'],
+            'link': '/config#instagram'
+        })
+    
+    return warnings
+
+
 def save_settings(settings):
     """Save settings to JSON file."""
     with open(SETTINGS_FILE, 'w') as f:
