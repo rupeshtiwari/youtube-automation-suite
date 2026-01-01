@@ -279,8 +279,6 @@ def load_settings():
             'linkedin_client_secret': '',
             'linkedin_access_token': '',
             'linkedin_person_urn': '',
-            'facebook_app_id': '',
-            'facebook_app_secret': '',
             'facebook_page_access_token': '',
             'facebook_page_id': '',
             'instagram_business_account_id': '',
@@ -345,16 +343,15 @@ def validate_config():
         })
     
     # Check Facebook configuration
-    facebook_app_id = api_keys.get('facebook_app_id', '').strip()
-    facebook_app_secret = api_keys.get('facebook_app_secret', '').strip()
+    facebook_page_token = api_keys.get('facebook_page_access_token', '').strip()
     facebook_page_id = api_keys.get('facebook_page_id', '').strip()
     
-    if not facebook_app_id or not facebook_app_secret:
+    if not facebook_page_token or not facebook_page_id:
         warnings.append({
             'platform': 'Facebook',
             'severity': 'error',
-            'message': 'Facebook App ID and App Secret are required',
-            'fields': ['Facebook App ID', 'Facebook App Secret'],
+            'message': 'Facebook Page Access Token and Page ID are required',
+            'fields': ['Facebook Page Access Token', 'Facebook Page ID'],
             'link': '/config#facebook'
         })
     elif not facebook_page_id:
@@ -443,8 +440,6 @@ def update_env_file(settings):
         'LINKEDIN_CLIENT_SECRET': api_keys.get('linkedin_client_secret', ''),
         'LINKEDIN_ACCESS_TOKEN': api_keys.get('linkedin_access_token', ''),
         'LINKEDIN_PERSON_URN': api_keys.get('linkedin_person_urn', ''),
-        'FACEBOOK_APP_ID': api_keys.get('facebook_app_id', ''),
-        'FACEBOOK_APP_SECRET': api_keys.get('facebook_app_secret', ''),
         'FACEBOOK_PAGE_ACCESS_TOKEN': api_keys.get('facebook_page_access_token', ''),
         'FACEBOOK_PAGE_ID': api_keys.get('facebook_page_id', ''),
         'INSTAGRAM_BUSINESS_ACCOUNT_ID': api_keys.get('instagram_business_account_id', ''),
@@ -857,8 +852,6 @@ def config():
             'linkedin_client_secret': request.form.get('linkedin_client_secret', ''),
             'linkedin_access_token': request.form.get('linkedin_access_token', ''),
             'linkedin_person_urn': request.form.get('linkedin_person_urn', ''),
-            'facebook_app_id': request.form.get('facebook_app_id', ''),
-            'facebook_app_secret': request.form.get('facebook_app_secret', ''),
             'facebook_page_access_token': request.form.get('facebook_page_access_token', ''),
             'facebook_page_id': request.form.get('facebook_page_id', ''),
             'instagram_business_account_id': request.form.get('instagram_business_account_id', ''),
@@ -948,8 +941,7 @@ def config():
         bool(api_keys.get('linkedin_client_id')) and
         bool(api_keys.get('linkedin_client_secret')) and
         bool(api_keys.get('linkedin_person_urn')) and
-        bool(api_keys.get('facebook_app_id')) and
-        bool(api_keys.get('facebook_app_secret')) and
+        bool(api_keys.get('facebook_page_access_token')) and
         bool(api_keys.get('facebook_page_id')) and
         bool(api_keys.get('instagram_business_account_id'))
     )
