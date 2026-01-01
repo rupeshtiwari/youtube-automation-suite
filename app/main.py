@@ -381,25 +381,51 @@ def validate_config():
 
 
 def save_settings(settings):
-    """Save settings to database (persistent storage) and JSON file (backup)."""
-    from app.database import save_settings_to_db
+    """
+    Save settings to database (persistent storage) and JSON file (backup).
+    This ensures settings persist across server restarts and code changes.
+    """
+    from app.database import save_settings_to_db, init_database
+    
+    # Ensure database is initialized
+    try:
+        init_database()
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to initialize database: {e}")
     
     # Save to database (primary storage - persists across restarts)
+    db_saved = False
     try:
         save_settings_to_db(settings)
+        db_saved = True
+        print(f"✅ Settings saved to database at {datetime.now()}")
     except Exception as e:
-        print(f"⚠️ Warning: Failed to save settings to database: {e}")
+        print(f"❌ ERROR: Failed to save settings to database: {e}")
+        import traceback
+        traceback.print_exc()
         # Continue to save to JSON as backup
     
-    # Also save to JSON file as backup
+    # Also save to JSON file as backup (always do this as secondary backup)
+    json_saved = False
     try:
         with open(SETTINGS_FILE, 'w') as f:
             json.dump(settings, f, indent=2)
+        json_saved = True
+        print(f"✅ Settings saved to JSON backup file")
     except Exception as e:
         print(f"⚠️ Warning: Failed to save settings to JSON file: {e}")
     
-    # Also update .env file for compatibility
-    update_env_file(settings)
+    # Verify at least one save succeeded
+    if not db_saved and not json_saved:
+        raise Exception("CRITICAL: Failed to save settings to both database and JSON file!")
+    
+    # Also update .env file for compatibility (for scripts that read .env)
+    try:
+        update_env_file(settings)
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to update .env file: {e}")
+    
+    return db_saved, json_saved
 
 
 def update_env_file(settings):
@@ -3094,7 +3120,26 @@ def test_connection():
 atexit.register(lambda: SCHEDULER.shutdown())
 
 if __name__ == '__main__':
-    # Load initial settings and schedule job
+    # Ensure database is initialized before loading settings
+    try:
+        init_database()
+        print("✅ Database initialized - settings will persist across restarts")
+    except Exception as e:
+        print(f"⚠️ Warning: Database initialization failed: {e}")
+    
+    # Load initial settings and verify they can be loaded
+    try:
+        test_settings = load_settings()
+        if test_settings:
+            api_keys = test_settings.get('api_keys', {})
+            keys_count = sum(1 for v in api_keys.values() if v)
+            print(f"✅ Settings loaded successfully from database ({keys_count} API keys configured)")
+        else:
+            print("ℹ️  No settings found in database - will use defaults until you configure")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not load settings: {e}")
+    
+    # Schedule daily job
     schedule_daily_job()
     
     # Run Flask app
@@ -3102,8 +3147,14 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     debug = os.getenv('FLASK_ENV') != 'production'
     
+    # Get database path for display
+    from app.database import DB_PATH
+    db_path_display = DB_PATH
+    
     print(f"\n🌐 Starting server on port {port}...")
     print(f"📱 Open in browser: http://localhost:{port}\n")
+    print(f"💾 Database location: {db_path_display}")
+    print(f"💾 Settings are saved to database - they will persist across restarts and code changes!\n")
     
     app.run(host='0.0.0.0', port=port, debug=debug)
 

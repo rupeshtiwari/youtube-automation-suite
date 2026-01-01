@@ -12,8 +12,12 @@ from pathlib import Path
 import pandas as pd
 
 # Support for NAS/Docker deployment with environment variable
-DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(__file__))
+# Database is stored in a persistent location that won't be deleted
+DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.dirname(__file__)))
 DB_PATH = os.path.join(DATA_DIR, 'youtube_automation.db')
+
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
 
 
 def get_db_connection():
@@ -505,44 +509,84 @@ def export_to_excel(output_path: str, playlist_id: Optional[str] = None):
 
 
 def save_settings_to_db(settings: Dict[str, Any]) -> None:
-    """Save settings to database (persistent storage)."""
+    """
+    Save settings to database (persistent storage).
+    This is the PRIMARY storage method - settings persist across restarts.
+    CRITICAL: All API keys and credentials are saved here.
+    """
+    # Ensure database is initialized
+    init_database()
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Save entire settings as JSON in a single row
-    settings_json = json.dumps(settings)
-    
-    cursor.execute('''
-        INSERT OR REPLACE INTO settings (setting_key, setting_value, updated_at)
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-    ''', ('app_settings', settings_json))
-    
-    conn.commit()
-    conn.close()
+    try:
+        # Save entire settings as JSON in a single row
+        settings_json = json.dumps(settings, indent=2)
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO settings (setting_key, setting_value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        ''', ('app_settings', settings_json))
+        
+        conn.commit()
+        
+        # Verify the save worked
+        cursor.execute('SELECT setting_value FROM settings WHERE setting_key = ?', ('app_settings',))
+        result = cursor.fetchone()
+        if not result:
+            raise Exception("Failed to verify settings were saved to database")
+        
+        print(f"✅ Settings saved to database successfully (size: {len(settings_json)} bytes)")
+        
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"Database save failed: {str(e)}")
+    finally:
+        conn.close()
 
 
 def load_settings_from_db() -> Optional[Dict[str, Any]]:
-    """Load settings from database."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        SELECT setting_value FROM settings
-        WHERE setting_key = 'app_settings'
-        ORDER BY updated_at DESC
-        LIMIT 1
-    ''')
-    
-    result = cursor.fetchone()
-    conn.close()
-    
-    if result and result['setting_value']:
-        try:
-            return json.loads(result['setting_value'])
-        except json.JSONDecodeError:
-            return None
-    
-    return None
+    """
+    Load settings from database (primary source).
+    Returns None if no settings found or database error.
+    CRITICAL: This loads all API keys and credentials from database.
+    """
+    try:
+        # Ensure database exists
+        if not Path(DB_PATH).exists():
+            init_database()
+            return None  # No settings yet
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT setting_value, updated_at FROM settings
+            WHERE setting_key = 'app_settings'
+            ORDER BY updated_at DESC
+            LIMIT 1
+        ''')
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result and result['setting_value']:
+            try:
+                settings = json.loads(result['setting_value'])
+                updated_at = result.get('updated_at', 'unknown')
+                print(f"✅ Loaded settings from database (last updated: {updated_at})")
+                return settings
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Warning: Failed to parse settings from database: {e}")
+                return None
+        
+        return None
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to load settings from database: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 
 # Initialize database on import
