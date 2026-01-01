@@ -3,7 +3,7 @@ Flask web application for YouTube automation configuration and scheduling.
 Provides a web interface to configure API keys and schedule daily automation.
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g
 import json
 import os
 import sys
