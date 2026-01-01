@@ -417,7 +417,7 @@ def save_settings(settings):
     json_saved = False
     try:
     with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=2)
+            json.dump(settings, f, indent=2)
             json_saved = True
             print(f"✅ Settings saved to JSON backup file")
     except Exception as e:
