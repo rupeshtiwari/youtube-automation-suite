@@ -50,9 +50,9 @@ class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
                 code = params['code'][0]
                 self.server.auth_code = code
                 self.send_response(200)
-                self.send_header('Content-type', 'text/html')
+                self.send_header('Content-type', 'text/html; charset=utf-8')
                 self.end_headers()
-                self.wfile.write(b"""
+                html_content = """
                     <html>
                     <head><title>Authorization Successful</title></head>
                     <body>
@@ -61,14 +61,15 @@ class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
                         <script>setTimeout(function(){window.close();}, 3000);</script>
                     </body>
                     </html>
-                """)
+                """
+                self.wfile.write(html_content.encode('utf-8'))
             else:
                 error = params.get('error', ['Unknown error'])[0]
                 self.server.auth_error = error
                 self.send_response(200)
-                self.send_header('Content-type', 'text/html')
+                self.send_header('Content-type', 'text/html; charset=utf-8')
                 self.end_headers()
-                self.wfile.write(f"""
+                html_content = f"""
                     <html>
                     <head><title>Authorization Failed</title></head>
                     <body>
@@ -77,7 +78,8 @@ class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
                         <p>Please check the terminal for details.</p>
                     </body>
                     </html>
-                """.encode())
+                """
+                self.wfile.write(html_content.encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
