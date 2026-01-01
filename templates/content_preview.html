@@ -327,6 +327,46 @@
                     `).join('')}
                 </div>
                 
+                <!-- YouTube Tab - Show source metadata -->
+                <div class="post-editor ${index === 0 ? 'active' : ''}" 
+                     id="editor-${video.video_id}-youtube" 
+                     data-platform="youtube">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>YouTube Title</strong></label>
+                        <input type="text" class="form-control" 
+                               id="youtube-title-${video.video_id}"
+                               value="${escapeHtml(video.title || '')}"
+                               placeholder="YouTube video title">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>YouTube Description</strong></label>
+                        <textarea class="post-content-textarea" 
+                                  id="youtube-description-${video.video_id}"
+                                  rows="8"
+                                  placeholder="YouTube video description...">${escapeHtml(video.description || '')}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>YouTube Tags</strong></label>
+                        <input type="text" class="form-control" 
+                               id="youtube-tags-${video.video_id}"
+                               value="${escapeHtml(video.tags || '')}"
+                               placeholder="Comma-separated tags">
+                        <small class="text-muted">Tags used on YouTube (comma-separated)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Published Date</strong></label>
+                        <input type="text" class="form-control" 
+                               id="youtube-published-${video.video_id}"
+                               value="${video.published_at ? video.published_at.substring(0, 10) : 'N/A'}"
+                               readonly>
+                        <small class="text-muted">Original YouTube publish date</small>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Source of Truth:</strong> This YouTube metadata is used to generate posts for LinkedIn, Facebook, and Instagram. Edit the social media posts below to customize them.
+                    </div>
+                </div>
+                
                 ${platforms.map((platform, pIndex) => {
                 const post = video.social_posts[platform] || {
                     post_content: `${video.title}\n\n${video.video_url}`,
@@ -340,7 +380,7 @@
                     post.status === 'posted' ? 'Posted' : 'Pending';
 
                 return `
-                        <div class="post-editor ${index === 0 && pIndex === 0 ? 'active' : ''}" 
+                        <div class="post-editor" 
                              id="editor-${video.video_id}-${platform}" 
                              data-platform="${platform}">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -384,7 +424,10 @@
         });
 
         // Show selected platform editor
-        document.getElementById(`editor-${videoId}-${platform}`).classList.add('active');
+        const editor = document.getElementById(`editor-${videoId}-${platform}`);
+        if (editor) {
+            editor.classList.add('active');
+        }
 
         // Update tab active state
         document.querySelectorAll(`[data-video-id="${videoId}"] .platform-tab`).forEach(tab => {
