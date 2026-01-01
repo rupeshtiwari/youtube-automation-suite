@@ -2009,19 +2009,8 @@
                 }
             }
 
-            if (saveButton) {
-                // Trigger save
-                saveSection(section, saveButton, true); // true = auto-save mode
-            } else {
-                // Fallback: try to find button by section name
-                const buttons = document.querySelectorAll('button[onclick*="saveSection"]');
-                for (const btn of buttons) {
-                    if (btn.getAttribute('onclick').includes(`'${section}'`)) {
-                        saveSection(section, btn, true);
-                        break;
-                    }
-                }
-            }
+            // Trigger auto-save (silent)
+            autoSaveSection(section);
         }, 2000); // 2 second delay
     }
 
@@ -2108,86 +2097,76 @@
         });
     });
 
-    // Store original saveSection function
-    const originalSaveSection = window.saveSection;
-    
-    // Override saveSection to support auto-save mode
-    window.saveSection = function(section, button, isAutoSave = false) {
-        if (isAutoSave) {
-            // Auto-save mode: don't show button animation, just save silently
-            const form = document.getElementById('configForm');
-            const formData = {};
-            
-            // Collect form data (same logic as before)
-            if (section === 'api_keys') {
-                formData.linkedin_client_id = form.querySelector('[name="linkedin_client_id"]')?.value || '';
-                formData.linkedin_client_secret = form.querySelector('[name="linkedin_client_secret"]')?.value || '';
-                formData.linkedin_access_token = form.querySelector('[name="linkedin_access_token"]')?.value || '';
-                formData.linkedin_person_urn = form.querySelector('[name="linkedin_person_urn"]')?.value || '';
-                formData.facebook_app_id = form.querySelector('[name="facebook_app_id"]')?.value || '';
-                formData.facebook_app_secret = form.querySelector('[name="facebook_app_secret"]')?.value || '';
-                formData.facebook_page_access_token = form.querySelector('[name="facebook_page_access_token"]')?.value || '';
-                formData.facebook_page_id = form.querySelector('[name="facebook_page_id"]')?.value || '';
-                formData.instagram_business_account_id = form.querySelector('[name="instagram_business_account_id"]')?.value || '';
-                formData.instagram_access_token = form.querySelector('[name="instagram_access_token"]')?.value || '';
-                formData.ayrshare_api_key = form.querySelector('[name="ayrshare_api_key"]')?.value || '';
-            } else if (section === 'scheduling') {
-                formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
-                formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
-                formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
-                formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
-                formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
-                formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
-                formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
-                formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
-                formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
-                formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
-                formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
-            } else if (section === 'social_media') {
-                formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
-                formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
-                formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
-                formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
-                formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
-                formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
-                formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
-                formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
-                formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
-                formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
-                formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
-                section = 'scheduling';
-            } else if (section === 'thresholds') {
-                formData.linkedin_daily_limit = parseInt(form.querySelector('[name="linkedin_daily_limit"]')?.value) || 25;
-                formData.facebook_daily_limit = parseInt(form.querySelector('[name="facebook_daily_limit"]')?.value) || 25;
-                formData.instagram_daily_limit = parseInt(form.querySelector('[name="instagram_daily_limit"]')?.value) || 25;
-                formData.youtube_daily_limit = parseInt(form.querySelector('[name="youtube_daily_limit"]')?.value) || 10;
-            } else if (section === 'targeting') {
-                formData.target_audience = form.querySelector('[name="target_audience"]')?.value || 'usa_professionals';
-                formData.interview_types = Array.from(form.querySelectorAll('[name="interview_types"]:checked')).map(cb => cb.value);
-                formData.role_levels = Array.from(form.querySelectorAll('[name="role_levels"]:checked')).map(cb => cb.value);
-            }
-
-            // Save silently
-            fetch('/api/config/save-section', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ section: section, data: formData })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAutoSaveIndicator(section, 'saved');
+    // Auto-save function (silent save without button animation)
+    function autoSaveSection(section) {
+        const form = document.getElementById('configForm');
+        if (!form) return;
+        
+        const formData = {};
+        
+        // Collect form data (same logic as saveSection)
+        if (section === 'api_keys') {
+            const inputs = form.querySelectorAll('[name^="linkedin_"], [name^="facebook_"], [name^="instagram_"], [name="ayrshare_api_key"]');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    formData[input.name] = input.checked;
                 } else {
-                    console.error('Auto-save failed:', data.error);
+                    formData[input.name] = input.value || '';
                 }
-            })
-            .catch(error => {
-                console.error('Auto-save error:', error);
             });
-        } else {
-            // Manual save: use original function
-            originalSaveSection(section, button);
+        } else if (section === 'scheduling') {
+            formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
+            formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
+            formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
+            formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
+            formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
+            formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
+            formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
+            formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
+            formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
+            formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+            formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
+        } else if (section === 'social_media') {
+            formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
+            formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+            formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
+            formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
+            formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
+            formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
+            formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
+            formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
+            formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
+            formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
+            formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
+            section = 'scheduling';
+        } else if (section === 'thresholds') {
+            formData.linkedin_daily_limit = parseInt(form.querySelector('[name="linkedin_daily_limit"]')?.value) || 25;
+            formData.facebook_daily_limit = parseInt(form.querySelector('[name="facebook_daily_limit"]')?.value) || 25;
+            formData.instagram_daily_limit = parseInt(form.querySelector('[name="instagram_daily_limit"]')?.value) || 25;
+            formData.youtube_daily_limit = parseInt(form.querySelector('[name="youtube_daily_limit"]')?.value) || 10;
+        } else if (section === 'targeting') {
+            formData.target_audience = form.querySelector('[name="target_audience"]')?.value || 'usa_professionals';
+            formData.interview_types = Array.from(form.querySelectorAll('[name="interview_types"]:checked')).map(cb => cb.value);
+            formData.role_levels = Array.from(form.querySelectorAll('[name="role_levels"]:checked')).map(cb => cb.value);
         }
-    };
+
+        // Save silently
+        fetch('/api/config/save-section', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ section: section, data: formData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAutoSaveIndicator(section, 'saved');
+            } else {
+                console.error('Auto-save failed:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Auto-save error:', error);
+        });
+    }
 </script>
 {% endblock %}
