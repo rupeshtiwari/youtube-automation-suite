@@ -1253,6 +1253,152 @@ def api_autopilot_run():
         }), 500
 
 
+@app.route('/content-preview')
+def content_preview():
+    """Content preview and scheduling page - shows all videos with social media posts."""
+    youtube = get_youtube_service()
+    if not youtube:
+        return render_template('error.html', 
+                             message="YouTube API not configured. Please set up client_secret.json")
+    
+    try:
+        channel_id = get_my_channel_id_helper(youtube)
+        if not channel_id:
+            return render_template('error.html', 
+                                 message="Could not find your YouTube channel. Please check authentication.")
+        
+        # Get all playlists
+        playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
+        
+        # Filter to Shorts playlists (or all if needed)
+        shorts_playlists = [pl for pl in playlists_data if "short" in pl.get("playlistTitle", "").lower()]
+        
+        return render_template('content_preview.html', 
+                             playlists=shorts_playlists if shorts_playlists else playlists_data)
+    except Exception as e:
+        import traceback
+        return render_template('error.html', message=f"Error loading content preview: {str(e)}\n{traceback.format_exc()}")
+
+
+@app.route('/api/content-preview/videos')
+def api_content_preview_videos():
+    """Get all videos with their social media posts for content preview."""
+    try:
+        from app.database import get_db_connection, get_video_social_posts_from_db
+        from app.tagging import derive_type_enhanced, derive_role_enhanced
+        
+        youtube = get_youtube_service()
+        if not youtube:
+            return jsonify({'error': 'YouTube API not configured'}), 500
+        
+        channel_id = get_my_channel_id_helper(youtube)
+        if not channel_id:
+            return jsonify({'error': 'Channel not found'}), 500
+        
+        # Get all playlists
+        playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
+        shorts_playlists = [pl for pl in playlists_data if "short" in pl.get("playlistTitle", "").lower()]
+        
+        all_videos = []
+        for playlist in shorts_playlists:
+            videos = fetch_playlist_videos_from_youtube(youtube, playlist['playlistId'], playlist.get('channelTitle', ''))
+            for video in videos:
+                video_id = video['videoId']
+                
+                # Get social posts from database
+                social_posts = get_video_social_posts_from_db(video_id)
+                
+                # Get video from database for metadata
+                db_video = get_video(video_id)
+                
+                # Generate posts if not exist
+                if not social_posts or len(social_posts) == 0:
+                    # Generate simple posts
+                    title = video.get('title', '')
+                    description = video.get('description', '')
+                    youtube_url = f"https://youtube.com/watch?v={video_id}"
+                    
+                    social_posts = {
+                        'linkedin': {
+                            'platform': 'linkedin',
+                            'post_content': f"{title}\n\n{youtube_url}\n\n#TechInterview #CodingInterview #SystemDesign",
+                            'status': 'pending',
+                            'schedule_date': None
+                        },
+                        'facebook': {
+                            'platform': 'facebook',
+                            'post_content': f"{title}\n\n{youtube_url}",
+                            'status': 'pending',
+                            'schedule_date': None
+                        },
+                        'instagram': {
+                            'platform': 'instagram',
+                            'post_content': f"{title} {youtube_url}\n\n#TechInterview #CodingInterview #SystemDesign #LeetCode",
+                            'status': 'pending',
+                            'schedule_date': None
+                        }
+                    }
+                
+                all_videos.append({
+                    'video_id': video_id,
+                    'title': title,
+                    'description': description,
+                    'thumbnail': video.get('thumbnail', ''),
+                    'video_url': youtube_url,
+                    'playlist_name': playlist.get('playlistTitle', ''),
+                    'playlist_id': playlist['playlistId'],
+                    'social_posts': social_posts,
+                    'video_type': db_video.get('video_type', '') if db_video else '',
+                    'role': db_video.get('role', '') if db_video else ''
+                })
+        
+        return jsonify({'videos': all_videos, 'count': len(all_videos)})
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@app.route('/api/schedule-post', methods=['POST'])
+def api_schedule_post():
+    """Schedule a post manually with custom date/time."""
+    try:
+        from app.database import insert_or_update_social_post, log_activity
+        
+        data = request.json
+        video_id = data.get('video_id')
+        platform = data.get('platform')
+        post_content = data.get('post_content')
+        schedule_datetime = data.get('schedule_datetime')  # Format: "2026-01-15 14:00"
+        
+        if not all([video_id, platform, post_content, schedule_datetime]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Save to database
+        insert_or_update_social_post(video_id, platform, {
+            'post_content': post_content,
+            'schedule_date': schedule_datetime,
+            'status': 'pending'
+        })
+        
+        # Log activity
+        log_activity(
+            'schedule_post',
+            platform=platform,
+            video_id=video_id,
+            status='success',
+            message=f'Manually scheduled for {schedule_datetime}',
+            details={'schedule_date': schedule_datetime, 'manual': True}
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Post scheduled for {platform} on {schedule_datetime}'
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
 @app.route('/api/playlist/<playlist_id>/videos')
 def api_playlist_videos(playlist_id):
     """API endpoint to fetch videos for a playlist (lazy loading)."""

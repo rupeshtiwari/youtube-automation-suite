@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Content Preview & Scheduling - YouTube Automation{% endblock %}
+
+{% block page_title %}Content Preview & Scheduling{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-preview-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .video-header {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .video-thumb {
+        width: 120px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .video-info h5 {
+        margin: 0;
+        color: #1e293b;
+    }
+    .video-info p {
+        margin: 0.5rem 0 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+    .platform-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .platform-tab {
+        padding: 0.75rem 1.5rem;
+        background: #f8fafc;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+    .platform-tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+        background: white;
+    }
+    .platform-tab:hover {
+        background: #f1f5f9;
+    }
+    .platform-tab.linkedin.active {
+        color: #0077b5;
+        border-bottom-color: #0077b5;
+    }
+    .platform-tab.facebook.active {
+        color: #1877f2;
+        border-bottom-color: #1877f2;
+    }
+    .platform-tab.instagram.active {
+        color: #e4405f;
+        border-bottom-color: #e4405f;
+    }
+    .post-editor {
+        display: none;
+    }
+    .post-editor.active {
+        display: block;
+    }
+    .post-content-textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+    }
+    .post-content-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    .schedule-controls {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        align-items: flex-end;
+    }
+    .datetime-input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+    .btn-schedule {
+        padding: 0.75rem 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-schedule:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn-autopilot {
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+        margin-top: 2rem;
+    }
+    .btn-autopilot:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 1rem;
+    }
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .status-scheduled {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    .status-posted {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .loading {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #64748b;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="bi bi-pencil-square"></i> Content Preview & Scheduling
+                    </h1>
+                    <p class="text-muted">Edit, preview, and schedule posts for LinkedIn, Facebook, and Instagram</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadAllVideos()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Pilot Button -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn-autopilot" onclick="runAutoPilot()">
+                <i class="bi bi-rocket-takeoff"></i> Run Auto-Pilot (Schedule All Automatically)
+            </button>
+        </div>
+    </div>
+
+    <!-- Videos Container -->
+    <div id="videos-container">
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading videos and posts...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let allVideos = [];
+
+function loadAllVideos() {
+    const container = document.getElementById('videos-container');
+    container.innerHTML = `
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading videos and posts...</p>
+        </div>
+    `;
+    
+    fetch('/api/content-preview/videos')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                container.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                return;
+            }
+            
+            allVideos = data.videos || [];
+            
+            if (allVideos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <h4>No videos found</h4>
+                        <p>No videos available for preview and scheduling.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            renderVideos(allVideos);
+        })
+        .catch(error => {
+            container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
+        });
+}
+
+function renderVideos(videos) {
+    const container = document.getElementById('videos-container');
+    let html = '';
+    
+    videos.forEach((video, index) => {
+        const platforms = ['linkedin', 'facebook', 'instagram'];
+        const platformNames = {
+            'linkedin': 'LinkedIn',
+            'facebook': 'Facebook',
+            'instagram': 'Instagram'
+        };
+        const platformColors = {
+            'linkedin': '#0077b5',
+            'facebook': '#1877f2',
+            'instagram': '#e4405f'
+        };
+        
+        html += `
+            <div class="video-preview-card" data-video-id="${video.video_id}">
+                <div class="video-header">
+                    ${video.thumbnail ? `<img src="${video.thumbnail}" alt="Thumbnail" class="video-thumb">` : ''}
+                    <div class="video-info" style="flex: 1;">
+                        <h5>${escapeHtml(video.title)}</h5>
+                        <p><i class="bi bi-collection-play"></i> ${escapeHtml(video.playlist_name)}</p>
+                        <p><i class="bi bi-youtube" style="color: #ff0000;"></i> <a href="${video.video_url}" target="_blank">Watch on YouTube</a></p>
+                    </div>
+                </div>
+                
+                <div class="platform-tabs">
+                    ${platforms.map(platform => `
+                        <button class="platform-tab ${platform} ${index === 0 && platform === 'linkedin' ? 'active' : ''}" 
+                                onclick="showPlatform('${video.video_id}', '${platform}')">
+                            <i class="bi bi-${platform === 'linkedin' ? 'linkedin' : platform === 'facebook' ? 'facebook' : 'instagram'}"></i>
+                            ${platformNames[platform]}
+                        </button>
+                    `).join('')}
+                </div>
+                
+                ${platforms.map((platform, pIndex) => {
+                    const post = video.social_posts[platform] || {
+                        post_content: `${video.title}\n\n${video.video_url}`,
+                        status: 'pending',
+                        schedule_date: null
+                    };
+                    
+                    const statusClass = post.status === 'scheduled' ? 'scheduled' : 
+                                      post.status === 'posted' ? 'posted' : 'pending';
+                    const statusText = post.status === 'scheduled' ? 'Scheduled' :
+                                     post.status === 'posted' ? 'Posted' : 'Pending';
+                    
+                    return `
+                        <div class="post-editor ${index === 0 && pIndex === 0 ? 'active' : ''}" 
+                             id="editor-${video.video_id}-${platform}" 
+                             data-platform="${platform}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">
+                                    <strong>${platformNames[platform]} Post Content</strong>
+                                    <span class="status-badge status-${statusClass}">${statusText}</span>
+                                    ${post.schedule_date ? `<small class="text-muted ms-2">Scheduled: ${post.schedule_date}</small>` : ''}
+                                </label>
+                            </div>
+                            <textarea class="post-content-textarea" 
+                                      id="content-${video.video_id}-${platform}"
+                                      placeholder="Enter post content for ${platformNames[platform]}...">${escapeHtml(post.post_content || '')}</textarea>
+                            
+                            <div class="schedule-controls">
+                                <div style="flex: 1;">
+                                    <label class="form-label">Schedule Date & Time</label>
+                                    <input type="datetime-local" 
+                                           class="datetime-input" 
+                                           id="datetime-${video.video_id}-${platform}"
+                                           value="${post.schedule_date ? post.schedule_date.replace(' ', 'T').substring(0, 16) : ''}">
+                                </div>
+                                <button class="btn-schedule" 
+                                        onclick="schedulePost('${video.video_id}', '${platform}')">
+                                    <i class="bi bi-calendar-check"></i> Schedule
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function showPlatform(videoId, platform) {
+    // Hide all editors for this video
+    document.querySelectorAll(`[data-video-id="${videoId}"] .post-editor`).forEach(editor => {
+        editor.classList.remove('active');
+    });
+    
+    // Show selected platform editor
+    document.getElementById(`editor-${videoId}-${platform}`).classList.add('active');
+    
+    // Update tab active state
+    document.querySelectorAll(`[data-video-id="${videoId}"] .platform-tab`).forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-video-id="${videoId}"] .platform-tab.${platform}`).classList.add('active');
+}
+
+function schedulePost(videoId, platform) {
+    const content = document.getElementById(`content-${videoId}-${platform}`).value;
+    const datetime = document.getElementById(`datetime-${videoId}-${platform}`).value;
+    
+    if (!content.trim()) {
+        alert('Please enter post content');
+        return;
+    }
+    
+    if (!datetime) {
+        alert('Please select a date and time');
+        return;
+    }
+    
+    // Convert datetime-local format to database format
+    const scheduleDate = datetime.replace('T', ' ');
+    
+    fetch('/api/schedule-post', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            video_id: videoId,
+            platform: platform,
+            post_content: content,
+            schedule_datetime: scheduleDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert('✅ Post scheduled successfully!');
+            loadAllVideos(); // Refresh to show updated status
+        }
+    })
+    .catch(error => {
+        alert('Error scheduling post: ' + error.message);
+    });
+}
+
+function runAutoPilot() {
+    if (!confirm('Run Auto-Pilot? This will automatically select videos and schedule them to all platforms based on your targeting settings.')) {
+        return;
+    }
+    
+    fetch('/api/autopilot/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(`✅ Auto-Pilot Complete!\n\n${data.message}\n\nVideos Selected: ${data.videos_selected}\nPosts Scheduled: ${data.posts_scheduled}`);
+            loadAllVideos(); // Refresh to show scheduled posts
+        }
+    })
+    .catch(error => {
+        alert('Error running auto-pilot: ' + error.message);
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load videos on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllVideos();
+});
+</script>
+{% endblock %}
+
