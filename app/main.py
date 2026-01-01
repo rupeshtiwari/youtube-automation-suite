@@ -263,7 +263,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-        with open(SETTINGS_FILE, 'r') as f:
+            with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
