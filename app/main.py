@@ -1284,7 +1284,7 @@ def content_preview():
 def api_content_preview_videos():
     """Get all videos with their social media posts for content preview."""
     try:
-        from app.database import get_db_connection
+        from app.database import get_db_connection, get_video
         from app.tagging import derive_type_enhanced, derive_role_enhanced
         
         youtube = get_youtube_service()
@@ -1305,14 +1305,11 @@ def api_content_preview_videos():
             for video in videos:
                 video_id = video['videoId']
                 
-                # Get social posts from database (use function from main.py)
-                social_posts_list = get_video_social_posts_from_db(video_id)
+                # Get social posts from database
+                social_posts_dict = get_video_social_posts_from_db(video_id)
                 
-                # Convert list to dict format
-                social_posts = {}
-                for post in social_posts_list:
-                    if post and post.get('platform'):
-                        social_posts[post['platform']] = post
+                # social_posts_dict is already a dict from get_video_social_posts_from_db
+                social_posts = social_posts_dict if social_posts_dict else {}
                 
                 # Get video from database for metadata
                 db_video = get_video(video_id)
