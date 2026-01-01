@@ -574,7 +574,7 @@ def load_settings_from_db() -> Optional[Dict[str, Any]]:
         if result and result['setting_value']:
             try:
                 settings = json.loads(result['setting_value'])
-                updated_at = result.get('updated_at', 'unknown')
+                updated_at = result['updated_at'] if 'updated_at' in result.keys() else 'unknown'
                 print(f"✅ Loaded settings from database (last updated: {updated_at})")
                 return settings
             except json.JSONDecodeError as e:
