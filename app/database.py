@@ -20,10 +20,39 @@ DB_PATH = os.path.join(DATA_DIR, 'youtube_automation.db')
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
+# Connection pool for better performance (thread-safe)
+_db_pool = {}
+_max_pool_size = 10
+
 def get_db_connection():
-    """Get database connection with proper configuration."""
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row  # Enable column access by name
+    """Get database connection with connection pooling and optimizations."""
+    import threading
+    thread_id = threading.current_thread().ident
+    
+    # Check if we have a connection for this thread
+    if thread_id in _db_pool:
+        try:
+            # Test if connection is still valid
+            _db_pool[thread_id].execute('SELECT 1').fetchone()
+            return _db_pool[thread_id]
+        except:
+            # Connection is stale, remove it
+            _db_pool.pop(thread_id, None)
+    
+    # Create new connection
+    conn = sqlite3.connect(DB_PATH, timeout=20.0, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    
+    # Enable WAL mode for better concurrent performance
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA synchronous=NORMAL')
+    conn.execute('PRAGMA cache_size=10000')
+    conn.execute('PRAGMA temp_store=MEMORY')
+    
+    # Store in pool (limit pool size)
+    if len(_db_pool) < _max_pool_size:
+        _db_pool[thread_id] = conn
+    
     return conn
 
 

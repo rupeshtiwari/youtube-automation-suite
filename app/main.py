@@ -1286,6 +1286,7 @@ def shorts():
 
 
 @app.route('/sessions')
+@cached(timeout=60)  # Cache for 1 minute (sessions change less frequently)
 def sessions():
     """Sessions management page - load and create shorts scripts from coaching sessions."""
     import os
