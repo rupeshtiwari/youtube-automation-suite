@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Shorts - YouTube Automation{% endblock %}
+
+{% block page_title %}Shorts{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="bi bi-camera-reels"></i> Shorts Management
+                    </h1>
+                    <p class="text-muted">Manage and schedule your YouTube Shorts across all social media platforms</p>
+                </div>
+                <div>
+                    <a href="/content-preview" class="btn btn-primary">
+                        <i class="bi bi-pencil-square"></i> Preview & Schedule All
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3>{{ playlists|length }}</h3>
+                            <p class="mb-0">Shorts Playlists</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>{{ playlists|sum(attribute='itemCount') }}</h3>
+                            <p class="mb-0">Total Shorts Videos</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>{{ weekly_schedule or '19:30' }}</h3>
+                            <p class="mb-0">Weekly Schedule Time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Pilot Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-rocket-takeoff"></i> One-Click Weekly Shorts Automation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Automatically select one video from each Shorts playlist and schedule them for weekly posting on all social media platforms.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>How it works:</strong> Selects 1 video per playlist → Generates posts → Schedules to LinkedIn, Facebook, Instagram → Respects daily thresholds
+                    </div>
+                    <button class="btn btn-success btn-lg" onclick="runAutoPilot()">
+                        <i class="bi bi-rocket-takeoff"></i> Run Auto-Pilot Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Playlists -->
+    <div class="row">
+        <div class="col-12">
+            {% if playlists %}
+                {% for playlist in playlists %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-collection-play"></i> {{ playlist.playlistTitle }}
+                                </h5>
+                                <small class="text-muted">
+                                    <i class="bi bi-film"></i> {{ playlist.itemCount }} videos
+                                </small>
+                            </div>
+                            <div>
+                                <a href="/content-preview" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-pencil-square"></i> Preview & Schedule
+                                </a>
+                                <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-youtube"></i> View on YouTube
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-calendar"></i> Published: {{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}
+                            {% if playlist.channelTitle %}
+                            <span class="ms-3"><i class="bi bi-broadcast"></i> {{ playlist.channelTitle }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No Shorts playlists found. Make sure you have playlists with "short" in the title.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function runAutoPilot() {
+    if (!confirm('Run Auto-Pilot? This will automatically select one video from each playlist and schedule them to all platforms.')) {
+        return;
+    }
+    
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running...';
+    
+    fetch('/api/autopilot/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(`✅ Auto-Pilot Complete!\n\n${data.message}\n\nVideos Selected: ${data.videos_selected}\nPosts Scheduled: ${data.posts_scheduled}`);
+            // Optionally refresh the page or show results
+            window.location.href = '/activity';
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    })
+    .catch(error => {
+        alert('Error running auto-pilot: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %}
+
