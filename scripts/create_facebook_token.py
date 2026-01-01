@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """
-Automated script to fetch all Facebook configuration data using OAuth.
-Similar to YouTube authentication - opens browser, gets authorization, fetches all data.
-
-Usage:
-    python3 scripts/fetch_facebook_config.py
-    
-    Or use the helper script:
-    ./scripts/run_with_venv.sh fetch_facebook_config.py
+Create or refresh Facebook Page Access Token via CLI.
+Checks if token exists and is valid, creates new one if needed.
 """
 
 import sys
@@ -89,45 +83,39 @@ class OAuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def get_facebook_config():
-    """Fetch all Facebook configuration data using OAuth."""
-    print("=" * 70)
-    print("🔑 Facebook Configuration Auto-Fetcher")
-    print("=" * 70)
-    print()
+def check_token_validity(token, page_id=None):
+    """Check if a Facebook token is valid."""
+    if not token:
+        return False, "Token is empty"
     
-    # Load existing settings
-    settings = load_settings_from_db()
-    api_keys = settings.get('api_keys', {})
-    
-    app_id = api_keys.get('facebook_app_id')
-    app_secret = api_keys.get('facebook_app_secret')
-    page_id = api_keys.get('facebook_page_id')
-    
-    if not app_id:
-        print("❌ Error: Facebook App ID not found in config.")
-        print("   Please add 'facebook_app_id' to MY_CONFIG.json first.")
-        return False
-    
-    if not app_secret:
-        print("⚠️  Warning: Facebook App Secret not found.")
-        print("   Some features may not work. You can add it manually later.")
-        print("   Continuing without App Secret (will use short-lived tokens)...")
-        print()
-        # Skip interactive input - can be added to MY_CONFIG.json manually
-        # app_secret = input("Enter Facebook App Secret (or press Enter to skip): ").strip()
-        # if app_secret:
-        #     api_keys['facebook_app_secret'] = app_secret
-        #     settings['api_keys'] = api_keys
-        #     save_settings_to_db(settings)
-    
-    print(f"📱 App ID: {app_id}")
-    if page_id:
-        print(f"📄 Page ID: {page_id}")
-    print()
-    
-    # Step 1: Get authorization code
-    print("📋 Step 1: Getting Authorization")
+    try:
+        # Test token by getting user info
+        url = "https://graph.facebook.com/v18.0/me"
+        params = {'access_token': token}
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            # If page_id provided, check if we can access that page
+            if page_id:
+                page_url = f"https://graph.facebook.com/v18.0/{page_id}"
+                page_params = {'access_token': token, 'fields': 'id,name'}
+                page_response = requests.get(page_url, params=page_params, timeout=10)
+                if page_response.status_code == 200:
+                    return True, "Token is valid and can access page"
+                else:
+                    return False, f"Token valid but cannot access page: {page_response.json().get('error', {}).get('message', 'Unknown error')}"
+            return True, "Token is valid"
+        else:
+            error_data = response.json() if response.content else {}
+            error_msg = error_data.get('error', {}).get('message', 'Unknown error')
+            return False, f"Token invalid: {error_msg}"
+    except Exception as e:
+        return False, f"Error checking token: {str(e)}"
+
+
+def get_user_access_token(app_id, app_secret=None):
+    """Get User Access Token via OAuth."""
+    print("📋 Step 1: Getting User Access Token via OAuth")
     print("-" * 70)
     print()
     
@@ -140,11 +128,10 @@ def get_facebook_config():
     )
     
     print("🌐 Opening browser for Facebook authorization...")
-    print(f"   URL: {auth_url}")
     print()
     print("📝 Instructions:")
     print("   1. Log in to Facebook if needed")
-    print("   2. Authorize the app")
+    print("   2. Authorize the app with all requested permissions")
     print("   3. You'll be redirected back automatically")
     print()
     
@@ -155,7 +142,7 @@ def get_facebook_config():
         
         try:
             webbrowser.open(auth_url)
-            print("⏳ Waiting for authorization...")
+            print("⏳ Waiting for authorization (timeout: 5 minutes)...")
             print("   (If browser doesn't open, visit the URL manually)")
             print()
             
@@ -165,41 +152,39 @@ def get_facebook_config():
             
             if httpd.auth_error:
                 print(f"❌ Authorization failed: {httpd.auth_error}")
-                return False
+                return None
             
             if not httpd.auth_code:
                 print("❌ No authorization code received.")
                 print("   Make sure you authorized the app and completed the flow.")
-                return False
+                return None
             
             auth_code = httpd.auth_code
-            print("✅ Authorization received!")
+            print("✅ Authorization code received!")
             print()
             
         except KeyboardInterrupt:
             print("\n❌ Cancelled by user.")
-            return False
+            return None
         except Exception as e:
             print(f"❌ Error during authorization: {e}")
-            return False
+            return None
     
-    # Step 2: Exchange code for access token
-    print("📋 Step 2: Getting Access Token")
-    print("-" * 70)
-    print()
+    # Exchange code for access token
+    print("🔄 Exchanging authorization code for access token...")
     
     token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
     token_params = {
         'client_id': app_id,
-        'client_secret': app_secret if app_secret else '',
         'redirect_uri': REDIRECT_URI,
         'code': auth_code
     }
     
-    print("🔄 Exchanging authorization code for access token...")
+    if app_secret:
+        token_params['client_secret'] = app_secret
     
     try:
-        response = requests.get(token_url, params=token_params)
+        response = requests.get(token_url, params=token_params, timeout=10)
         response.raise_for_status()
         
         token_data = response.json()
@@ -208,36 +193,39 @@ def get_facebook_config():
         if not user_access_token:
             print("❌ Failed to get access token.")
             print(f"   Response: {token_data}")
-            return False
+            return None
         
         print("✅ Got User Access Token!")
         print()
+        return user_access_token
         
     except requests.exceptions.HTTPError as e:
         print(f"❌ Error getting access token: {e}")
         if e.response.status_code == 400:
             error_data = e.response.json()
             print(f"   Error details: {error_data}")
-        return False
+        return None
     except Exception as e:
         print(f"❌ Error: {e}")
-        return False
-    
-    # Step 3: Get Page Access Token
-    print("📋 Step 3: Getting Page Access Token")
+        return None
+
+
+def get_page_access_token(user_token, target_page_id=None):
+    """Get Page Access Token from User Access Token."""
+    print("📋 Step 2: Getting Page Access Token")
     print("-" * 70)
     print()
     
     print("🔍 Fetching your Facebook Pages...")
     
-    pages_url = f"https://graph.facebook.com/v18.0/me/accounts"
+    pages_url = "https://graph.facebook.com/v18.0/me/accounts"
     pages_params = {
-        'access_token': user_access_token,
+        'access_token': user_token,
         'fields': 'id,name,access_token,category'
     }
     
     try:
-        response = requests.get(pages_url, params=pages_params)
+        response = requests.get(pages_url, params=pages_params, timeout=10)
         response.raise_for_status()
         
         pages_data = response.json()
@@ -246,15 +234,15 @@ def get_facebook_config():
         if not pages:
             print("❌ No pages found.")
             print("   Make sure you have admin access to at least one Facebook Page.")
-            return False
+            return None
         
         print(f"✅ Found {len(pages)} page(s):")
         print()
         
         # Find target page or let user choose
         target_page = None
-        if page_id:
-            target_page = next((p for p in pages if p.get('id') == page_id), None)
+        if target_page_id:
+            target_page = next((p for p in pages if p.get('id') == target_page_id), None)
         
         if not target_page and len(pages) == 1:
             target_page = pages[0]
@@ -262,26 +250,21 @@ def get_facebook_config():
         elif not target_page:
             print("   Available pages:")
             for i, page in enumerate(pages, 1):
-                marker = "👉" if page.get('id') == page_id else "  "
+                marker = "👉" if page.get('id') == target_page_id else "  "
                 print(f"   {marker} {i}. {page.get('name')} (ID: {page.get('id')})")
             print()
             
-            if page_id:
-                print(f"⚠️  Target page ID {page_id} not found.")
-                choice = input(f"Use page 1? (y/n, default: y): ").strip().lower()
-                if choice != 'n':
-                    target_page = pages[0]
+            if target_page_id:
+                print(f"⚠️  Target page ID {target_page_id} not found.")
+                print(f"   Using first available page: {pages[0].get('name')}")
+                target_page = pages[0]
             else:
-                choice = input(f"Select page (1-{len(pages)}, default: 1): ").strip()
-                try:
-                    idx = int(choice) - 1 if choice else 0
-                    target_page = pages[idx]
-                except (ValueError, IndexError):
-                    target_page = pages[0]
+                target_page = pages[0]
+                print(f"   Using first page: {target_page.get('name')}")
         
         if not target_page:
             print("❌ No page selected.")
-            return False
+            return None
         
         page_access_token = target_page.get('access_token')
         page_name = target_page.get('name')
@@ -291,115 +274,129 @@ def get_facebook_config():
         print(f"   Page Access Token: {page_access_token[:30]}...")
         print()
         
+        return page_access_token, page_id_found
+        
     except requests.exceptions.HTTPError as e:
         print(f"❌ Error fetching pages: {e}")
         if e.response.status_code == 401:
             print("   Your access token may be invalid or expired.")
-        return False
+        return None
     except Exception as e:
         print(f"❌ Error: {e}")
-        return False
+        return None
+
+
+def exchange_for_long_lived_token(short_token, app_id, app_secret):
+    """Exchange short-lived token for long-lived token."""
+    if not app_secret:
+        return short_token, False
     
-    # Step 4: Get Instagram Business Account ID
-    print("📋 Step 4: Getting Instagram Business Account ID")
-    print("-" * 70)
-    print()
+    print("🔄 Exchanging for long-lived token...")
     
-    print("🔍 Fetching Instagram Business Account...")
-    
-    ig_url = f"https://graph.facebook.com/v18.0/{page_id_found}"
-    ig_params = {
-        'access_token': page_access_token,
-        'fields': 'instagram_business_account{id,username}'
+    exchange_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+    exchange_params = {
+        'grant_type': 'fb_exchange_token',
+        'client_id': app_id,
+        'client_secret': app_secret,
+        'fb_exchange_token': short_token
     }
     
-    instagram_account_id = None
-    instagram_username = None
-    
     try:
-        response = requests.get(ig_url, params=ig_params)
+        response = requests.get(exchange_url, params=exchange_params, timeout=10)
         response.raise_for_status()
         
-        data = response.json()
-        ig_account = data.get('instagram_business_account')
+        exchange_data = response.json()
+        long_lived_token = exchange_data.get('access_token')
+        expires_in = exchange_data.get('expires_in', 0)
+        days = expires_in // 86400 if expires_in else 0
         
-        if ig_account:
-            instagram_account_id = ig_account.get('id')
-            instagram_username = ig_account.get('username')
-            print(f"✅ Found Instagram Business Account!")
-            print(f"   Account ID: {instagram_account_id}")
-            print(f"   Username: @{instagram_username}")
+        if long_lived_token:
+            print(f"✅ Long-lived token created! (expires in {days} days)")
+            return long_lived_token, True
         else:
-            print("⚠️  No Instagram Business Account found.")
-            print("   Make sure:")
-            print("   1. Your Instagram account is a Business Account (not Personal)")
-            print("   2. Your Instagram is connected to this Facebook Page")
-            print("   3. Go to Facebook Page → Settings → Instagram to connect")
-            print()
-            print("   You can add the Instagram Account ID manually later.")
-        
-        print()
-        
-    except requests.exceptions.HTTPError as e:
-        print(f"⚠️  Could not fetch Instagram account: {e}")
-        if e.response.status_code == 401:
-            print("   Your Page Access Token may not have the right permissions.")
-        print("   You can add the Instagram Account ID manually later.")
-        print()
-    
-    # Step 5: Exchange for long-lived token (optional)
-    print("📋 Step 5: Making Token Long-Lived")
-    print("-" * 70)
+            print("⚠️  Could not exchange token. Using short-lived token.")
+            return short_token, False
+    except Exception as e:
+        print(f"⚠️  Could not exchange token: {e}")
+        print("   Using short-lived token (expires in ~1 hour).")
+        return short_token, False
+
+
+def create_facebook_token():
+    """Main function to create or refresh Facebook Page Access Token."""
+    print("=" * 70)
+    print("🔑 Create Facebook Page Access Token")
+    print("=" * 70)
     print()
     
+    # Load existing settings
+    settings = load_settings_from_db()
+    api_keys = settings.get('api_keys', {})
+    
+    app_id = api_keys.get('facebook_app_id')
+    app_secret = api_keys.get('facebook_app_secret')
+    existing_token = api_keys.get('facebook_page_access_token')
+    page_id = api_keys.get('facebook_page_id')
+    
+    if not app_id:
+        print("❌ Error: Facebook App ID not found in config.")
+        print("   Please add 'facebook_app_id' to MY_CONFIG.json first.")
+        return False
+    
+    print(f"📱 App ID: {app_id}")
+    if page_id:
+        print(f"📄 Target Page ID: {page_id}")
+    if existing_token:
+        print(f"🔑 Existing Token: {existing_token[:30]}...")
+    print()
+    
+    # Check if existing token is valid
+    if existing_token:
+        print("🔍 Checking existing token validity...")
+        is_valid, message = check_token_validity(existing_token, page_id)
+        print(f"   {message}")
+        print()
+        
+        if is_valid:
+            print("✅ Existing token is valid! No need to create a new one.")
+            print()
+            choice = input("Create new token anyway? (y/n, default: n): ").strip().lower()
+            if choice != 'y':
+                print("✅ Keeping existing token.")
+                return True
+    
+    # Get new token
+    print("📋 Creating new Page Access Token...")
+    print()
+    
+    # Step 1: Get User Access Token
+    user_token = get_user_access_token(app_id, app_secret)
+    if not user_token:
+        return False
+    
+    # Step 2: Get Page Access Token
+    result = get_page_access_token(user_token, page_id)
+    if not result:
+        return False
+    
+    page_token, page_id_found = result
+    
+    # Step 3: Exchange for long-lived token (if App Secret available)
     if app_secret:
-        print("🔄 Exchanging for long-lived token...")
-        
-        exchange_url = "https://graph.facebook.com/v18.0/oauth/access_token"
-        exchange_params = {
-            'grant_type': 'fb_exchange_token',
-            'client_id': app_id,
-            'client_secret': app_secret,
-            'fb_exchange_token': page_access_token
-        }
-        
-        try:
-            response = requests.get(exchange_url, params=exchange_params)
-            response.raise_for_status()
-            
-            exchange_data = response.json()
-            long_lived_token = exchange_data.get('access_token')
-            expires_in = exchange_data.get('expires_in', 0)
-            days = expires_in // 86400 if expires_in else 0
-            
-            if long_lived_token:
-                page_access_token = long_lived_token
-                print(f"✅ Long-lived token created! (expires in {days} days)")
-            else:
-                print("⚠️  Could not exchange token. Using short-lived token.")
-        except Exception as e:
-            print(f"⚠️  Could not exchange token: {e}")
-            print("   Using short-lived token (expires in ~1 hour).")
+        page_token, is_long_lived = exchange_for_long_lived_token(page_token, app_id, app_secret)
     else:
         print("⚠️  App Secret not available. Using short-lived token.")
-        print("   Add App Secret to config for long-lived tokens.")
+        print("   Add App Secret to config for long-lived tokens (expires in ~60 days).")
+        is_long_lived = False
+        print()
     
-    print()
-    
-    # Step 6: Update configuration
-    print("📋 Step 6: Updating Configuration")
+    # Step 4: Save to config
+    print("📋 Step 3: Saving Configuration")
     print("-" * 70)
     print()
     
-    # Update settings
-    api_keys['facebook_page_access_token'] = page_access_token
+    api_keys['facebook_page_access_token'] = page_token
     api_keys['facebook_page_id'] = page_id_found
-    
-    if app_secret:
-        api_keys['facebook_app_secret'] = app_secret
-    
-    if instagram_account_id:
-        api_keys['instagram_business_account_id'] = instagram_account_id
     
     settings['api_keys'] = api_keys
     save_settings_to_db(settings)
@@ -411,14 +408,8 @@ def get_facebook_config():
             with open(config_file, 'r') as f:
                 config = json.load(f)
             
-            config['api_keys']['facebook_page_access_token'] = page_access_token
+            config['api_keys']['facebook_page_access_token'] = page_token
             config['api_keys']['facebook_page_id'] = page_id_found
-            
-            if app_secret:
-                config['api_keys']['facebook_app_secret'] = app_secret
-            
-            if instagram_account_id:
-                config['api_keys']['instagram_business_account_id'] = instagram_account_id
             
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
@@ -430,23 +421,17 @@ def get_facebook_config():
     
     print()
     print("=" * 70)
-    print("✅ Configuration Complete!")
+    print("✅ Token Created Successfully!")
     print("=" * 70)
     print()
     print("📝 Summary:")
-    print(f"   ✅ Facebook Page Access Token: {page_access_token[:30]}...")
+    print(f"   ✅ Facebook Page Access Token: {page_token[:30]}...")
     print(f"   ✅ Facebook Page ID: {page_id_found}")
-    if app_secret:
-        print(f"   ✅ Facebook App Secret: {'*' * 20}")
-    if instagram_account_id:
-        print(f"   ✅ Instagram Business Account ID: {instagram_account_id}")
-        print(f"   ✅ Instagram Username: @{instagram_username}")
-    else:
-        print(f"   ⚠️  Instagram Business Account ID: Not found (add manually)")
+    print(f"   ✅ Token Type: {'Long-lived (~60 days)' if is_long_lived else 'Short-lived (~1 hour)'}")
     print()
     print("🚀 Next steps:")
     print("   1. Test Instagram: python3 scripts/get_instagram_account_id.py")
-    print("   2. Test video uploads: Ready to test!")
+    print("   2. Test video uploads when ready!")
     print()
     
     return True
@@ -454,7 +439,7 @@ def get_facebook_config():
 
 if __name__ == '__main__':
     try:
-        success = get_facebook_config()
+        success = create_facebook_token()
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
         print("\n\n❌ Cancelled by user.")
