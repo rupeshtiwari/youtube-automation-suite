@@ -62,10 +62,10 @@
                     <h5>Optimal Posting Times</h5>
                 </div>
                 <div class="card-body">
-                    {% if insights.optimal_posting_times.youtube %}
+                    {% if insights.optimal_posting_times and insights.optimal_posting_times.youtube %}
                         <p><strong>YouTube Best Time:</strong> Hour {{ insights.optimal_posting_times.youtube.hour }}:00</p>
                     {% endif %}
-                    {% if insights.optimal_posting_times.overall %}
+                    {% if insights.optimal_posting_times and insights.optimal_posting_times.overall %}
                         <p><strong>Overall Recommendation:</strong> Post at hour {{ insights.optimal_posting_times.overall.hour }}:00 for maximum engagement</p>
                     {% endif %}
                 </div>

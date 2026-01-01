@@ -989,9 +989,9 @@ def get_youtube_analytics():
             # Try to load with analytics scope
             try:
                 creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES_ANALYTICS)
-            except:
-                # If token doesn't have analytics scope, return error
-                return {'error': 'YouTube Analytics API not authenticated. Please re-authenticate with analytics scope.'}
+            except Exception as e:
+                # If token doesn't have analytics scope, return error gracefully
+                return {'error': 'YouTube Analytics API not authenticated. Please re-authenticate with analytics scope.', 'details': str(e)}
         
         if not creds or not creds.valid:
             return {'error': 'YouTube Analytics not authenticated'}
