@@ -167,6 +167,13 @@
                 font-size: 18px;
             }
 
+            .nav-divider {
+                height: 1px;
+                background: var(--border);
+                margin: 8px 24px;
+                list-style: none;
+            }
+
             /* Main Content Area */
             .main-content {
                 margin-left: 240px;
@@ -450,14 +457,14 @@
             <ul class="sidebar-nav">
                 <li>
                     <a href="/" id="nav-dashboard">
-                        <i class="bi bi-speedometer2"></i>
-                        Dashboard
+                        <i class="bi bi-inbox"></i>
+                        Queue
                     </a>
                 </li>
                 <li>
-                    <a href="/playlists" id="nav-playlists">
-                        <i class="bi bi-collection-play"></i>
-                        Playlists
+                    <a href="/calendar" id="nav-calendar">
+                        <i class="bi bi-calendar3"></i>
+                        Calendar
                     </a>
                 </li>
                 <li>
@@ -467,45 +474,35 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/calendar" id="nav-calendar">
-                        <i class="bi bi-calendar-event"></i>
-                        Calendar
-                    </a>
-                </li>
-                <li>
-                    <a href="/content" id="nav-content">
-                        <i class="bi bi-file-post"></i>
-                        Content
+                    <a href="/playlists" id="nav-playlists">
+                        <i class="bi bi-collection-play"></i>
+                        Playlists
                     </a>
                 </li>
                 <li>
                     <a href="/content-preview" id="nav-content-preview">
-                        <i class="bi bi-pencil-square"></i>
+                        <i class="bi bi-eye"></i>
                         Preview & Schedule
                     </a>
                 </li>
+                <li class="nav-divider"></li>
                 <li>
                     <a href="/insights" id="nav-insights">
                         <i class="bi bi-graph-up-arrow"></i>
-                        Insights
+                        Analytics
                     </a>
                 </li>
                 <li>
                     <a href="/activity" id="nav-activity">
                         <i class="bi bi-activity"></i>
-                        Activity Log
+                        Activity
                     </a>
                 </li>
+                <li class="nav-divider"></li>
                 <li>
                     <a href="/config" id="nav-config">
                         <i class="bi bi-gear"></i>
                         Settings
-                    </a>
-                </li>
-                <li>
-                    <a href="/docs" id="nav-docs">
-                        <i class="bi bi-book"></i>
-                        Help
                     </a>
                 </li>
             </ul>

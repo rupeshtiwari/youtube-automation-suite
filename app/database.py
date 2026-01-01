@@ -135,6 +135,16 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_platform ON activity_logs(platform)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_created_at ON activity_logs(created_at)')
     
+    # Settings table - stores application configuration (persistent across restarts)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key TEXT UNIQUE NOT NULL,
+            setting_value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     # Create indexes for better performance
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_playlist_id ON videos(playlist_id)')
@@ -146,6 +156,7 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_posts_status ON social_media_posts(status)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_playlists_type ON playlists(playlist_type)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_playlists_role ON playlists(playlist_role)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key)')
     
     conn.commit()
     conn.close()
@@ -491,6 +502,47 @@ def export_to_excel(output_path: str, playlist_id: Optional[str] = None):
                 df_playlist.to_excel(writer, sheet_name=sheet_name, index=False)
     
     print(f"✅ Exported to {output_path}")
+
+
+def save_settings_to_db(settings: Dict[str, Any]) -> None:
+    """Save settings to database (persistent storage)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Save entire settings as JSON in a single row
+    settings_json = json.dumps(settings)
+    
+    cursor.execute('''
+        INSERT OR REPLACE INTO settings (setting_key, setting_value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    ''', ('app_settings', settings_json))
+    
+    conn.commit()
+    conn.close()
+
+
+def load_settings_from_db() -> Optional[Dict[str, Any]]:
+    """Load settings from database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT setting_value FROM settings
+        WHERE setting_key = 'app_settings'
+        ORDER BY updated_at DESC
+        LIMIT 1
+    ''')
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result and result['setting_value']:
+        try:
+            return json.loads(result['setting_value'])
+        except json.JSONDecodeError:
+            return None
+    
+    return None
 
 
 # Initialize database on import

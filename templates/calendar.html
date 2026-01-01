@@ -398,25 +398,147 @@
         align-items: center;
         gap: 8px;
     }
+
+    /* Tips Sidebar */
+    .tips-sidebar {
+        position: sticky;
+        top: 20px;
+    }
+
+    .tips-sidebar .card {
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+    }
+
+    .tip-item {
+        padding: 12px;
+        margin-bottom: 12px;
+        background: var(--bg-secondary);
+        border-left: 3px solid var(--primary);
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .tip-item.tip-success {
+        border-left-color: var(--success);
+        background: rgba(16, 185, 129, 0.05);
+    }
+
+    .tip-item.tip-warning {
+        border-left-color: var(--warning);
+        background: rgba(245, 158, 11, 0.05);
+    }
+
+    .tip-item.tip-info {
+        border-left-color: var(--info);
+        background: rgba(6, 182, 212, 0.05);
+    }
+
+    .tip-item-header {
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tip-item-content {
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    .stat-item {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .legend-color.youtube {
+        background: #ff0000;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="calendar-container">
-    <div id="calendar"></div>
+<!-- Tips & Insights Sidebar -->
+<div class="row">
+    <div class="col-md-9">
+        <div class="calendar-container">
+            <div id="calendar"></div>
+            
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <div class="legend-color linkedin"></div>
+                    <span>LinkedIn</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color facebook"></div>
+                    <span>Facebook</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color instagram"></div>
+                    <span>Instagram</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color youtube"></div>
+                    <span>YouTube</span>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <div class="calendar-legend">
-        <div class="legend-item">
-            <div class="legend-color linkedin"></div>
-            <span>LinkedIn</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color facebook"></div>
-            <span>Facebook</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color instagram"></div>
-            <span>Instagram</span>
+    <div class="col-md-3">
+        <div class="tips-sidebar">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-lightbulb"></i> Smart Tips
+                </div>
+                <div class="card-body" id="smartTips">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <p class="text-muted mt-2 mb-0">Loading tips...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> Calendar Stats
+                </div>
+                <div class="card-body" id="calendarStats">
+                    <div class="stat-item">
+                        <div class="stat-label">Scheduled This Week</div>
+                        <div class="stat-value" id="statWeek">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Scheduled This Month</div>
+                        <div class="stat-value" id="statMonth">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Most Active Platform</div>
+                        <div class="stat-value" id="statPlatform">-</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -601,12 +723,209 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             calendar.render();
+            
+            // Load tips and stats
+            loadSmartTips(calendarEvents);
+            loadCalendarStats(calendarEvents);
         })
         .catch(error => {
             console.error('Error loading calendar:', error);
             calendarEl.innerHTML = '<div class="alert alert-danger">Error loading calendar data</div>';
         });
 });
+
+// Intelligent Tips System
+function loadSmartTips(events) {
+    const tipsContainer = document.getElementById('smartTips');
+    const tips = [];
+    
+    // Analyze events to generate smart tips
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekFromNow = new Date(today);
+    weekFromNow.setDate(weekFromNow.getDate() + 7);
+    
+    // Count events by platform
+    const platformCounts = {};
+    const upcomingEvents = events.filter(e => {
+        const eventDate = new Date(e.start);
+        return eventDate >= today && eventDate <= weekFromNow;
+    });
+    
+    events.forEach(event => {
+        const platform = event.extendedProps.platform.toLowerCase();
+        platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+    });
+    
+    // Tip 1: Empty calendar
+    if (events.length === 0) {
+        tips.push({
+            type: 'warning',
+            icon: 'calendar-x',
+            title: 'No Scheduled Posts',
+            content: 'Your calendar is empty! Run Auto-Pilot or manually schedule posts to get started. Click the "+" button to schedule your first post.'
+        });
+    }
+    
+    // Tip 2: Upcoming posts
+    if (upcomingEvents.length > 0) {
+        tips.push({
+            type: 'success',
+            icon: 'calendar-check',
+            title: `${upcomingEvents.length} Posts This Week`,
+            content: `You have ${upcomingEvents.length} posts scheduled in the next 7 days. Great job staying consistent!`
+        });
+    } else if (events.length > 0) {
+        tips.push({
+            type: 'warning',
+            icon: 'calendar-event',
+            title: 'No Posts This Week',
+            content: 'You have scheduled posts, but none in the next 7 days. Consider scheduling some content for this week to maintain engagement.'
+        });
+    }
+    
+    // Tip 3: Platform distribution
+    const platforms = Object.keys(platformCounts);
+    if (platforms.length === 1) {
+        tips.push({
+            type: 'info',
+            icon: 'share',
+            title: 'Single Platform Detected',
+            content: `You're only posting to ${platforms[0]}. Consider diversifying to LinkedIn, Facebook, and Instagram for better reach.`
+        });
+    } else if (platforms.length === 3) {
+        tips.push({
+            type: 'success',
+            icon: 'check-circle',
+            title: 'Multi-Platform Strategy',
+            content: 'Excellent! You\'re posting across multiple platforms. This maximizes your content reach and engagement.'
+        });
+    }
+    
+    // Tip 4: Optimal posting times
+    const hourCounts = {};
+    events.forEach(event => {
+        if (event.start) {
+            const hour = new Date(event.start).getHours();
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        }
+    });
+    
+    const mostCommonHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[a] > hourCounts[b] ? a : b, null);
+    if (mostCommonHour) {
+        const hour12 = mostCommonHour > 12 ? `${mostCommonHour - 12} PM` : `${mostCommonHour} AM`;
+        tips.push({
+            type: 'info',
+            icon: 'clock',
+            title: 'Your Posting Pattern',
+            content: `Most of your posts are scheduled around ${hour12}. Research shows 9-11 AM and 1-3 PM EST work best for professional content.`
+        });
+    }
+    
+    // Tip 5: Consistency
+    if (events.length >= 10) {
+        const daysWithPosts = new Set(events.map(e => e.start ? e.start.split('T')[0] : null)).size;
+        if (daysWithPosts >= 5) {
+            tips.push({
+                type: 'success',
+                icon: 'trophy',
+                title: 'Consistent Schedule',
+                content: `You have posts scheduled across ${daysWithPosts} different days. Consistency is key to building an engaged audience!`
+            });
+        }
+    }
+    
+    // Tip 6: Video content
+    const videosWithContent = events.filter(e => e.extendedProps.post_content && e.extendedProps.post_content.length > 50).length;
+    if (videosWithContent < events.length * 0.5 && events.length > 0) {
+        tips.push({
+            type: 'warning',
+            icon: 'file-text',
+            title: 'Content Optimization',
+            content: 'Some posts have short content. Longer, engaging posts (150+ characters) typically get better engagement on LinkedIn and Facebook.'
+        });
+    }
+    
+    // Tip 7: Best days
+    const dayCounts = {};
+    events.forEach(event => {
+        if (event.start) {
+            const day = new Date(event.start).getDay();
+            const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day];
+            dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
+        }
+    });
+    
+    if (Object.keys(dayCounts).length > 0) {
+        const bestDay = Object.keys(dayCounts).reduce((a, b) => dayCounts[a] > dayCounts[b] ? a : b);
+        tips.push({
+            type: 'info',
+            icon: 'calendar-week',
+            title: 'Your Best Day',
+            content: `${bestDay} is your most active posting day. For professional content, Tuesday-Thursday typically perform best.`
+        });
+    }
+    
+    // Render tips
+    if (tips.length === 0) {
+        tips.push({
+            type: 'info',
+            icon: 'info-circle',
+            title: 'Getting Started',
+            content: 'Schedule your first post to see personalized tips and insights based on your posting patterns.'
+        });
+    }
+    
+    tipsContainer.innerHTML = tips.slice(0, 5).map(tip => `
+        <div class="tip-item tip-${tip.type}">
+            <div class="tip-item-header">
+                <i class="bi bi-${tip.icon}"></i>
+                ${tip.title}
+            </div>
+            <div class="tip-item-content">${tip.content}</div>
+        </div>
+    `).join('');
+}
+
+function loadCalendarStats(events) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Count events
+    const thisWeek = events.filter(e => {
+        if (!e.start) return false;
+        const eventDate = new Date(e.start);
+        return eventDate >= weekStart && eventDate < weekEnd;
+    }).length;
+    
+    const thisMonth = events.filter(e => {
+        if (!e.start) return false;
+        const eventDate = new Date(e.start);
+        return eventDate >= monthStart && eventDate <= monthEnd;
+    }).length;
+    
+    // Most active platform
+    const platformCounts = {};
+    events.forEach(event => {
+        const platform = event.extendedProps.platform || 'Unknown';
+        platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+    });
+    
+    const mostActive = Object.keys(platformCounts).length > 0 
+        ? Object.keys(platformCounts).reduce((a, b) => platformCounts[a] > platformCounts[b] ? a : b)
+        : 'None';
+    
+    document.getElementById('statWeek').textContent = thisWeek;
+    document.getElementById('statMonth').textContent = thisMonth;
+    document.getElementById('statPlatform').textContent = mostActive;
+}
 
 // Utility function to escape HTML
 function escapeHtml(text) {

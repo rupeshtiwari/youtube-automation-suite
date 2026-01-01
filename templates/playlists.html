@@ -2,478 +2,636 @@
 
 {% block title %}Playlists & Videos - YouTube Automation{% endblock %}
 
-{% block page_title %}Playlists{% endblock %}
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center w-100">
+    <span>Playlists</span>
+    <button class="btn btn-primary" onclick="refreshPlaylists()" id="refreshBtn">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
 <style>
-    .refresh-controls {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
+    /* Modern Playlist Page - Inspired by Notion, Linear, Vercel */
     
-    .refresh-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: var(--buffer-primary);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 14px;
-        transition: all 0.2s;
-    }
-    
-    .refresh-btn:hover {
-        opacity: 0.9;
-    }
-    
-    .refresh-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    
-    .refresh-btn.refreshing {
-        animation: spin 1s linear infinite;
-    }
-    
-    .refresh-btn .bi-arrow-clockwise {
-        transition: transform 0.3s;
-    }
-    
-    .refresh-btn.refreshing .bi-arrow-clockwise {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    .last-updated {
-        font-size: 13px;
-        color: var(--buffer-text-light);
-    }
-<style>
-    .filter-bar {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    /* Stats Hero Section */
+    .stats-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 2.5rem;
         margin-bottom: 2rem;
-    }
-    .search-box {
+        color: white;
         position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(102, 126, 234, 0.3), 0 10px 10px -5px rgba(102, 126, 234, 0.2);
     }
-    .search-box input {
-        padding-left: 2.5rem;
+    
+    .stats-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
     }
-    .search-box i {
+    
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(-20px, -20px) scale(1.1); }
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .stat-box {
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-label {
+        font-size: 0.95rem;
+        opacity: 0.95;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Filter & Search Bar */
+    .filter-toolbar {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .search-wrapper {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+    
+    .search-wrapper i {
         position: absolute;
         left: 1rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #64748b;
+        color: var(--text-muted);
+        font-size: 1.1rem;
     }
-    .filter-tags {
+    
+    .search-wrapper input {
+        padding-left: 3rem;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        height: 44px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    
+    .search-wrapper input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .filter-badges {
         display: flex;
+        gap: 0.75rem;
         flex-wrap: wrap;
-        gap: 0.5rem;
         margin-top: 1rem;
     }
-    .filter-tag {
+    
+    .filter-badge {
         padding: 0.5rem 1rem;
-        background: #f1f5f9;
-        border: 2px solid #e2e8f0;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
         border-radius: 20px;
         font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .filter-tag:hover {
-        background: #e2e8f0;
-        border-color: #667eea;
-    }
-    .filter-tag.active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: #667eea;
-    }
-    .video-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-    }
-    .video-tag {
-        padding: 0.25rem 0.75rem;
-        background: #e0e7ff;
-        color: #4338ca;
-        border-radius: 12px;
-        font-size: 0.75rem;
         font-weight: 600;
-    }
-    .video-tag.type {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-    .video-tag.role {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    .tag-edit-btn {
-        margin-left: 0.5rem;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-    .playlist-card {
-        margin-bottom: 2rem;
-        border: none;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        background: white;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .playlist-card:hover {
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        transform: translateY(-4px);
-    }
-    .playlist-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
+        transition: all 0.2s;
+        color: var(--text-secondary);
+    }
+    
+    .filter-badge:hover {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .filter-badge.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* Playlist Cards - Modern Design */
+    .playlist-modern {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        margin-bottom: 1.5rem;
         overflow: hidden;
-    }
-    .playlist-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
-    .playlist-header:hover::before {
-        left: 100%;
-    }
-    .playlist-header:hover {
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        transform: scale(1.01);
-    }
-    .playlist-content {
-        display: none;
-        padding: 1.5rem;
-        background: #f8fafc;
-    }
-    .playlist-content.active {
-        display: block;
-    }
-    .video-card {
-        border: none;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-left: 4px solid transparent;
+        box-shadow: var(--card-shadow);
     }
-    .video-card:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        transform: translateY(-4px) translateX(4px);
-        border-left-color: #667eea;
+    
+    .playlist-modern:hover {
+        box-shadow: var(--card-shadow-hover);
+        transform: translateY(-4px);
+        border-color: var(--primary);
     }
-    .video-thumbnail {
-        width: 160px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 12px;
-        float: left;
-        margin-right: 1.25rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    .playlist-header-modern {
+        padding: 1.75rem;
+        cursor: pointer;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        border-bottom: 1px solid var(--border);
+        transition: all 0.3s;
     }
-    .video-info {
-        overflow: hidden;
+    
+    .playlist-header-modern:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     }
-    .video-title {
+    
+    .playlist-title-modern {
+        font-size: 1.5rem;
         font-weight: 700;
-        font-size: 1.125rem;
+        color: var(--text-primary);
         margin-bottom: 0.75rem;
-        color: #1e293b;
-    }
-    .video-title a {
-        color: #1e293b;
-        text-decoration: none;
-    }
-    .video-title a:hover {
-        color: #667eea;
-    }
-    .video-meta {
-        font-size: 0.9rem;
-        color: #64748b;
-        margin-bottom: 1rem;
         display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
         align-items: center;
+        gap: 0.75rem;
     }
-    .video-meta-item {
+    
+    .playlist-title-modern i {
+        color: var(--primary);
+        font-size: 1.25rem;
+        transition: transform 0.3s;
+    }
+    
+    .playlist-header-modern.expanded .playlist-title-modern i {
+        transform: rotate(90deg);
+    }
+    
+    .playlist-meta-modern {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .playlist-meta-item {
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
-    .video-meta-item i {
-        color: #667eea;
+    
+    .playlist-meta-item i {
+        color: var(--primary);
     }
-    .social-status-bar {
+    
+    .playlist-actions {
         display: flex;
         gap: 0.75rem;
         margin-top: 1rem;
-        padding: 0.75rem;
-        background: #f8fafc;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
     }
-    .social-status-item {
+    
+    /* Video Grid - Modern Card Layout */
+    .videos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: var(--bg-secondary);
+    }
+    
+    .video-card-modern {
+        background: var(--card-bg);
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--card-shadow);
+        position: relative;
+    }
+    
+    .video-card-modern:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--card-shadow-hover);
+        border-color: var(--primary);
+    }
+    
+    .video-thumbnail-modern {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+    }
+    
+    .video-thumbnail-modern::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 100%);
+    }
+    
+    .video-play-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
         display: flex;
         align-items: center;
+        justify-content: center;
+        z-index: 2;
+        opacity: 0;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .video-card-modern:hover .video-play-overlay {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .video-play-overlay i {
+        color: var(--primary);
+        font-size: 1.5rem;
+        margin-left: 3px;
+    }
+    
+    .video-content-modern {
+        padding: 1.25rem;
+    }
+    
+    .video-title-modern {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .video-title-modern a {
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    
+    .video-title-modern a:hover {
+        color: var(--primary);
+    }
+    
+    .video-tags-modern {
+        display: flex;
+        flex-wrap: wrap;
         gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        background: white;
+        margin-bottom: 1rem;
+    }
+    
+    .video-tag-modern {
+        padding: 0.35rem 0.75rem;
         border-radius: 8px;
-        border: 2px solid transparent;
-        transition: all 0.2s ease;
-    }
-    .social-status-item:hover {
-        border-color: #667eea;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .social-status-item.linkedin {
-        border-left: 4px solid #0077b5;
-    }
-    .social-status-item.facebook {
-        border-left: 4px solid #1877f2;
-    }
-    .social-status-item.instagram {
-        border-left: 4px solid #e4405f;
-    }
-    .social-status-icon {
-        font-size: 1.25rem;
-    }
-    .social-status-text {
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .social-status-date {
         font-size: 0.75rem;
-        color: #64748b;
-    }
-    .status-badge-video {
-        padding: 0.375rem 0.75rem;
-        border-radius: 8px;
-        font-size: 0.8rem;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    .badge-public {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
+    
+    .video-tag-modern.type {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
     }
-    .badge-scheduled {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white;
+    
+    .video-tag-modern.role {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
     }
-    .badge-private {
-        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-        color: white;
+    
+    .video-tag-modern.custom {
+        background: linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%);
+        color: #6b21a8;
     }
-    .social-posts {
-        margin-top: 1.25rem;
-        padding-top: 1.25rem;
-        border-top: 2px solid #e2e8f0;
-    }
-    .social-post {
-        background: white;
-        padding: 1rem;
-        border-left: 4px solid #0077b5;
-        margin-bottom: 0.75rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-    .social-post.facebook {
-        border-left-color: #1877f2;
-    }
-    .social-post.instagram {
-        border-left-color: #e4405f;
-    }
-    .social-post-header {
-        font-weight: 600;
-        margin-bottom: 0.75rem;
+    
+    .video-meta-modern {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--text-muted);
     }
-    .social-post-content {
-        font-size: 0.9rem;
-        color: #475569;
-        white-space: pre-wrap;
-        max-height: 150px;
-        overflow-y: auto;
-        line-height: 1.6;
-    }
-    .badge-status {
-        padding: 0.375rem 0.75rem;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .badge-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    .badge-scheduled {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-    .badge-error {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-    .stats-bar {
+    
+    .video-status-modern {
         display: flex;
-        gap: 2rem;
-        padding: 2rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.3);
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .status-dot.public {
+        background: var(--success);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    
+    .status-dot.scheduled {
+        background: var(--warning);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+    
+    .status-dot.private {
+        background: var(--secondary);
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.2);
+    }
+    
+    /* Social Platform Indicators */
+    .social-platforms-modern {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .platform-indicator {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        border: 2px solid transparent;
+        transition: all 0.2s;
         position: relative;
-        overflow: hidden;
     }
-    .stats-bar::before {
-        content: '';
+    
+    .platform-indicator.linkedin {
+        background: rgba(0, 119, 181, 0.1);
+        color: #0077b5;
+    }
+    
+    .platform-indicator.facebook {
+        background: rgba(24, 119, 242, 0.1);
+        color: #1877f2;
+    }
+    
+    .platform-indicator.instagram {
+        background: linear-gradient(135deg, rgba(240, 148, 51, 0.1) 0%, rgba(188, 24, 136, 0.1) 100%);
+        color: #e4405f;
+    }
+    
+    .platform-indicator.posted {
+        border-color: var(--success);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    
+    .platform-indicator.scheduled {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .platform-indicator.pending {
+        opacity: 0.5;
+    }
+    
+    .platform-indicator[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-        animation: pulse 3s ease-in-out infinite;
-    }
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-    }
-    .stat-item {
-        text-align: center;
-    }
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: 700;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 0.5rem 0.75rem;
+        background: var(--text-primary);
         color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        margin-bottom: 0.5rem;
+        z-index: 10;
     }
-    .stat-label {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 0.5rem;
-    }
-    .loading-spinner {
+    
+    /* Empty States */
+    .empty-state {
         text-align: center;
-        padding: 2rem;
-        color: #64748b;
+        padding: 4rem 2rem;
+        color: var(--text-muted);
     }
-    .no-videos {
-        text-align: center;
-        padding: 3rem;
-        color: #64748b;
-    }
-    .no-videos i {
-        font-size: 3rem;
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        color: var(--text-light);
         margin-bottom: 1rem;
-        color: #cbd5e1;
+        opacity: 0.5;
+    }
+    
+    .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state-text {
+        font-size: 1rem;
+        color: var(--text-secondary);
+    }
+    
+    /* Loading States */
+    .loading-modern {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        gap: 1rem;
+    }
+    
+    .spinner-modern {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .videos-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+    }
+    
+    /* Smooth Transitions */
+    .playlist-content-modern {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .playlist-content-modern.expanded {
+        max-height: 5000px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-number">{{ playlists|length }}</div>
-                <div class="stat-label">Playlists</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">{{ playlists|sum(attribute='itemCount') }}</div>
-                <div class="stat-label">Total Videos</div>
-            </div>
-            {% if channel_title %}
-            <div class="stat-item">
-                <div class="stat-number" style="font-size: 1.5rem;">{{ channel_title }}</div>
-                <div class="stat-label">Channel</div>
-            </div>
-            {% endif %}
+<!-- Stats Hero Section -->
+<div class="stats-hero">
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-number">{{ playlists|length }}</div>
+            <div class="stat-label">Playlists</div>
         </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ playlists|sum(attribute='itemCount') }}</div>
+            <div class="stat-label">Total Videos</div>
+        </div>
+        {% if channel_title %}
+        <div class="stat-box">
+            <div class="stat-number" style="font-size: 1.75rem; font-weight: 700;">{{ channel_title }}</div>
+            <div class="stat-label">Channel</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        {% for playlist in playlists %}
-        <div class="playlist-card">
-            <div class="playlist-header" onclick="togglePlaylist('playlist-{{ loop.index }}', '{{ playlist.playlistId }}')">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="mb-2" style="font-weight: 700; color: white;">
-                            <i class="bi bi-{{ 'chevron-down' if loop.index == 1 else 'chevron-right' }}" id="icon-{{ loop.index }}"></i>
-                            {{ playlist.playlistTitle }}
-                        </h3>
-                        <div style="font-size: 0.95rem; opacity: 0.9;">
-                            <i class="bi bi-film"></i> {{ playlist.itemCount }} videos
-                            <span class="ms-3"><i class="bi bi-calendar"></i> {{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}</span>
-                            {% if playlist.channelTitle %}
-                            <span class="ms-3"><i class="bi bi-broadcast"></i> {{ playlist.channelTitle }}</span>
-                            {% endif %}
-                        </div>
+<!-- Filter Toolbar -->
+<div class="filter-toolbar">
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-start align-items-md-center">
+        <div class="search-wrapper">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" id="search-input" placeholder="Search videos by title, tags, or description...">
+        </div>
+        <div class="d-flex gap-2">
+            <select class="form-select form-select-sm" id="filter-type" style="min-width: 150px;">
+                <option value="">All Types</option>
+                <option value="sys_design">System Design</option>
+                <option value="leadership">Leadership</option>
+                <option value="interview">Interview Prep</option>
+            </select>
+            <select class="form-select form-select-sm" id="filter-role" style="min-width: 150px;">
+                <option value="">All Roles</option>
+                <option value="em">Engineering Manager</option>
+                <option value="pm">Product Manager</option>
+                <option value="sa">Solutions Architect</option>
+            </select>
+        </div>
+    </div>
+    <div class="filter-badges" id="filter-badges">
+        <div class="filter-badge active" data-filter="all">All Videos</div>
+        <div class="filter-badge" data-filter="type:sys_design">System Design</div>
+        <div class="filter-badge" data-filter="type:leadership">Leadership</div>
+        <div class="filter-badge" data-filter="role:em">Engineering Manager</div>
+        <div class="filter-badge" data-filter="role:pm">Product Manager</div>
+    </div>
+</div>
+
+<!-- Playlists -->
+<div id="playlists-container">
+    {% for playlist in playlists %}
+    <div class="playlist-modern">
+        <div class="playlist-header-modern {{ 'expanded' if loop.index == 1 else '' }}" 
+             onclick="togglePlaylist('playlist-{{ loop.index }}', '{{ playlist.playlistId }}')">
+            <div class="d-flex justify-content-between align-items-start">
+                <div style="flex: 1;">
+                    <div class="playlist-title-modern">
+                        <i class="bi bi-{{ 'chevron-down' if loop.index == 1 else 'chevron-right' }}" id="icon-{{ loop.index }}"></i>
+                        {{ playlist.playlistTitle }}
                     </div>
-                    <div>
-                        <a href="/content-preview" class="btn btn-primary btn-sm me-2" onclick="event.stopPropagation();">
+                    <div class="playlist-meta-modern">
+                        <div class="playlist-meta-item">
+                            <i class="bi bi-film"></i>
+                            <span>{{ playlist.itemCount }} videos</span>
+                        </div>
+                        <div class="playlist-meta-item">
+                            <i class="bi bi-calendar"></i>
+                            <span>{{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}</span>
+                        </div>
+                        {% if playlist.channelTitle %}
+                        <div class="playlist-meta-item">
+                            <i class="bi bi-broadcast"></i>
+                            <span>{{ playlist.channelTitle }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="playlist-actions">
+                        <a href="/content-preview" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
                             <i class="bi bi-pencil-square"></i> Preview & Schedule
                         </a>
-                        <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-light btn-sm" onclick="event.stopPropagation();">
+                        <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();">
                             <i class="bi bi-youtube"></i> View on YouTube
                         </a>
                     </div>
                 </div>
             </div>
-            
-            <div class="playlist-content {{ 'active' if loop.index == 1 else '' }}" id="playlist-{{ loop.index }}">
-                <div id="videos-container-{{ loop.index }}">
-                    {% if loop.index == 1 %}
-                    <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading videos...</p>
-                    </div>
-                    {% endif %}
+        </div>
+        
+        <div class="playlist-content-modern {{ 'expanded' if loop.index == 1 else '' }}" id="playlist-{{ loop.index }}">
+            <div id="videos-container-{{ loop.index }}">
+                {% if loop.index == 1 %}
+                <div class="loading-modern">
+                    <div class="spinner-modern"></div>
+                    <p class="text-muted">Loading videos...</p>
                 </div>
+                {% endif %}
             </div>
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
 </div>
 {% endblock %}
 
@@ -487,15 +645,17 @@ function togglePlaylist(playlistId, playlistApiId) {
     const icon = document.getElementById(iconId);
     const containerId = playlistId.replace('playlist-', 'videos-container-');
     const container = document.getElementById(containerId);
+    const header = content.previousElementSibling;
     
-    if (content.classList.contains('active')) {
-        content.classList.remove('active');
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        header.classList.remove('expanded');
         icon.className = 'bi bi-chevron-right';
     } else {
-        content.classList.add('active');
+        content.classList.add('expanded');
+        header.classList.add('expanded');
         icon.className = 'bi bi-chevron-down';
         
-        // Load videos if not already loaded
         if (!loadedPlaylists.has(playlistApiId)) {
             loadPlaylistVideos(playlistApiId, containerId);
             loadedPlaylists.add(playlistApiId);
@@ -506,231 +666,162 @@ function togglePlaylist(playlistId, playlistApiId) {
 function loadPlaylistVideos(playlistId, containerId) {
     const container = document.getElementById(containerId);
     container.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading videos...</p>
+        <div class="loading-modern">
+            <div class="spinner-modern"></div>
+            <p class="text-muted">Loading videos...</p>
         </div>
     `;
     
-            // Always fetch fresh data (add timestamp to prevent caching)
-            const timestamp = new Date().getTime();
-            fetch(`/api/playlist/${playlistId}/videos?t=${timestamp}`, {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache'
-                }
-            })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                container.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
-                return;
-            }
-            
-            const videos = data.videos || [];
-            
-            if (videos.length === 0) {
-                container.innerHTML = `
-                    <div class="no-videos">
-                        <i class="bi bi-inbox"></i>
-                        <p>No videos found in this playlist.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            videos.forEach(video => {
-                const dateDisplay = formatVideoDate(video);
-                const statusBadge = getStatusBadge(video);
-                const tagsDisplay = renderVideoTags(video);
-                
-                html += `
-                    <div class="video-card" data-video-id="${video.videoId}" 
-                         data-video-type="${video.video_type || ''}" 
-                         data-role="${video.role || ''}">
-                        ${video.thumbnail ? `<img src="${video.thumbnail}" alt="Thumbnail" class="video-thumbnail">` : ''}
-                        <div class="video-info">
-                            <div class="video-title">
-                                <a href="${video.videoUrl}" target="_blank">${escapeHtml(video.title)}</a>
-                                <button class="btn btn-sm tag-edit-btn btn-outline-secondary" onclick="editVideoTags('${video.videoId}')">
-                                    <i class="bi bi-tags"></i> Edit Tags
-                                </button>
-                            </div>
-                            <div class="video-meta">
-                                ${dateDisplay}
-                                ${statusBadge}
-                                ${video.channelTitle ? `<span class="video-meta-item"><i class="bi bi-broadcast"></i> ${escapeHtml(video.channelTitle)}</span>` : ''}
-                                <a href="${video.videoUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-youtube"></i> Watch
-                                </a>
-                            </div>
-                            
-                            ${tagsDisplay}
-                            
-                            ${renderSocialStatus(video.social_posts)}
-                            
-                            ${renderSocialPosts(video.social_posts)}
-                        </div>
-                        <div style="clear: both;"></div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        })
-        .catch(error => {
-            container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
-        });
+    const timestamp = new Date().getTime();
+    fetch(`/api/playlist/${playlistId}/videos?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            container.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+            return;
+        }
+        
+        const videos = data.videos || [];
+        
+        if (videos.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
+                    <div class="empty-state-title">No videos found</div>
+                    <div class="empty-state-text">This playlist is empty</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="videos-grid">
+                ${videos.map(video => renderVideoCard(video)).join('')}
+            </div>
+        `;
+    })
+    .catch(error => {
+        container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
+    });
 }
 
-function formatVideoDate(video) {
-    if (!video.displayDate) return '';
+function renderVideoCard(video) {
+    const dateDisplay = formatVideoDate(video);
+    const statusDot = getStatusDot(video);
+    const tagsDisplay = renderVideoTags(video);
+    const platformsDisplay = renderPlatformIndicators(video.social_posts);
     
-    const date = new Date(video.displayDate);
-    const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    
-    return `<span class="video-meta-item">
-        <i class="bi bi-${video.isScheduled ? 'clock' : 'calendar-check'}"></i> 
-        <strong>${video.dateLabel}:</strong> ${formattedDate}
-    </span>`;
+    return `
+        <div class="video-card-modern" 
+             data-video-id="${video.videoId}" 
+             data-video-type="${video.video_type || ''}" 
+             data-role="${video.role || ''}">
+            <div style="position: relative;">
+                ${video.thumbnail ? `
+                    <img src="${video.thumbnail}" alt="Thumbnail" class="video-thumbnail-modern">
+                ` : `
+                    <div class="video-thumbnail-modern"></div>
+                `}
+                <a href="${video.videoUrl}" target="_blank" class="video-play-overlay">
+                    <i class="bi bi-play-fill"></i>
+                </a>
+            </div>
+            <div class="video-content-modern">
+                <div class="video-title-modern">
+                    <a href="${video.videoUrl}" target="_blank">${escapeHtml(video.title)}</a>
+                </div>
+                ${tagsDisplay}
+                ${platformsDisplay}
+                <div class="video-meta-modern">
+                    <div class="video-status-modern">
+                        ${statusDot}
+                        <span>${getStatusText(video)}</span>
+                    </div>
+                    <a href="${video.videoUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-youtube"></i> Watch
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-function getStatusBadge(video) {
+function getStatusDot(video) {
     const status = video.privacyStatus || 'unknown';
-    let badgeClass = 'badge-private';
-    let badgeText = status.charAt(0).toUpperCase() + status.slice(1);
+    let dotClass = 'status-dot private';
     
     if (status === 'public') {
-        badgeClass = 'badge-public';
-        badgeText = 'Public';
+        dotClass = 'status-dot public';
     } else if (video.isScheduled || (status === 'private' && video.publishAt)) {
-        badgeClass = 'badge-scheduled';
-        badgeText = 'Scheduled';
+        dotClass = 'status-dot scheduled';
     }
     
-    return `<span class="status-badge-video ${badgeClass}">${badgeText}</span>`;
+    return `<span class="${dotClass}"></span>`;
 }
 
-function renderSocialStatus(socialPosts) {
+function getStatusText(video) {
+    const status = video.privacyStatus || 'unknown';
+    if (status === 'public') return 'Public';
+    if (video.isScheduled || (status === 'private' && video.publishAt)) return 'Scheduled';
+    return 'Private';
+}
+
+function renderPlatformIndicators(socialPosts) {
     if (!socialPosts) {
-        // Show all platforms as "Not Posted"
         return `
-            <div class="social-status-bar">
-                <div class="social-status-item linkedin">
-                    <i class="bi bi-linkedin social-status-icon" style="color: #0077b5;"></i>
-                    <div>
-                        <div class="social-status-text">LinkedIn</div>
-                        <div class="social-status-date">Not Posted</div>
-                    </div>
+            <div class="social-platforms-modern">
+                <div class="platform-indicator linkedin pending" data-tooltip="LinkedIn: Not Posted">
+                    <i class="bi bi-linkedin"></i>
                 </div>
-                <div class="social-status-item facebook">
-                    <i class="bi bi-facebook social-status-icon" style="color: #1877f2;"></i>
-                    <div>
-                        <div class="social-status-text">Facebook</div>
-                        <div class="social-status-date">Not Posted</div>
-                    </div>
+                <div class="platform-indicator facebook pending" data-tooltip="Facebook: Not Posted">
+                    <i class="bi bi-facebook"></i>
                 </div>
-                <div class="social-status-item instagram">
-                    <i class="bi bi-instagram social-status-icon" style="color: #e4405f;"></i>
-                    <div>
-                        <div class="social-status-text">Instagram</div>
-                        <div class="social-status-date">Not Posted</div>
-                    </div>
+                <div class="platform-indicator instagram pending" data-tooltip="Instagram: Not Posted">
+                    <i class="bi bi-instagram"></i>
                 </div>
             </div>
         `;
     }
     
     const platforms = [
-        { key: 'linkedin', name: 'LinkedIn', icon: 'linkedin', color: '#0077b5' },
-        { key: 'facebook', name: 'Facebook', icon: 'facebook', color: '#1877f2' },
-        { key: 'instagram', name: 'Instagram', icon: 'instagram', color: '#e4405f' }
+        { key: 'linkedin', name: 'LinkedIn', icon: 'linkedin' },
+        { key: 'facebook', name: 'Facebook', icon: 'facebook' },
+        { key: 'instagram', name: 'Instagram', icon: 'instagram' }
     ];
     
-    let html = '<div class="social-status-bar">';
-    
-    platforms.forEach(platform => {
-        const post = socialPosts[platform.key];
-        let statusText = 'Not Posted';
-        let statusClass = 'text-muted';
-        let dateText = '';
-        let statusIcon = 'bi-circle';
-        
-        if (post) {
-            const status = post.status || 'pending';
-            const scheduleDate = post.schedule_date || post.actual_scheduled_date || '';
-            
-            if (status === 'posted' || status === 'scheduled') {
-                statusText = status === 'posted' ? 'Posted' : 'Scheduled';
-                statusClass = status === 'posted' ? 'text-success' : 'text-primary';
-                statusIcon = status === 'posted' ? 'bi-check-circle-fill' : 'bi-clock-fill';
+    return `
+        <div class="social-platforms-modern">
+            ${platforms.map(platform => {
+                const post = socialPosts[platform.key];
+                let status = 'pending';
+                let tooltip = `${platform.name}: Not Posted`;
                 
-                if (scheduleDate) {
-                    const date = new Date(scheduleDate);
-                    dateText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (post) {
+                    const postStatus = post.status || 'pending';
+                    if (postStatus === 'posted' || postStatus === 'published') {
+                        status = 'posted';
+                        tooltip = `${platform.name}: Posted`;
+                    } else if (postStatus === 'scheduled') {
+                        status = 'scheduled';
+                        const date = post.schedule_date || post.actual_scheduled_date;
+                        tooltip = `${platform.name}: Scheduled${date ? ' - ' + new Date(date).toLocaleDateString() : ''}`;
+                    } else {
+                        status = 'pending';
+                        tooltip = `${platform.name}: Pending`;
+                    }
                 }
-            } else if (status === 'pending') {
-                statusText = 'Pending';
-                statusClass = 'text-warning';
-                statusIcon = 'bi-hourglass-split';
-            } else if (status === 'error') {
-                statusText = 'Error';
-                statusClass = 'text-danger';
-                statusIcon = 'bi-x-circle-fill';
-            }
-        }
-        
-        html += `
-            <div class="social-status-item ${platform.key}">
-                <i class="bi bi-${platform.icon} social-status-icon" style="color: ${platform.color};"></i>
-                <div>
-                    <div class="social-status-text">${platform.name}</div>
-                    <div class="social-status-date ${statusClass}">
-                        <i class="bi ${statusIcon}"></i> ${statusText}
-                        ${dateText ? ` • ${dateText}` : ''}
+                
+                return `
+                    <div class="platform-indicator ${platform.key} ${status}" data-tooltip="${tooltip}">
+                        <i class="bi bi-${platform.icon}"></i>
                     </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    return html;
-}
-
-function renderSocialPosts(socialPosts) {
-    if (!socialPosts) return '';
-    
-    let html = '<div class="social-posts"><h6 class="mb-3"><i class="bi bi-share"></i> Social Media Posts</h6>';
-    
-    ['linkedin', 'facebook', 'instagram'].forEach(platform => {
-        const post = socialPosts[platform];
-        if (post) {
-            const platformTitle = platform.charAt(0).toUpperCase() + platform.slice(1);
-            const platformIcon = platform === 'linkedin' ? 'linkedin' : (platform === 'facebook' ? 'facebook' : 'instagram');
-            const scheduleDate = post.schedule_date || post.actual_scheduled_date || '';
-            const formattedDate = scheduleDate ? new Date(scheduleDate).toLocaleString() : 'Not scheduled';
-            
-            html += `
-                <div class="social-post ${platform}">
-                    <div class="social-post-header">
-                        <span><i class="bi bi-${platformIcon}"></i> ${platformTitle}</span>
-                        <div>
-                            ${scheduleDate ? `<small class="text-muted me-2">${formattedDate}</small>` : ''}
-                            <span class="badge-status badge-${post.status}">${post.status.charAt(0).toUpperCase() + post.status.slice(1)}</span>
-                        </div>
-                    </div>
-                    <div class="social-post-content">${escapeHtml(post.post_content || '')}</div>
-                </div>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
+                `;
+            }).join('')}
+        </div>
+    `;
 }
 
 function renderVideoTags(video) {
@@ -738,7 +829,7 @@ function renderVideoTags(video) {
         return '';
     }
     
-    let html = '<div class="video-tags">';
+    let html = '<div class="video-tags-modern">';
     
     if (video.video_type) {
         const typeLabels = {
@@ -749,7 +840,7 @@ function renderVideoTags(video) {
             'technical': 'Technical',
             'product': 'Product Management'
         };
-        html += `<span class="video-tag type">${typeLabels[video.video_type] || video.video_type}</span>`;
+        html += `<span class="video-tag-modern type">${typeLabels[video.video_type] || video.video_type}</span>`;
     }
     
     if (video.role) {
@@ -763,18 +854,24 @@ function renderVideoTags(video) {
             'sa': 'SA',
             'swe': 'SWE'
         };
-        html += `<span class="video-tag role">${roleLabels[video.role] || video.role}</span>`;
+        html += `<span class="video-tag-modern role">${roleLabels[video.role] || video.role}</span>`;
     }
     
     if (video.custom_tags) {
         const tags = video.custom_tags.split(',').map(t => t.trim()).filter(t => t);
         tags.forEach(tag => {
-            html += `<span class="video-tag">${escapeHtml(tag)}</span>`;
+            html += `<span class="video-tag-modern custom">${escapeHtml(tag)}</span>`;
         });
     }
     
     html += '</div>';
     return html;
+}
+
+function formatVideoDate(video) {
+    if (!video.displayDate) return '';
+    const date = new Date(video.displayDate);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function escapeHtml(text) {
@@ -784,152 +881,82 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function editVideoTags(videoId) {
-    // Fetch current tags
-    fetch(`/api/video/${videoId}/tags`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
-                return;
-            }
-            
-            // Show edit modal (simplified - you can enhance this)
-            const typeOptions = ['', 'sys_design', 'leadership', 'interview', 'career', 'technical', 'product'];
-            const roleOptions = ['', 'spo', 'spm', 'vp', 'dir', 'em', 'mgr', 'sa', 'swe'];
-            
-            const typeSelect = typeOptions.map(opt => 
-                `<option value="${opt}" ${opt === data.video_type ? 'selected' : ''}>${opt || 'None'}</option>`
-            ).join('');
-            
-            const roleSelect = roleOptions.map(opt => 
-                `<option value="${opt}" ${opt === data.role ? 'selected' : ''}>${opt || 'None'}</option>`
-            ).join('');
-            
-            const tagsInput = data.tags ? data.tags.join(', ') : '';
-            
-            const modalHtml = `
-                <div class="modal fade" id="tagModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Video Tags</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Type</label>
-                                    <select class="form-select" id="edit-type">${typeSelect}</select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Role</label>
-                                    <select class="form-select" id="edit-role">${roleSelect}</select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Custom Tags (comma-separated)</label>
-                                    <input type="text" class="form-control" id="edit-tags" value="${tagsInput}" placeholder="e.g., mock-interview, system-design">
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" onclick="saveVideoTags('${videoId}')">Save</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modal = new bootstrap.Modal(document.getElementById('tagModal'));
-            modal.show();
-            
-            // Clean up on close
-            document.getElementById('tagModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        });
-}
-
-function saveVideoTags(videoId) {
-    const video_type = document.getElementById('edit-type').value;
-    const role = document.getElementById('edit-role').value;
-    const tags = document.getElementById('edit-tags').value.split(',').map(t => t.trim()).filter(t => t);
-    
-    fetch(`/api/video/${videoId}/tags`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({video_type, role, tags})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
-            // Reload videos
-            const playlistCard = document.querySelector(`[data-video-id="${videoId}"]`).closest('.playlist-card');
-            const header = playlistCard.querySelector('.playlist-header');
-            const onclickAttr = header.getAttribute('onclick');
-            const match = onclickAttr.match(/togglePlaylist\([^,]+,\s*'([^']+)'\)/);
-            if (match && match[1]) {
-                const containerId = playlistCard.querySelector('.playlist-content').id.replace('playlist-', 'videos-container-');
-                loadPlaylistVideos(match[1], containerId);
-            }
-        } else {
-            alert('Error: ' + (data.error || 'Failed to save tags'));
-        }
-    });
-}
-
-// Search and filter functionality
+// Search and Filter
 let currentFilters = {query: '', type: '', role: ''};
 
 document.getElementById('search-input')?.addEventListener('input', function(e) {
-    currentFilters.query = e.target.value;
+    currentFilters.query = e.target.value.toLowerCase();
     applyFilters();
 });
 
 document.getElementById('filter-type')?.addEventListener('change', function(e) {
     currentFilters.type = e.target.value;
     applyFilters();
+    updateFilterBadges();
 });
 
 document.getElementById('filter-role')?.addEventListener('change', function(e) {
     currentFilters.role = e.target.value;
     applyFilters();
+    updateFilterBadges();
 });
 
-document.querySelectorAll('.filter-tag').forEach(tag => {
-    tag.addEventListener('click', function() {
+document.querySelectorAll('.filter-badge').forEach(badge => {
+    badge.addEventListener('click', function() {
         const filter = this.dataset.filter;
-        const [key, value] = filter.split(':');
         
-        if (key === 'type') {
-            document.getElementById('filter-type').value = value;
-            currentFilters.type = value;
-        } else if (key === 'role') {
-            document.getElementById('filter-role').value = value;
-            currentFilters.role = value;
+        if (filter === 'all') {
+            currentFilters = {query: '', type: '', role: ''};
+            document.getElementById('search-input').value = '';
+            document.getElementById('filter-type').value = '';
+            document.getElementById('filter-role').value = '';
+        } else {
+            const [key, value] = filter.split(':');
+            if (key === 'type') {
+                currentFilters.type = value;
+                document.getElementById('filter-type').value = value;
+            } else if (key === 'role') {
+                currentFilters.role = value;
+                document.getElementById('filter-role').value = value;
+            }
         }
         
         applyFilters();
-        
-        // Update active state
-        document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
+        updateFilterBadges();
     });
 });
 
+function updateFilterBadges() {
+    document.querySelectorAll('.filter-badge').forEach(badge => {
+        badge.classList.remove('active');
+    });
+    
+    if (!currentFilters.type && !currentFilters.role && !currentFilters.query) {
+        document.querySelector('[data-filter="all"]')?.classList.add('active');
+    } else {
+        if (currentFilters.type) {
+            document.querySelector(`[data-filter="type:${currentFilters.type}"]`)?.classList.add('active');
+        }
+        if (currentFilters.role) {
+            document.querySelector(`[data-filter="role:${currentFilters.role}"]`)?.classList.add('active');
+        }
+    }
+}
+
 function applyFilters() {
-    const videoCards = document.querySelectorAll('.video-card');
+    const videoCards = document.querySelectorAll('.video-card-modern');
+    let visibleCount = 0;
+    
     videoCards.forEach(card => {
         const videoType = card.dataset.videoType || '';
         const role = card.dataset.role || '';
-        const title = card.querySelector('.video-title a')?.textContent.toLowerCase() || '';
+        const title = card.querySelector('.video-title-modern a')?.textContent.toLowerCase() || '';
+        const tags = card.textContent.toLowerCase();
         
         let show = true;
         
         if (currentFilters.query) {
-            const query = currentFilters.query.toLowerCase();
-            show = show && (title.includes(query) || card.textContent.toLowerCase().includes(query));
+            show = show && (title.includes(currentFilters.query) || tags.includes(currentFilters.query));
         }
         
         if (currentFilters.type) {
@@ -941,58 +968,55 @@ function applyFilters() {
         }
         
         card.style.display = show ? 'block' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Show empty state if no videos match
+    const grids = document.querySelectorAll('.videos-grid');
+    grids.forEach(grid => {
+        const visibleCards = Array.from(grid.querySelectorAll('.video-card-modern')).filter(c => c.style.display !== 'none');
+        if (visibleCards.length === 0 && grid.querySelectorAll('.video-card-modern').length > 0) {
+            if (!grid.querySelector('.empty-state')) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon"><i class="bi bi-funnel"></i></div>
+                        <div class="empty-state-title">No videos match your filters</div>
+                        <div class="empty-state-text">Try adjusting your search or filter criteria</div>
+                    </div>
+                `;
+            }
+        }
     });
 }
 
-// Load first playlist on page load
-// Update last updated time
-function updateLastUpdated() {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString();
-    const dateStr = now.toLocaleDateString();
-    document.getElementById('lastUpdated').innerHTML = `<i class="bi bi-clock"></i> Last updated: ${dateStr} ${timeStr}`;
-}
-
-// Refresh playlists and videos from YouTube
 function refreshPlaylists() {
     const btn = document.getElementById('refreshBtn');
     const originalHTML = btn.innerHTML;
     
-    // Disable button and show loading state
     btn.disabled = true;
-    btn.classList.add('refreshing');
     btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refreshing...';
+    btn.querySelector('i').style.animation = 'spin 1s linear infinite';
     
-    // Reload the page to fetch fresh data
     window.location.reload();
 }
 
+// Load first playlist on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Update last updated time on load
-    updateLastUpdated();
-    const firstPlaylist = document.querySelector('.playlist-content.active');
+    const firstPlaylist = document.querySelector('.playlist-content-modern.expanded');
     if (firstPlaylist) {
         const containerId = firstPlaylist.id.replace('playlist-', 'videos-container-');
-        const playlistCard = firstPlaylist.closest('.playlist-card');
-        const header = playlistCard.querySelector('.playlist-header');
+        const playlistCard = firstPlaylist.closest('.playlist-modern');
+        const header = playlistCard.querySelector('.playlist-header-modern');
         const onclickAttr = header.getAttribute('onclick');
         
-        // Extract playlist ID from onclick attribute: togglePlaylist('playlist-1', 'PLAYLIST_ID')
         const match = onclickAttr.match(/togglePlaylist\([^,]+,\s*'([^']+)'\)/);
         if (match && match[1]) {
             const playlistApiId = match[1];
             loadPlaylistVideos(playlistApiId, containerId);
             loadedPlaylists.add(playlistApiId);
-        } else {
-            // Fallback: try alternative pattern
-            const matches = onclickAttr.match(/'([^']+)'/g);
-            if (matches && matches.length >= 2) {
-                const playlistApiId = matches[1].replace(/'/g, '');
-                loadPlaylistVideos(playlistApiId, containerId);
-                loadedPlaylists.add(playlistApiId);
-            }
         }
     }
 });
 </script>
 {% endblock %}
+

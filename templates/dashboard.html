@@ -2,181 +2,630 @@
 
 {% block title %}Dashboard - YouTube Automation{% endblock %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center w-100">
+    <span>Queue</span>
+    <button class="btn btn-primary" onclick="openQuickCompose()">
+        <i class="bi bi-plus-circle"></i> Create Post
+    </button>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Automation Status</div>
-                <div id="status-badge" class="status-badge status-inactive mb-2">
-                    <i class="bi bi-pause-circle"></i> Inactive
-                </div>
-                <div style="font-size: 13px; color: #6c757d;" id="status-message">Scheduling is disabled</div>
+<!-- Stats Bar - Buffer Style -->
+<div class="stats-bar mb-4">
+    <div class="stat-card">
+        <div class="stat-value" id="queue-count">0</div>
+        <div class="stat-label">In Queue</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="scheduled-count">0</div>
+        <div class="stat-label">Scheduled</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="published-count">0</div>
+        <div class="stat-label">Published Today</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="automation-status">
+            <span class="badge bg-secondary">Inactive</span>
+        </div>
+        <div class="stat-label">Automation</div>
+    </div>
+</div>
+
+<!-- Quick Actions Bar -->
+<div class="quick-actions-bar mb-4">
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-primary" onclick="runAutoPilot()">
+            <i class="bi bi-robot"></i> Run Auto-Pilot
+        </button>
+        <button class="btn btn-outline-primary" onclick="window.location.href='/shorts'">
+            <i class="bi bi-collection-play"></i> Browse Shorts
+        </button>
+        <button class="btn btn-outline-primary" onclick="window.location.href='/content-preview'">
+            <i class="bi bi-eye"></i> Preview & Schedule
+        </button>
+        <button class="btn btn-outline-primary" onclick="window.location.href='/calendar'">
+            <i class="bi bi-calendar3"></i> Calendar View
+        </button>
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i> More
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/playlists"><i class="bi bi-collection-play"></i> All Playlists</a></li>
+                <li><a class="dropdown-item" href="/insights"><i class="bi bi-graph-up"></i> Analytics</a></li>
+                <li><a class="dropdown-item" href="/activity"><i class="bi bi-clock-history"></i> Activity Log</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/config"><i class="bi bi-gear"></i> Settings</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Queue View - Buffer Style -->
+<div class="queue-container">
+    <div class="queue-header mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1">Your Queue</h3>
+                <p class="text-muted mb-0">Scheduled posts ready to publish</p>
+            </div>
+            <div class="queue-filters">
+                <select class="form-select form-select-sm" id="platform-filter" onchange="filterQueue()">
+                    <option value="all">All Platforms</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="youtube">YouTube</option>
+                </select>
+                <select class="form-select form-select-sm" id="status-filter" onchange="filterQueue()">
+                    <option value="all">All Status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="pending">Pending</option>
+                    <option value="published">Published</option>
+                </select>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Last Run</div>
-                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;" id="last-run">
-                    <i class="bi bi-clock-history"></i> Never
-                </div>
+    <!-- Queue Items -->
+    <div id="queue-items" class="queue-items">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
+            <p class="text-muted mt-3">Loading queue...</p>
         </div>
     </div>
+</div>
 
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Next Run</div>
-                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;" id="next-run">
-                    <i class="bi bi-calendar-event"></i> Not scheduled
+<!-- Quick Compose Modal -->
+<div class="modal fade" id="quickComposeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Create New Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Platforms</label>
+                    <div class="platform-selector">
+                        <label class="platform-checkbox">
+                            <input type="checkbox" value="linkedin" checked>
+                            <i class="bi bi-linkedin"></i> LinkedIn
+                        </label>
+                        <label class="platform-checkbox">
+                            <input type="checkbox" value="facebook" checked>
+                            <i class="bi bi-facebook"></i> Facebook
+                        </label>
+                        <label class="platform-checkbox">
+                            <input type="checkbox" value="instagram" checked>
+                            <i class="bi bi-instagram"></i> Instagram
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Post Content</label>
+                    <textarea class="form-control" id="compose-content" rows="6" placeholder="What would you like to share?"></textarea>
+                    <small class="text-muted">Tip: Use YouTube video title/description as source</small>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Schedule Date</label>
+                        <input type="date" class="form-control" id="compose-date">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Schedule Time</label>
+                        <input type="time" class="form-control" id="compose-time">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label">YouTube Video (Optional)</label>
+                    <input type="text" class="form-control" id="compose-video-url" placeholder="YouTube URL or Video ID">
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; font-weight: 500;">Database</div>
-                <div style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">
-                    <i class="bi bi-database"></i> Active
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveQuickPost()">
+                    <i class="bi bi-calendar-plus"></i> Schedule Post
+                </button>
+                <button type="button" class="btn btn-success" onclick="publishNow()">
+                    <i class="bi bi-send"></i> Publish Now
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Quick Actions</div>
-            <div class="card-body">
-                <div style="margin-bottom: 16px;">
-                    <button class="btn btn-primary" id="run-now-btn" onclick="runNow()" style="width: 100%;">
-                        <i class="bi bi-play-circle"></i> Run Automation Now
-                    </button>
-                </div>
-                <div class="d-grid gap-2">
-                    <a href="/playlists" class="btn btn-outline-secondary">
-                        <i class="bi bi-collection-play"></i> View Playlists
-                    </a>
-                    <a href="/calendar" class="btn btn-outline-secondary">
-                        <i class="bi bi-calendar-event"></i> View Calendar
-                    </a>
-                    <a href="/config" class="btn btn-outline-secondary">
-                        <i class="bi bi-gear"></i> Configure Settings
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+<style>
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Current Settings</div>
-            <div class="card-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">Videos per day</div>
-                        <div style="font-weight: 600; color: #1a1a1a;" id="videos-per-day">{{ settings.scheduling.videos_per_day }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">Schedule day</div>
-                        <div style="font-weight: 600; color: #1a1a1a;" id="schedule-day">{{ settings.scheduling.schedule_day|title }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">YouTube time</div>
-                        <div style="font-weight: 600; color: #1a1a1a;" id="youtube-time">{{ settings.scheduling.youtube_schedule_time }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">Social time</div>
-                        <div style="font-weight: 600; color: #1a1a1a;" id="social-time">{{ settings.scheduling.social_media_schedule_time }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">Auto-post</div>
-                        <div style="font-weight: 600; color: #1a1a1a;">
-                            <span class="badge bg-{{ 'success' if settings.scheduling.auto_post_social else 'secondary' }}">
-                                {{ 'Yes' if settings.scheduling.auto_post_social else 'No' }}
-                            </span>
-                        </div>
-                    </div>
-                    <div>
-                        <div style="color: #6c757d; margin-bottom: 4px;">Platforms</div>
-                        <div id="social-platforms">
-                            {% for platform in settings.scheduling.social_platforms %}
-                            <span class="badge bg-info me-1">{{ platform|title }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.quick-actions-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.queue-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.queue-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.queue-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.queue-filters select {
+    min-width: 150px;
+}
+
+.queue-items {
+    margin-top: 24px;
+}
+
+.queue-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: start;
+    gap: 16px;
+}
+
+.queue-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.queue-item-content {
+    flex: 1;
+}
+
+.queue-item-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.platform-badge {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.platform-badge.linkedin {
+    background: #0077b5;
+    color: white;
+}
+
+.platform-badge.facebook {
+    background: #1877f2;
+    color: white;
+}
+
+.platform-badge.instagram {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    color: white;
+}
+
+.platform-badge.youtube {
+    background: #ff0000;
+    color: white;
+}
+
+.queue-item-text {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.queue-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.queue-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.queue-item-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.platform-selector {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.platform-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.platform-checkbox:hover {
+    border-color: var(--primary);
+}
+
+.platform-checkbox input:checked + i {
+    color: var(--primary);
+}
+
+.platform-checkbox input:checked ~ i {
+    color: var(--primary);
+}
+
+.platform-checkbox input {
+    margin: 0;
+}
+
+.empty-queue {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-queue i {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function updateStatus() {
-        fetch('/api/status')
-            .then(response => response.json())
-            .then(data => {
-                const badge = document.getElementById('status-badge');
-                const message = document.getElementById('status-message');
-                const lastRun = document.getElementById('last-run');
-                const nextRun = document.getElementById('next-run');
+let queueData = [];
 
-                if (data.enabled) {
-                    badge.className = 'status-badge status-active mb-2';
-                    badge.innerHTML = '<i class="bi bi-check-circle"></i> Active';
-                    message.textContent = 'Automation is scheduled and running';
-                } else {
-                    badge.className = 'status-badge status-inactive mb-2';
-                    badge.innerHTML = '<i class="bi bi-pause-circle"></i> Inactive';
-                    message.textContent = 'Scheduling is disabled';
-                }
+function loadQueue() {
+    fetch('/api/queue')
+        .then(response => response.json())
+        .then(data => {
+            queueData = data.queue || [];
+            updateStats(data.stats || {});
+            renderQueue();
+        })
+        .catch(error => {
+            console.error('Error loading queue:', error);
+            document.getElementById('queue-items').innerHTML = `
+                <div class="empty-queue">
+                    <i class="bi bi-inbox"></i>
+                    <h4>No posts in queue</h4>
+                    <p>Create your first post or run auto-pilot to get started</p>
+                    <button class="btn btn-primary mt-3" onclick="openQuickCompose()">
+                        <i class="bi bi-plus-circle"></i> Create Post
+                    </button>
+                </div>
+            `;
+        });
+}
 
-                if (data.last_run) {
-                    const date = new Date(data.last_run);
-                    lastRun.innerHTML = `<i class="bi bi-clock-history"></i> ${date.toLocaleString()}`;
-                }
-
-                if (data.next_run) {
-                    const date = new Date(data.next_run);
-                    nextRun.innerHTML = `<i class="bi bi-calendar-event"></i> ${date.toLocaleString()}`;
-                }
-            })
-            .catch(error => console.error('Error:', error));
+function updateStats(stats) {
+    document.getElementById('queue-count').textContent = stats.queue_count || 0;
+    document.getElementById('scheduled-count').textContent = stats.scheduled_count || 0;
+    document.getElementById('published-count').textContent = stats.published_today || 0;
+    
+    const statusBadge = document.getElementById('automation-status');
+    if (stats.automation_active) {
+        statusBadge.innerHTML = '<span class="badge bg-success">Active</span>';
+    } else {
+        statusBadge.innerHTML = '<span class="badge bg-secondary">Inactive</span>';
     }
+}
 
-    function runNow() {
-        const btn = document.getElementById('run-now-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running...';
-
-        fetch('/api/run-now', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Automation Now';
-                setTimeout(updateStatus, 2000);
-            })
-            .catch(error => {
-                alert('Error: ' + error);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-play-circle"></i> Run Automation Now';
-            });
+function renderQueue() {
+    const container = document.getElementById('queue-items');
+    const platformFilter = document.getElementById('platform-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    
+    let filtered = queueData;
+    
+    if (platformFilter !== 'all') {
+        filtered = filtered.filter(item => item.platform === platformFilter);
     }
+    
+    if (statusFilter !== 'all') {
+        filtered = filtered.filter(item => item.status === statusFilter);
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-queue">
+                <i class="bi bi-inbox"></i>
+                <h4>No posts match your filters</h4>
+                <p>Try adjusting your filters or create a new post</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filtered.map(item => `
+        <div class="queue-item" data-id="${item.id}">
+            <div class="queue-item-content">
+                <div class="queue-item-header">
+                    <span class="platform-badge ${item.platform}">${item.platform}</span>
+                    <span class="badge bg-${getStatusColor(item.status)}">${item.status}</span>
+                    ${item.video_title ? `<span class="text-muted">• ${item.video_title}</span>` : ''}
+                </div>
+                <div class="queue-item-text">${escapeHtml(item.content || item.text || 'No content')}</div>
+                <div class="queue-item-meta">
+                    <span><i class="bi bi-calendar"></i> ${formatDate(item.scheduled_at || item.created_at)}</span>
+                    ${item.video_url ? `<a href="${item.video_url}" target="_blank"><i class="bi bi-youtube"></i> Video</a>` : ''}
+                </div>
+            </div>
+            <div class="queue-item-actions">
+                ${item.status === 'scheduled' ? `
+                    <button class="btn btn-sm btn-success" onclick="publishItem('${item.id}')">
+                        <i class="bi bi-send"></i> Publish Now
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.id}')">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                ` : ''}
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.id}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
 
-    // Update status every 30 seconds
-    updateStatus();
-    setInterval(updateStatus, 30000);
+function filterQueue() {
+    renderQueue();
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'scheduled': 'primary',
+        'pending': 'warning',
+        'published': 'success',
+        'failed': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'Not scheduled';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function openQuickCompose() {
+    const modal = new bootstrap.Modal(document.getElementById('quickComposeModal'));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('compose-date').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('compose-time').value = '19:30';
+    modal.show();
+}
+
+function saveQuickPost() {
+    const platforms = Array.from(document.querySelectorAll('.platform-checkbox input:checked')).map(cb => cb.value);
+    const content = document.getElementById('compose-content').value;
+    const date = document.getElementById('compose-date').value;
+    const time = document.getElementById('compose-time').value;
+    const videoUrl = document.getElementById('compose-video-url').value;
+    
+    if (!content.trim()) {
+        alert('Please enter post content');
+        return;
+    }
+    
+    const scheduledAt = new Date(`${date}T${time}`).toISOString();
+    
+    fetch('/api/queue/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            platforms,
+            content,
+            scheduled_at: scheduledAt,
+            video_url: videoUrl
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
+            loadQueue();
+            showToast('Post scheduled successfully!', 'success');
+        } else {
+            alert('Error: ' + (data.error || 'Failed to schedule post'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function publishNow() {
+    const platforms = Array.from(document.querySelectorAll('.platform-checkbox input:checked')).map(cb => cb.value);
+    const content = document.getElementById('compose-content').value;
+    const videoUrl = document.getElementById('compose-video-url').value;
+    
+    if (!content.trim()) {
+        alert('Please enter post content');
+        return;
+    }
+    
+    fetch('/api/queue/publish-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            platforms,
+            content,
+            video_url: videoUrl
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
+            loadQueue();
+            showToast('Post published successfully!', 'success');
+        } else {
+            alert('Error: ' + (data.error || 'Failed to publish post'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function publishItem(id) {
+    if (!confirm('Publish this post now?')) return;
+    
+    fetch(`/api/queue/${id}/publish`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadQueue();
+                showToast('Post published!', 'success');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to publish'));
+            }
+        });
+}
+
+function editItem(id) {
+    window.location.href = `/content-preview?edit=${id}`;
+}
+
+function deleteItem(id) {
+    if (!confirm('Delete this post?')) return;
+    
+    fetch(`/api/queue/${id}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadQueue();
+                showToast('Post deleted', 'success');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to delete'));
+            }
+        });
+}
+
+function runAutoPilot() {
+    if (!confirm('Run auto-pilot to schedule posts from your playlists?')) return;
+    
+    fetch('/api/autopilot/run', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Auto-pilot completed! Check your queue.', 'success');
+                setTimeout(loadQueue, 2000);
+            } else {
+                alert('Error: ' + (data.error || 'Auto-pilot failed'));
+            }
+        });
+}
+
+function showToast(message, type = 'info') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show`;
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Load queue on page load
+loadQueue();
+setInterval(loadQueue, 60000); // Refresh every minute
 </script>
 {% endblock %}

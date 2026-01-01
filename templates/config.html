@@ -5,18 +5,107 @@
 {% block page_title %}Settings{% endblock %}
 
 {% block content %}
-<div class="card mb-4">
-    <div class="card-header">
-        <i class="bi bi-info-circle"></i> Setup Instructions
+<!-- Configuration Status Checklist -->
+<div class="card mb-4" style="border-left: 4px solid var(--primary);">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-check2-square"></i> Configuration Status
+        </div>
+        <span class="badge bg-{{ 'success' if config_complete else 'warning' }}">
+            {{ 'Complete' if config_complete else 'Incomplete' }}
+        </span>
     </div>
     <div class="card-body">
-        <p class="mb-0">Configure your API keys and scheduling settings below. All settings are saved automatically and
-            the
-            automation will run according to your schedule.</p>
+        <div class="config-checklist">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="bi bi-youtube text-danger"></i> YouTube</h6>
+                    <div class="checklist-item {{ 'completed' if youtube_status.client_secret_exists else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if youtube_status.client_secret_exists else 'circle text-muted' }}"></i>
+                        <span>Client Secret File</span>
+                        {% if youtube_status.client_secret_exists %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="bi bi-linkedin text-primary"></i> LinkedIn</h6>
+                    <div class="checklist-item {{ 'completed' if settings.api_keys.linkedin_client_id and settings.api_keys.linkedin_client_secret else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.api_keys.linkedin_client_id and settings.api_keys.linkedin_client_secret else 'circle text-muted' }}"></i>
+                        <span>Client ID & Secret</span>
+                        {% if settings.api_keys.linkedin_client_id and settings.api_keys.linkedin_client_secret %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                    <div class="checklist-item {{ 'completed' if settings.api_keys.linkedin_person_urn else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.api_keys.linkedin_person_urn else 'circle text-muted' }}"></i>
+                        <span>Person URN</span>
+                        {% if settings.api_keys.linkedin_person_urn %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="bi bi-facebook text-primary"></i> Facebook</h6>
+                    <div class="checklist-item {{ 'completed' if settings.api_keys.facebook_app_id and settings.api_keys.facebook_app_secret else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.api_keys.facebook_app_id and settings.api_keys.facebook_app_secret else 'circle text-muted' }}"></i>
+                        <span>App ID & Secret</span>
+                        {% if settings.api_keys.facebook_app_id and settings.api_keys.facebook_app_secret %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                    <div class="checklist-item {{ 'completed' if settings.api_keys.facebook_page_id else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.api_keys.facebook_page_id else 'circle text-muted' }}"></i>
+                        <span>Page ID</span>
+                        {% if settings.api_keys.facebook_page_id %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3"><i class="bi bi-instagram text-danger"></i> Instagram</h6>
+                    <div class="checklist-item {{ 'completed' if settings.api_keys.instagram_business_account_id else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.api_keys.instagram_business_account_id else 'circle text-muted' }}"></i>
+                        <span>Business Account ID</span>
+                        {% if settings.api_keys.instagram_business_account_id %}
+                        <span class="badge bg-success ms-2">Configured</span>
+                        {% else %}
+                        <span class="badge bg-warning ms-2">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <h6 class="mb-3"><i class="bi bi-calendar-event"></i> Scheduling</h6>
+                    <div class="checklist-item {{ 'completed' if settings.scheduling.enabled else 'pending' }}">
+                        <i class="bi bi-{{ 'check-circle-fill text-success' if settings.scheduling.enabled else 'circle text-muted' }}"></i>
+                        <span>Automation Enabled</span>
+                        {% if settings.scheduling.enabled %}
+                        <span class="badge bg-success ms-2">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary ms-2">Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<form method="POST" action="/config">
+<form method="POST" action="/config" id="configForm">
     <!-- YouTube API Configuration -->
     <div class="card mb-4">
         <div class="card-header">
@@ -24,7 +113,10 @@
         </div>
         <div class="card-body">
             <div class="mb-3">
-                <label class="form-label">Client Secret File</label>
+                <label class="form-label">
+                    Client Secret File
+                    <span class="help-icon" onclick="showHelp('youtube-client-secret')" title="Help">?</span>
+                </label>
                 <div class="youtube-status mb-3">
                     {% if youtube_status.client_secret_exists %}
                     <div class="alert alert-success">
@@ -178,7 +270,10 @@
                         Otherwise, use Facebook App ID/Secret above.</small>
                 </div>
                 <div class="col-md-12 mb-3">
-                    <label class="form-label">Ayrshare API Key (Alternative)</label>
+                    <label class="form-label">
+                        Ayrshare API Key (Alternative)
+                        <span class="help-icon" onclick="showHelp('ayrshare-api-key')" title="Help">?</span>
+                    </label>
                     <input type="password" class="form-control" name="ayrshare_api_key"
                         value="{{ settings.api_keys.ayrshare_api_key }}"
                         placeholder="Enter Ayrshare API key (optional)">
@@ -186,9 +281,12 @@
                         ayrshare.com</small>
                 </div>
             </div>
-            <div class="mt-3">
+            <div class="mt-3 d-flex justify-content-between align-items-center">
                 <button type="button" class="btn btn-outline-secondary" onclick="testConnections()">
                     <i class="bi bi-check-circle"></i> Test Connections
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveSection('api_keys', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save API Keys</span>
                 </button>
             </div>
         </div>
@@ -213,13 +311,19 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Videos Per Day</label>
+                    <label class="form-label">
+                        Videos Per Day
+                        <span class="help-icon" onclick="showHelp('videos-per-day')" title="Help">?</span>
+                    </label>
                     <input type="number" class="form-control" name="videos_per_day"
                         value="{{ settings.scheduling.videos_per_day }}" min="1" max="10">
                     <small class="text-muted">Number of videos to process per day</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Schedule Day</label>
+                    <label class="form-label">
+                        Schedule Day
+                        <span class="help-icon" onclick="showHelp('schedule-day')" title="Help">?</span>
+                    </label>
                     <select class="form-select" name="schedule_day">
                         <option value="monday" {{ 'selected' if settings.scheduling.schedule_day=='monday' else '' }}>
                             Monday</option>
@@ -238,25 +342,37 @@
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">YouTube Schedule Time (IST)</label>
+                    <label class="form-label">
+                        YouTube Schedule Time (IST)
+                        <span class="help-icon" onclick="showHelp('youtube-schedule-time')" title="Help">?</span>
+                    </label>
                     <input type="time" class="form-control" name="youtube_schedule_time"
                         value="{{ settings.scheduling.youtube_schedule_time }}">
                     <small class="text-muted">Time to schedule YouTube videos (default: 23:00 = 11:00 PM)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Social Media Schedule Time (IST)</label>
+                    <label class="form-label">
+                        Social Media Schedule Time (IST)
+                        <span class="help-icon" onclick="showHelp('social-media-schedule-time')" title="Help">?</span>
+                    </label>
                     <input type="time" class="form-control" name="social_media_schedule_time"
                         value="{{ settings.scheduling.social_media_schedule_time }}">
                     <small class="text-muted">Time to post on social media (default: 19:30 = 7:30 PM)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">YouTube Playlist ID</label>
+                    <label class="form-label">
+                        YouTube Playlist ID
+                        <span class="help-icon" onclick="showHelp('youtube-playlist-id')" title="Help">?</span>
+                    </label>
                     <input type="text" class="form-control" name="playlist_id"
                         value="{{ settings.scheduling.playlist_id }}" placeholder="PLxxxx...">
                     <small class="text-muted">Playlist ID for video scheduling (optional)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Export Type</label>
+                    <label class="form-label">
+                        Export Type
+                        <span class="help-icon" onclick="showHelp('export-type')" title="Help">?</span>
+                    </label>
                     <select class="form-select" name="export_type">
                         <option value="shorts" {{ 'selected' if settings.scheduling.export_type=='shorts' else '' }}>
                             Shorts Only</option>
@@ -277,6 +393,11 @@
                         You can still export to Excel for manual review anytime.
                     </small>
                 </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary" onclick="saveSection('scheduling', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save Scheduling Settings</span>
+                </button>
             </div>
         </div>
     </div>
@@ -320,6 +441,30 @@
                     <label class="form-check-label" for="platform_instagram">Instagram</label>
                 </div>
             </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Upload Method
+                    <span class="help-icon" onclick="showHelp('upload-method')" title="Help">?</span>
+                </label>
+                <select class="form-select" name="upload_method">
+                    <option value="native" {{ 'selected' if (settings.scheduling.get('upload_method', 'native') == 'native') else '' }}>
+                        Native Video Upload (Recommended)
+                    </option>
+                    <option value="link" {{ 'selected' if settings.scheduling.get('upload_method') == 'link' else '' }}>
+                        Link Sharing (YouTube Link)
+                    </option>
+                </select>
+                <small class="text-muted">
+                    <strong>Native Upload:</strong> Downloads video and uploads natively (3-10x better engagement)<br>
+                    <strong>Link Sharing:</strong> Just posts YouTube link (faster, lower engagement)
+                </small>
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary" onclick="saveSection('social_media', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save Social Media Settings</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -332,25 +477,37 @@
             <p class="text-muted mb-3">Set daily limits for each platform to stay within API rate limits and best practices. Auto-pilot mode will respect these thresholds.</p>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">LinkedIn Daily Limit</label>
+                    <label class="form-label">
+                        LinkedIn Daily Limit
+                        <span class="help-icon" onclick="showHelp('linkedin-daily-limit')" title="Help">?</span>
+                    </label>
                     <input type="number" class="form-control" name="linkedin_daily_limit"
                         value="{{ settings.thresholds.linkedin_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
                     <small class="text-muted">Recommended: 25 posts/day (LinkedIn limit)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Facebook Daily Limit</label>
+                    <label class="form-label">
+                        Facebook Daily Limit
+                        <span class="help-icon" onclick="showHelp('facebook-daily-limit')" title="Help">?</span>
+                    </label>
                     <input type="number" class="form-control" name="facebook_daily_limit"
                         value="{{ settings.thresholds.facebook_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
                     <small class="text-muted">Recommended: 25 posts/day (Facebook limit)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Instagram Daily Limit</label>
+                    <label class="form-label">
+                        Instagram Daily Limit
+                        <span class="help-icon" onclick="showHelp('instagram-daily-limit')" title="Help">?</span>
+                    </label>
                     <input type="number" class="form-control" name="instagram_daily_limit"
                         value="{{ settings.thresholds.instagram_daily_limit if settings.thresholds else 25 }}" min="1" max="50">
                     <small class="text-muted">Recommended: 25 posts/day (Instagram limit)</small>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">YouTube Daily Limit</label>
+                    <label class="form-label">
+                        YouTube Daily Limit
+                        <span class="help-icon" onclick="showHelp('youtube-daily-limit')" title="Help">?</span>
+                    </label>
                     <input type="number" class="form-control" name="youtube_daily_limit"
                         value="{{ settings.thresholds.youtube_daily_limit if settings.thresholds else 10 }}" min="1" max="20">
                     <small class="text-muted">Recommended: 10 videos/day (YouTube limit)</small>
@@ -359,91 +516,155 @@
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> These limits prevent exceeding platform rate limits. Auto-pilot mode will respect these thresholds.
             </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary" onclick="saveSection('thresholds', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save Daily Limits</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Targeting Settings -->
     <div class="card mb-4">
         <div class="card-header">
-            <i class="bi bi-bullseye"></i> Audience Targeting (USA Students)
+            <i class="bi bi-bullseye"></i> Audience Targeting
         </div>
         <div class="card-body">
-            <p class="text-muted mb-3">Configure targeting to reach USA students preparing for interviews.</p>
+            <p class="text-muted mb-3">Configure targeting based on your coaching expertise: System Design, Behavioral, and Leadership interviews for Engineering Managers, Product Managers, Solutions Architects, and senior technical roles.</p>
             
             <div class="mb-3">
-                <label class="form-label">Target Audience</label>
+                <label class="form-label">
+                    Target Audience
+                    <span class="help-icon" onclick="showHelp('target-audience')" title="Help">?</span>
+                </label>
                 <select class="form-select" name="target_audience">
-                    <option value="usa_students" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else 'usa_students') == 'usa_students' else '' }}>USA Students (Interview Prep)</option>
+                    <option value="professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else 'professionals') == 'professionals' else '' }}>Professionals (Senior Roles)</option>
                     <option value="all" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'all' else '' }}>All Audiences</option>
-                    <option value="professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'professionals' else '' }}>Professionals Only</option>
+                    <option value="usa_students" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'usa_students' else '' }}>USA Students (Interview Prep)</option>
                 </select>
-                <small class="text-muted">Target USA students preparing for tech interviews</small>
+                <small class="text-muted">Target professionals preparing for senior technical and leadership roles</small>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Interview Types to Target</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="interview_types" value="coding_interview" 
-                        id="type_coding" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['coding_interview']) and 'coding_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="type_coding">Coding Interview</label>
-                </div>
+                <label class="form-label">
+                    Interview Types to Target
+                    <span class="help-icon" onclick="showHelp('interview-types')" title="Help">?</span>
+                </label>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="interview_types" value="sys_design_interview" 
                         id="type_sys_design" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['sys_design_interview']) and 'sys_design_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
                     <label class="form-check-label" for="type_sys_design">System Design Interview</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="interview_types" value="leetcode" 
-                        id="type_leetcode" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['leetcode']) and 'leetcode' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="type_leetcode">LeetCode</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="interview_types" value="algorithm_interview" 
-                        id="type_algorithm" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['algorithm_interview']) and 'algorithm_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="type_algorithm">Algorithm Interview</label>
-                </div>
-                <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="interview_types" value="behavioral_interview" 
                         id="type_behavioral" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['behavioral_interview']) and 'behavioral_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
                     <label class="form-check-label" for="type_behavioral">Behavioral Interview</label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="leadership_interview" 
+                        id="type_leadership" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['leadership_interview']) and 'leadership_interview' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_leadership">Leadership Interview</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="career_coaching" 
+                        id="type_career" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['career_coaching']) and 'career_coaching' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_career">Career Coaching</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="resume_review" 
+                        id="type_resume" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['resume_review']) and 'resume_review' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_resume">Resume Review</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="interview_types" value="salary_negotiation" 
+                        id="type_salary" {{ 'checked' if (settings.targeting.interview_types if settings.targeting else ['salary_negotiation']) and 'salary_negotiation' in (settings.targeting.interview_types if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="type_salary">Salary Negotiation</label>
+                </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Role Levels to Target</label>
+                <label class="form-label">
+                    Roles to Target
+                    <span class="help-icon" onclick="showHelp('role-levels')" title="Help">?</span>
+                </label>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="role_levels" value="intern" 
-                        id="role_intern" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['intern']) and 'intern' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="role_intern">Intern</label>
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="engineering_manager" 
+                        id="role_em" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['engineering_manager']) and 'engineering_manager' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_em">Engineering Manager</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="role_levels" value="new_grad" 
-                        id="role_new_grad" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['new_grad']) and 'new_grad' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="role_new_grad">New Graduate</label>
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="product_manager" 
+                        id="role_pm" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['product_manager']) and 'product_manager' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_pm">Product Manager</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="role_levels" value="entry_level" 
-                        id="role_entry_level" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['entry_level']) and 'entry_level' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="role_entry_level">Entry Level</label>
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="solutions_architect" 
+                        id="role_sa" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['solutions_architect']) and 'solutions_architect' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_sa">Solutions Architect</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="role_levels" value="student" 
-                        id="role_student" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['student']) and 'student' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
-                    <label class="form-check-label" for="role_student">Student</label>
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="cloud_engineer" 
+                        id="role_cloud" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['cloud_engineer']) and 'cloud_engineer' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_cloud">Cloud Engineer</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="data_engineer" 
+                        id="role_data" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['data_engineer']) and 'data_engineer' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_data">Data Engineer</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="sre" 
+                        id="role_sre" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['sre']) and 'sre' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_sre">Site Reliability Engineer (SRE)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="staff_engineer" 
+                        id="role_staff" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['staff_engineer']) and 'staff_engineer' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_staff">Staff Software Engineer</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="tpm" 
+                        id="role_tpm" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['tpm']) and 'tpm' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_tpm">Technical Program Manager (TPM)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="director" 
+                        id="role_director" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['director']) and 'director' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_director">Director</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="vp" 
+                        id="role_vp" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['vp']) and 'vp' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_vp">VP / Executive</label>
                 </div>
             </div>
 
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> <strong>Targeting Strategy:</strong> Auto-pilot will prioritize videos matching these interview types and role levels to reach USA students preparing for tech interviews.
+                <i class="bi bi-info-circle"></i> <strong>Targeting Strategy:</strong> Auto-pilot will prioritize videos matching System Design, Behavioral, and Leadership interviews for Engineering Managers, Product Managers, Solutions Architects, Cloud Engineers, and other senior technical roles.
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary" onclick="saveSection('targeting', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save Targeting Settings</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Save Button -->
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-save"></i> Save Configuration
-        </button>
+    <!-- Save All Button -->
+    <div class="mt-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1"><i class="bi bi-save"></i> Save All Settings</h5>
+                        <small class="text-muted">Save all configuration sections at once</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Save All Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </form>
 {% endblock %}
@@ -477,6 +698,53 @@
     .form-label {
         display: flex;
         align-items: center;
+    }
+
+    /* Configuration Checklist Styles */
+    .config-checklist {
+        padding: 8px 0;
+    }
+
+    .config-checklist h6 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .checklist-item i {
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .checklist-item.completed {
+        color: var(--text-primary);
+    }
+
+    .checklist-item.pending {
+        color: var(--text-muted);
+    }
+
+    .checklist-item span:not(.badge) {
+        flex: 1;
+    }
+
+    .checklist-item:hover {
+        background: var(--bg-hover);
+        margin: 0 -12px;
+        padding: 10px 12px;
+        border-radius: 6px;
     }
 
     /* Help Modal Styles */
@@ -519,6 +787,31 @@
 
     .help-link:hover {
         text-decoration: underline;
+    }
+
+    /* Save Button Styles */
+    .save-indicator {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .btn-saving {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .section-save-btn {
+        min-width: 180px;
     }
 </style>
 {% endblock %}
@@ -773,15 +1066,515 @@
                     <strong>Important:</strong> Instagram API uses the Facebook Graph API, so they share the same access token.
                 </div>
             `
+        },
+        'youtube-client-secret': {
+            title: 'YouTube Client Secret File',
+            content: `
+                <h6>How to get YouTube Client Secret File:</h6>
+                <ol>
+                    <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="help-link">Google Cloud Console</a></li>
+                    <li>Create a new project or select an existing one</li>
+                    <li>Enable the <strong>YouTube Data API v3</strong>:
+                        <ul>
+                            <li>Go to <strong>"APIs & Services"</strong> → <strong>"Library"</strong></li>
+                            <li>Search for "YouTube Data API v3"</li>
+                            <li>Click <strong>"Enable"</strong></li>
+                        </ul>
+                    </li>
+                    <li>Create credentials:
+                        <ul>
+                            <li>Go to <strong>"APIs & Services"</strong> → <strong>"Credentials"</strong></li>
+                            <li>Click <strong>"Create Credentials"</strong> → <strong>"OAuth client ID"</strong></li>
+                            <li>Select application type: <strong>"Desktop app"</strong> or <strong>"Web application"</strong></li>
+                            <li>Give it a name (e.g., "YouTube Automation")</li>
+                            <li>Click <strong>"Create"</strong></li>
+                        </ul>
+                    </li>
+                    <li>Download the JSON file:
+                        <ul>
+                            <li>Click the download icon next to your OAuth 2.0 Client ID</li>
+                            <li>This downloads a file named <code>client_secret_xxxxx.json</code></li>
+                        </ul>
+                    </li>
+                    <li>Rename it to <code>client_secret.json</code> and upload it here</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The file must be named <code>client_secret.json</code> and placed in the project root directory.
+                </div>
+            `
+        },
+        'ayrshare-api-key': {
+            title: 'Ayrshare API Key (Alternative)',
+            content: `
+                <h6>What is Ayrshare?</h6>
+                <p>Ayrshare is a unified API that allows you to post to multiple social media platforms (LinkedIn, Facebook, Instagram, Twitter, etc.) with a single API call.</p>
+                
+                <h6>How to get Ayrshare API Key:</h6>
+                <ol>
+                    <li>Go to <a href="https://www.ayrshare.com/" target="_blank" class="help-link">Ayrshare.com</a></li>
+                    <li>Sign up for a free account</li>
+                    <li>After signing up, go to your <strong>Dashboard</strong></li>
+                    <li>Find your <strong>API Key</strong> in the dashboard</li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                
+                <h6>Benefits of using Ayrshare:</h6>
+                <ul>
+                    <li>Simplified API - one key for all platforms</li>
+                    <li>No need to manage multiple OAuth flows</li>
+                    <li>Unified posting interface</li>
+                    <li>Built-in analytics</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> This is optional. You can use individual platform APIs (LinkedIn, Facebook, Instagram) instead, or use Ayrshare as a simpler alternative.
+                </div>
+            `
+        },
+        'videos-per-day': {
+            title: 'Videos Per Day',
+            content: `
+                <h6>What is Videos Per Day?</h6>
+                <p>This setting controls how many videos the automation will process and schedule per day when auto-pilot mode is enabled.</p>
+                
+                <h6>Recommended Values:</h6>
+                <ul>
+                    <li><strong>1-3 videos/day:</strong> For consistent, steady content distribution</li>
+                    <li><strong>4-6 videos/day:</strong> For active channels with regular posting</li>
+                    <li><strong>7-10 videos/day:</strong> For high-volume content creators (use with caution)</li>
+                </ul>
+                
+                <h6>How it works:</h6>
+                <ol>
+                    <li>Auto-pilot selects one video from each playlist</li>
+                    <li>It schedules up to this many videos per day</li>
+                    <li>The system respects daily limits for each platform</li>
+                    <li>Videos are distributed across the selected day of the week</li>
+                </ol>
+                
+                <div class="alert alert-warning">
+                    <strong>Tip:</strong> Start with a lower number (1-3) and increase gradually based on your audience engagement and platform limits.
+                </div>
+            `
+        },
+        'schedule-day': {
+            title: 'Schedule Day',
+            content: `
+                <h6>What is Schedule Day?</h6>
+                <p>This setting determines which day of the week the automation will run and schedule videos.</p>
+                
+                <h6>How it works:</h6>
+                <ol>
+                    <li>Select the day when you want videos to be scheduled</li>
+                    <li>The automation will run on that day each week</li>
+                    <li>Videos will be scheduled for posting at the specified times</li>
+                    <li>One video from each playlist will be selected and scheduled</li>
+                </ol>
+                
+                <h6>Best Practices:</h6>
+                <ul>
+                    <li><strong>Wednesday:</strong> Mid-week engagement is typically high</li>
+                    <li><strong>Thursday/Friday:</strong> Good for weekend viewing</li>
+                    <li><strong>Monday:</strong> Start of the week, fresh content</li>
+                    <li>Avoid weekends if targeting professional audiences</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The automation will run automatically on the selected day. Make sure your server is running or use a scheduler like cron.
+                </div>
+            `
+        },
+        'youtube-schedule-time': {
+            title: 'YouTube Schedule Time (IST)',
+            content: `
+                <h6>What is YouTube Schedule Time?</h6>
+                <p>This is the time (in Indian Standard Time - IST) when videos will be scheduled for publication on YouTube.</p>
+                
+                <h6>Default Value:</h6>
+                <p>The default is <strong>23:00 (11:00 PM IST)</strong>, which is optimal for USA audiences (morning time in USA).</p>
+                
+                <h6>How to choose the best time:</h6>
+                <ul>
+                    <li>Check your YouTube Analytics for when your audience is most active</li>
+                    <li>Consider your target audience's timezone:
+                        <ul>
+                            <li><strong>USA Students:</strong> 11 PM IST = ~1 PM EST (afternoon, good engagement)</li>
+                            <li><strong>Indian Audience:</strong> 6-9 PM IST (evening prime time)</li>
+                            <li><strong>Global Audience:</strong> 11 PM IST works well for multiple timezones</li>
+                        </ul>
+                    </li>
+                    <li>Test different times and monitor engagement</li>
+                </ul>
+                
+                <h6>Time Format:</h6>
+                <p>Enter time in 24-hour format (HH:MM), for example:
+                    <ul>
+                        <li><code>23:00</code> = 11:00 PM</li>
+                        <li><code>19:30</code> = 7:30 PM</li>
+                        <li><code>09:00</code> = 9:00 AM</li>
+                    </ul>
+                </p>
+            `
+        },
+        'social-media-schedule-time': {
+            title: 'Social Media Schedule Time (IST)',
+            content: `
+                <h6>What is Social Media Schedule Time?</h6>
+                <p>This is the time (in Indian Standard Time - IST) when posts will be published on LinkedIn, Facebook, and Instagram.</p>
+                
+                <h6>Default Value:</h6>
+                <p>The default is <strong>19:30 (7:30 PM IST)</strong>, which is optimal for USA audiences (morning time in USA).</p>
+                
+                <h6>Best Times for Social Media:</h6>
+                <ul>
+                    <li><strong>LinkedIn:</strong> Tuesday-Thursday, 8-10 AM or 12-1 PM (local time of audience)</li>
+                    <li><strong>Facebook:</strong> 1-3 PM or 6-9 PM (local time of audience)</li>
+                    <li><strong>Instagram:</strong> 11 AM-1 PM or 7-9 PM (local time of audience)</li>
+                </ul>
+                
+                <h6>For USA Students (Your Target Audience):</h6>
+                <p>7:30 PM IST = ~10:00 AM EST (morning, good for LinkedIn and professional content)</p>
+                
+                <h6>Time Format:</h6>
+                <p>Enter time in 24-hour format (HH:MM), for example:
+                    <ul>
+                        <li><code>19:30</code> = 7:30 PM</li>
+                        <li><code>23:00</code> = 11:00 PM</li>
+                        <li><code>09:00</code> = 9:00 AM</li>
+                    </ul>
+                </p>
+                
+                <div class="alert alert-info">
+                    <strong>Tip:</strong> Check the Insights page to see when your audience is most active and adjust accordingly.
+                </div>
+            `
+        },
+        'upload-method': {
+            title: 'Upload Method',
+            content: `
+                <h6>What is Upload Method?</h6>
+                <p>This determines how videos are posted to social media platforms when you schedule or publish posts.</p>
+                
+                <h6>Option 1: Native Video Upload (Recommended)</h6>
+                <ul>
+                    <li><strong>Process:</strong> Downloads video from YouTube → Uploads natively to platform</li>
+                    <li><strong>Engagement:</strong> 3-10x better than link sharing</li>
+                    <li><strong>Algorithm:</strong> Better ranking in feed</li>
+                    <li><strong>Professional:</strong> Videos play directly in feed</li>
+                    <li><strong>Best for:</strong> Maximum engagement and bookings</li>
+                </ul>
+                
+                <h6>Option 2: Link Sharing</h6>
+                <ul>
+                    <li><strong>Process:</strong> Just posts YouTube link with caption</li>
+                    <li><strong>Engagement:</strong> Lower (but still works)</li>
+                    <li><strong>Speed:</strong> Faster, no download needed</li>
+                    <li><strong>Storage:</strong> No local storage required</li>
+                    <li><strong>Best for:</strong> Quick posting, testing</li>
+                </ul>
+                
+                <div class="alert alert-success">
+                    <strong>Recommendation:</strong> Use Native Video Upload for maximum engagement and business growth. 
+                    Videos are downloaded temporarily during upload, then cleaned up automatically.
+                </div>
+                
+                <h6>How Native Upload Works:</h6>
+                <ol>
+                    <li>When you schedule a post, only the post content is saved</li>
+                    <li>When it's time to publish, the system:
+                        <ul>
+                            <li>Downloads video from YouTube</li>
+                            <li>Uploads natively to LinkedIn/Facebook/Instagram</li>
+                            <li>Posts with your clickbait caption</li>
+                            <li>Cleans up downloaded video</li>
+                        </ul>
+                    </li>
+                    <li>All happens automatically in the background</li>
+                </ol>
+            `
+        },
+        'youtube-playlist-id': {
+            title: 'YouTube Playlist ID',
+            content: `
+                <h6>What is YouTube Playlist ID?</h6>
+                <p>This is the unique identifier for a specific YouTube playlist. If provided, the automation will only process videos from this playlist.</p>
+                
+                <h6>How to find a Playlist ID:</h6>
+                <ol>
+                    <li>Go to your YouTube playlist</li>
+                    <li>Look at the URL in your browser</li>
+                    <li>The Playlist ID is the part after <code>list=</code></li>
+                    <li>Example: <code>https://www.youtube.com/playlist?list=PLxxxxx...</code></li>
+                    <li>Copy the <code>PLxxxxx...</code> part</li>
+                </ol>
+                
+                <h6>Examples:</h6>
+                <ul>
+                    <li>URL: <code>https://www.youtube.com/playlist?list=PLrAXtmRdnEQy6nuLMH7uL0zQqFXN3qjFp</code></li>
+                    <li>Playlist ID: <code>PLrAXtmRdnEQy6nuLMH7uL0zQqFXN3qjFp</code></li>
+                </ul>
+                
+                <h6>When to use this:</h6>
+                <ul>
+                    <li><strong>Leave empty:</strong> Process all playlists (recommended for auto-pilot)</li>
+                    <li><strong>Specify ID:</strong> Process only a specific playlist (useful for testing or targeted campaigns)</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> This field is optional. If left empty, the system will process all playlists from your channel.
+                </div>
+            `
+        },
+        'export-type': {
+            title: 'Export Type',
+            content: `
+                <h6>What is Export Type?</h6>
+                <p>This setting determines which playlists the automation will process and schedule.</p>
+                
+                <h6>Options:</h6>
+                <ul>
+                    <li><strong>Shorts Only:</strong> Process only YouTube Shorts playlists
+                        <ul>
+                            <li>Ideal for short-form content distribution</li>
+                            <li>Faster processing</li>
+                            <li>Better for social media cross-posting</li>
+                        </ul>
+                    </li>
+                    <li><strong>All Playlists:</strong> Process all playlists from your channel
+                        <ul>
+                            <li>Includes both regular videos and Shorts</li>
+                            <li>More comprehensive content selection</li>
+                            <li>Better for diverse content strategy</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <h6>Which should you choose?</h6>
+                <ul>
+                    <li><strong>Choose "Shorts Only" if:</strong>
+                        <ul>
+                            <li>You primarily create Shorts content</li>
+                            <li>You want to focus on short-form social media posts</li>
+                            <li>You want faster processing</li>
+                        </ul>
+                    </li>
+                    <li><strong>Choose "All Playlists" if:</strong>
+                        <ul>
+                            <li>You have a mix of content types</li>
+                            <li>You want maximum content variety</li>
+                            <li>You want to schedule both Shorts and regular videos</li>
+                        </ul>
+                    </li>
+                </ul>
+            `
+        },
+        'linkedin-daily-limit': {
+            title: 'LinkedIn Daily Limit',
+            content: `
+                <h6>What is LinkedIn Daily Limit?</h6>
+                <p>This setting controls the maximum number of posts that can be scheduled to LinkedIn per day by the auto-pilot mode.</p>
+                
+                <h6>LinkedIn Platform Limits:</h6>
+                <ul>
+                    <li><strong>Official Limit:</strong> LinkedIn allows up to 25 posts per day per account</li>
+                    <li><strong>Recommended:</strong> 1-5 posts per day for best engagement</li>
+                    <li><strong>Maximum Safe:</strong> 10-15 posts per day</li>
+                </ul>
+                
+                <h6>Best Practices:</h6>
+                <ul>
+                    <li>Start with 1-3 posts per day</li>
+                    <li>Monitor engagement and adjust</li>
+                    <li>Avoid posting too frequently (can reduce reach)</li>
+                    <li>Space posts throughout the day for better visibility</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Exceeding platform limits may result in account restrictions or shadowbanning. The auto-pilot will respect this limit and stop scheduling once reached.
+                </div>
+            `
+        },
+        'facebook-daily-limit': {
+            title: 'Facebook Daily Limit',
+            content: `
+                <h6>What is Facebook Daily Limit?</h6>
+                <p>This setting controls the maximum number of posts that can be scheduled to Facebook per day by the auto-pilot mode.</p>
+                
+                <h6>Facebook Platform Limits:</h6>
+                <ul>
+                    <li><strong>Official Limit:</strong> Facebook allows up to 25 posts per day per page</li>
+                    <li><strong>Recommended:</strong> 1-3 posts per day for best engagement</li>
+                    <li><strong>Maximum Safe:</strong> 5-10 posts per day</li>
+                </ul>
+                
+                <h6>Best Practices:</h6>
+                <ul>
+                    <li>Post 1-2 times per day for optimal reach</li>
+                    <li>Space posts 4-6 hours apart</li>
+                    <li>Focus on quality over quantity</li>
+                    <li>Monitor page insights for best posting times</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Posting too frequently can reduce reach due to Facebook's algorithm. The auto-pilot will respect this limit.
+                </div>
+            `
+        },
+        'instagram-daily-limit': {
+            title: 'Instagram Daily Limit',
+            content: `
+                <h6>What is Instagram Daily Limit?</h6>
+                <p>This setting controls the maximum number of posts that can be scheduled to Instagram per day by the auto-pilot mode.</p>
+                
+                <h6>Instagram Platform Limits:</h6>
+                <ul>
+                    <li><strong>Official Limit:</strong> Instagram allows up to 25 posts per day per account</li>
+                    <li><strong>Recommended:</strong> 1-2 posts per day for best engagement</li>
+                    <li><strong>Maximum Safe:</strong> 3-5 posts per day</li>
+                </ul>
+                
+                <h6>Best Practices:</h6>
+                <ul>
+                    <li>Post 1-2 times per day for optimal engagement</li>
+                    <li>Space posts at least 3-4 hours apart</li>
+                    <li>Focus on high-quality, engaging content</li>
+                    <li>Use Instagram Insights to find best posting times</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Instagram's algorithm favors quality over quantity. Posting too frequently can reduce reach. The auto-pilot will respect this limit.
+                </div>
+            `
+        },
+        'youtube-daily-limit': {
+            title: 'YouTube Daily Limit',
+            content: `
+                <h6>What is YouTube Daily Limit?</h6>
+                <p>This setting controls the maximum number of videos that can be scheduled to YouTube per day by the auto-pilot mode.</p>
+                
+                <h6>YouTube Platform Limits:</h6>
+                <ul>
+                    <li><strong>Official Limit:</strong> YouTube allows up to 6 uploads per day per channel (for most accounts)</li>
+                    <li><strong>Recommended:</strong> 1-2 videos per day for best performance</li>
+                    <li><strong>Maximum Safe:</strong> 3-5 videos per day</li>
+                </ul>
+                
+                <h6>Best Practices:</h6>
+                <ul>
+                    <li>Post 1 video per day for consistent growth</li>
+                    <li>Maintain a regular posting schedule</li>
+                    <li>Focus on quality content over quantity</li>
+                    <li>Use YouTube Analytics to find optimal posting times</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> YouTube's algorithm rewards consistent, quality content. The auto-pilot will respect this limit to avoid overwhelming your audience.
+                </div>
+            `
+        },
+        'target-audience': {
+            title: 'Target Audience',
+            content: `
+                <h6>What is Target Audience?</h6>
+                <p>This setting helps the auto-pilot prioritize which videos to schedule based on your target audience.</p>
+                
+                <h6>Options:</h6>
+                <ul>
+                    <li><strong>Professionals (Senior Roles):</strong> <strong>Recommended for your coaching</strong>
+                        <ul>
+                            <li>Targets working professionals preparing for senior roles</li>
+                            <li>Focuses on System Design, Behavioral, and Leadership interviews</li>
+                            <li>Prioritizes Engineering Managers, Product Managers, Solutions Architects, Cloud Engineers, etc.</li>
+                            <li>Optimizes posting times for professional networking (USA timezones)</li>
+                            <li>Aligns with your coaching at AWS and FAANG companies</li>
+                        </ul>
+                    </li>
+                    <li><strong>All Audiences:</strong>
+                        <ul>
+                            <li>No specific targeting</li>
+                            <li>Processes all videos equally</li>
+                            <li>Good for diverse content strategy</li>
+                        </ul>
+                    </li>
+                    <li><strong>USA Students (Interview Prep):</strong>
+                        <ul>
+                            <li>Targets students preparing for tech interviews</li>
+                            <li>Focuses on entry-level and new graduate roles</li>
+                            <li>Optimizes posting times for USA student timezones</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <h6>How it works:</h6>
+                <p>The auto-pilot will use this setting along with "Interview Types" and "Roles" to select the most relevant videos for your audience. Based on your coaching profile, "Professionals (Senior Roles)" is the recommended setting.</p>
+            `
+        },
+        'interview-types': {
+            title: 'Interview Types to Target',
+            content: `
+                <h6>What are Interview Types?</h6>
+                <p>These checkboxes help the auto-pilot identify and prioritize videos based on your coaching expertise.</p>
+                
+                <h6>Available Types (Based on Your Coaching):</h6>
+                <ul>
+                    <li><strong>System Design Interview:</strong> FAANG-style system design, architecture, scalability (Your main focus)</li>
+                    <li><strong>Behavioral Interview:</strong> Leadership principles, STAR method, executive communication (Your specialty)</li>
+                    <li><strong>Leadership Interview:</strong> Leadership behavior, managing up, strategic thinking (Your expertise)</li>
+                    <li><strong>Career Coaching:</strong> Career growth, leveling up, breaking into big tech</li>
+                    <li><strong>Resume Review:</strong> Resume optimization for engineers, architects, PMs</li>
+                    <li><strong>Salary Negotiation:</strong> Compensation negotiation, equity, sign-ons</li>
+                </ul>
+                
+                <h6>How it works:</h6>
+                <ol>
+                    <li>The system analyzes video titles, descriptions, and tags</li>
+                    <li>It matches them to the selected interview types</li>
+                    <li>Auto-pilot prioritizes videos that match your coaching focus</li>
+                    <li>Select all types that align with your content</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>Your Focus:</strong> System Design, Behavioral, and Leadership interviews for senior technical roles at AWS, Amazon, Google, Microsoft, and other FAANG companies.
+                </div>
+            `
+        },
+        'role-levels': {
+            title: 'Roles to Target',
+            content: `
+                <h6>What are Roles to Target?</h6>
+                <p>These checkboxes help the auto-pilot identify and prioritize videos based on the roles you coach for.</p>
+                
+                <h6>Available Roles (Based on Your Coaching):</h6>
+                <ul>
+                    <li><strong>Engineering Manager:</strong> Tech leadership, team management</li>
+                    <li><strong>Product Manager:</strong> Product management, product strategy</li>
+                    <li><strong>Solutions Architect:</strong> Cloud architecture, AWS, system design</li>
+                    <li><strong>Cloud Engineer:</strong> Cloud infrastructure, AWS, cloud computing</li>
+                    <li><strong>Data Engineer:</strong> Data engineering, big data</li>
+                    <li><strong>Site Reliability Engineer (SRE):</strong> Reliability, infrastructure</li>
+                    <li><strong>Staff Software Engineer:</strong> Senior engineering, technical leadership</li>
+                    <li><strong>Technical Program Manager (TPM):</strong> Program management, technical programs</li>
+                    <li><strong>Director:</strong> Senior leadership, strategic direction</li>
+                    <li><strong>VP / Executive:</strong> Executive leadership, C-level</li>
+                </ul>
+                
+                <h6>How it works:</h6>
+                <ol>
+                    <li>The system analyzes video content for role indicators</li>
+                    <li>It matches them to the selected roles</li>
+                    <li>Auto-pilot prioritizes videos that match your coaching roles</li>
+                    <li>Select all roles you coach for to maximize content availability</li>
+                </ol>
+                
+                <h6>Your Coaching Focus:</h6>
+                <p>You coach senior engineers, architects, engineering managers, directors, and VP-level leaders at AWS and other FAANG companies. Select all roles that match your content.</p>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> These settings work together with "Target Audience" and "Interview Types" to create a comprehensive targeting strategy aligned with your coaching expertise.
+                </div>
+            `
         }
     };
-
-    function showHelp(fieldId) {
-        const help = helpContent[fieldId];
-        if (!help) {
-            alert('Help content not available for this field.');
-            return;
-        }
 
     function showHelp(helpKey) {
         const help = helpContent[helpKey];
@@ -889,6 +1682,187 @@
             message += `${icon} ${result.platform.toUpperCase()}: ${result.message}\n`;
         });
         alert(message);
+    }
+
+    // Section-specific save function with visual feedback
+    function saveSection(section, button) {
+        const btnText = button.querySelector('.btn-text');
+        const originalText = btnText.textContent;
+        const icon = button.querySelector('i');
+        const originalIcon = icon.className;
+        
+        // Disable button and show loading
+        button.disabled = true;
+        button.classList.add('btn-saving');
+        icon.className = 'bi bi-hourglass-split';
+        btnText.textContent = 'Saving...';
+        
+        // Collect form data for this section
+        const form = document.getElementById('configForm');
+        const formData = {};
+        
+        if (section === 'api_keys') {
+            formData.linkedin_client_id = form.querySelector('[name="linkedin_client_id"]').value;
+            formData.linkedin_client_secret = form.querySelector('[name="linkedin_client_secret"]').value;
+            formData.linkedin_access_token = form.querySelector('[name="linkedin_access_token"]').value;
+            formData.linkedin_person_urn = form.querySelector('[name="linkedin_person_urn"]').value;
+            formData.facebook_app_id = form.querySelector('[name="facebook_app_id"]').value;
+            formData.facebook_app_secret = form.querySelector('[name="facebook_app_secret"]').value;
+            formData.facebook_page_access_token = form.querySelector('[name="facebook_page_access_token"]').value;
+            formData.facebook_page_id = form.querySelector('[name="facebook_page_id"]').value;
+            formData.instagram_business_account_id = form.querySelector('[name="instagram_business_account_id"]').value;
+            formData.instagram_access_token = form.querySelector('[name="instagram_access_token"]').value;
+            formData.ayrshare_api_key = form.querySelector('[name="ayrshare_api_key"]').value;
+        } else if (section === 'scheduling') {
+            formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]').checked;
+            formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]').value) || 1;
+            formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]').value;
+            formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]').value;
+            formData.schedule_day = form.querySelector('[name="schedule_day"]').value;
+            formData.playlist_id = form.querySelector('[name="playlist_id"]').value;
+            formData.export_type = form.querySelector('[name="export_type"]').value;
+            formData.use_database = form.querySelector('[name="use_database"]').checked;
+            formData.auto_post_social = form.querySelector('[name="auto_post_social"]').checked;
+            formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+            formData.upload_method = form.querySelector('[name="upload_method"]').value;
+        } else if (section === 'social_media') {
+            // Social media settings are part of scheduling
+            formData.auto_post_social = form.querySelector('[name="auto_post_social"]').checked;
+            formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+            // Include all scheduling data since they're related
+            formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]').checked;
+            formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]').value) || 1;
+            formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]').value;
+            formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]').value;
+            formData.schedule_day = form.querySelector('[name="schedule_day"]').value;
+            formData.playlist_id = form.querySelector('[name="playlist_id"]').value;
+            formData.export_type = form.querySelector('[name="export_type"]').value;
+            formData.use_database = form.querySelector('[name="use_database"]').checked;
+            formData.upload_method = form.querySelector('[name="upload_method"]').value;
+            section = 'scheduling'; // Save as scheduling section
+        } else if (section === 'thresholds') {
+            formData.linkedin_daily_limit = parseInt(form.querySelector('[name="linkedin_daily_limit"]').value) || 25;
+            formData.facebook_daily_limit = parseInt(form.querySelector('[name="facebook_daily_limit"]').value) || 25;
+            formData.instagram_daily_limit = parseInt(form.querySelector('[name="instagram_daily_limit"]').value) || 25;
+            formData.youtube_daily_limit = parseInt(form.querySelector('[name="youtube_daily_limit"]').value) || 10;
+        } else if (section === 'targeting') {
+            formData.target_audience = form.querySelector('[name="target_audience"]').value;
+            formData.interview_types = Array.from(form.querySelectorAll('[name="interview_types"]:checked')).map(cb => cb.value);
+            formData.role_levels = Array.from(form.querySelectorAll('[name="role_levels"]:checked')).map(cb => cb.value);
+        }
+        
+        // Create save indicator
+        let saveIndicator = document.getElementById('save-indicator');
+        if (!saveIndicator) {
+            saveIndicator = document.createElement('div');
+            saveIndicator.id = 'save-indicator';
+            saveIndicator.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
+            document.body.appendChild(saveIndicator);
+        }
+        
+        // Send AJAX request
+        fetch('/api/config/save-section', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                section: section,
+                data: formData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Success feedback
+                icon.className = 'bi bi-check-circle';
+                btnText.textContent = 'Saved!';
+                button.classList.remove('btn-primary', 'btn-saving');
+                button.classList.add('btn-success');
+                
+                // Show success message
+                saveIndicator.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+                        <i class="bi bi-check-circle"></i> <strong>Success!</strong> ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="document.getElementById('save-indicator').remove()"></button>
+                    </div>
+                `;
+                
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => {
+                    if (saveIndicator && saveIndicator.parentElement) {
+                        saveIndicator.remove();
+                    }
+                }, 3000);
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    icon.className = originalIcon;
+                    btnText.textContent = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-primary');
+                    button.disabled = false;
+                }, 2000);
+            } else {
+                // Error feedback
+                icon.className = 'bi bi-x-circle';
+                btnText.textContent = 'Error';
+                button.classList.remove('btn-primary', 'btn-saving');
+                button.classList.add('btn-danger');
+                
+                // Show error message
+                saveIndicator.innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Error!</strong> ${data.error || 'Failed to save'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="document.getElementById('save-indicator').remove()"></button>
+                    </div>
+                `;
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    if (saveIndicator && saveIndicator.parentElement) {
+                        saveIndicator.remove();
+                    }
+                }, 5000);
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    icon.className = originalIcon;
+                    btnText.textContent = originalText;
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-primary');
+                    button.disabled = false;
+                }, 3000);
+            }
+        })
+        .catch(error => {
+            // Network error
+            icon.className = 'bi bi-x-circle';
+            btnText.textContent = 'Error';
+            button.classList.remove('btn-primary', 'btn-saving');
+            button.classList.add('btn-danger');
+            
+            saveIndicator.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Network Error!</strong> ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="document.getElementById('save-indicator').remove()"></button>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                if (saveIndicator && saveIndicator.parentElement) {
+                    saveIndicator.remove();
+                }
+            }, 5000);
+            
+            setTimeout(() => {
+                icon.className = originalIcon;
+                btnText.textContent = originalText;
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-primary');
+                button.disabled = false;
+            }, 3000);
+        });
     }
 </script>
 {% endblock %}
