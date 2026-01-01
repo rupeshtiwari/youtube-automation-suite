@@ -263,7 +263,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
@@ -408,8 +408,8 @@ def save_settings(settings):
     # Also save to JSON file as backup (always do this as secondary backup)
     json_saved = False
     try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=2)
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=2)
         json_saved = True
         print(f"✅ Settings saved to JSON backup file")
     except Exception as e:
@@ -421,7 +421,7 @@ def save_settings(settings):
     
     # Also update .env file for compatibility (for scripts that read .env)
     try:
-        update_env_file(settings)
+    update_env_file(settings)
     except Exception as e:
         print(f"⚠️ Warning: Failed to update .env file: {e}")
     
@@ -2581,6 +2581,54 @@ def api_save_config_section():
             'success': True,
             'message': f'{section.replace("_", " ").title()} saved successfully!'
         })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
+@app.route('/api/config/load-from-file', methods=['POST'])
+def api_load_config_from_file():
+    """Load configuration from MY_CONFIG.json file."""
+    import json
+    from pathlib import Path
+    
+    config_file = Path('MY_CONFIG.json')
+    
+    if not config_file.exists():
+        return jsonify({
+            'success': False,
+            'error': 'MY_CONFIG.json file not found. Please create it and fill in your settings.'
+        }), 404
+    
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        
+        # Save to database
+        save_settings(config)
+        
+        # Verify it was saved
+        loaded = load_settings()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Configuration loaded successfully!',
+            'stats': {
+                'api_keys_configured': sum(1 for v in loaded.get('api_keys', {}).values() if v),
+                'scheduling_enabled': loaded.get('scheduling', {}).get('enabled', False),
+                'upload_method': loaded.get('scheduling', {}).get('upload_method', 'native'),
+                'cta_configured': sum(1 for v in loaded.get('cta', {}).values() if v)
+            }
+        })
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON in MY_CONFIG.json: {str(e)}'
+        }), 400
     except Exception as e:
         import traceback
         return jsonify({

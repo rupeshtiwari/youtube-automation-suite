@@ -106,6 +106,22 @@
 </div>
 
 <form method="POST" action="/config" id="configForm">
+    <!-- Quick Load Config -->
+    <div class="card mb-4" style="border-left: 4px solid var(--success);">
+        <div class="card-header">
+            <i class="bi bi-upload"></i> Quick Load Configuration
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Have a <code>MY_CONFIG.json</code> file? Load all settings at once!</p>
+            <button type="button" class="btn btn-success" onclick="loadConfigFromFile()">
+                <i class="bi bi-upload"></i> Load from MY_CONFIG.json
+            </button>
+            <small class="text-muted d-block mt-2">
+                Create <code>MY_CONFIG.json</code> in the project root with all your settings. See <code>LOAD_CONFIG.md</code> for format.
+            </small>
+        </div>
+    </div>
+
     <!-- YouTube API Configuration -->
     <div class="card mb-4">
         <div class="card-header">
