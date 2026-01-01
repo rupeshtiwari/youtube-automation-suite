@@ -83,6 +83,10 @@
         color: #e4405f;
         border-bottom-color: #e4405f;
     }
+    .platform-tab.youtube.active {
+        color: #ff0000;
+        border-bottom-color: #ff0000;
+    }
 
     .post-editor {
         display: none;
@@ -309,8 +313,13 @@
                 </div>
                 
                 <div class="platform-tabs">
+                    <button class="platform-tab youtube ${index === 0 ? 'active' : ''}" 
+                            onclick="showPlatform('${video.video_id}', 'youtube')">
+                        <i class="bi bi-youtube"></i>
+                        YouTube (Source)
+                    </button>
                     ${platforms.map(platform => `
-                        <button class="platform-tab ${platform} ${index === 0 && platform === 'linkedin' ? 'active' : ''}" 
+                        <button class="platform-tab ${platform} ${index === 0 && platform === 'linkedin' ? '' : ''}" 
                                 onclick="showPlatform('${video.video_id}', '${platform}')">
                             <i class="bi bi-${platform === 'linkedin' ? 'linkedin' : platform === 'facebook' ? 'facebook' : 'instagram'}"></i>
                             ${platformNames[platform]}

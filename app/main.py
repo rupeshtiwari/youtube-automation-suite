@@ -1452,24 +1452,49 @@ def api_content_preview_videos():
                     
                     title = video.get('title', '')
                     description = video.get('description', '')
+                    tags = video.get('tags', '')
+                    published_at = video.get('publishedAt', '')
                     youtube_url = f"https://youtube.com/watch?v={video_id}"
                     playlist_name = playlist.get('playlistTitle', '')
                     
                     # Derive video type and role for better hashtags
-                    video_type = derive_type_enhanced(playlist_name, title, description, '')
-                    video_role = derive_role_enhanced(playlist_name, title, description, '')
+                    video_type = derive_type_enhanced(playlist_name, title, description, tags)
+                    video_role = derive_role_enhanced(playlist_name, title, description, tags)
                     
                     # Generate hashtags based on Rupesh's expertise
                     hashtags = generate_hashtags_for_rupesh(video_type, video_role, title, description)
                     
-                    # LinkedIn post - Professional, detailed
-                    linkedin_post = f"{title}\n\n{youtube_url}\n\n{hashtags}"
+                    # CTAs
+                    booking_cta = "📅 Book 1-on-1 coaching: https://fullstackmaster/book"
+                    whatsapp_cta = "💬 WhatsApp: +1-609-442-4081"
                     
-                    # Facebook post - More casual, engaging
-                    facebook_post = f"{title}\n\n{youtube_url}\n\n{hashtags}"
+                    # Extract key points from description (first 2-3 sentences)
+                    description_lines = description.split('\n')[:3] if description else []
+                    key_points = '\n'.join([line.strip() for line in description_lines if line.strip()][:2])
                     
-                    # Instagram post - Visual, emoji-rich
-                    instagram_post = f"{title} 🎯\n\n{youtube_url}\n\n{hashtags}"
+                    # LinkedIn post - Professional, detailed, uses YouTube description
+                    linkedin_post = f"{title}\n\n"
+                    if key_points:
+                        linkedin_post += f"{key_points}\n\n"
+                    linkedin_post += f"Watch the full video: {youtube_url}\n\n"
+                    linkedin_post += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                    linkedin_post += hashtags
+                    
+                    # Facebook post - Engaging, uses YouTube description, more casual
+                    facebook_post = f"{title}\n\n"
+                    if key_points:
+                        facebook_post += f"{key_points}\n\n"
+                    facebook_post += f"👉 Watch here: {youtube_url}\n\n"
+                    facebook_post += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                    facebook_post += hashtags
+                    
+                    # Instagram post - Visual, emoji-rich, uses YouTube description
+                    instagram_post = f"{title} 🎯\n\n"
+                    if key_points:
+                        instagram_post += f"{key_points}\n\n"
+                    instagram_post += f"▶️ Watch: {youtube_url}\n\n"
+                    instagram_post += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                    instagram_post += hashtags
                     
                     social_posts = {
                         'linkedin': {
