@@ -94,31 +94,53 @@
                                     <th>Activity Level</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% set hourly_views = {} %}
-                                {% for row in insights.youtube.hourly_activity %}
-                                    {% set hour = row[1] if row|length > 1 else 0 %}
-                                    {% set views = row[2] if row|length > 2 else 0 %}
-                                    {% set _ = hourly_views.update({hour: hourly_views.get(hour, 0) + views}) %}
-                                {% endfor %}
-                                {% for hour, views in hourly_views.items()|sort %}
-                                    {% set bar_width = (views / hourly_views.values()|max * 100) if hourly_views.values()|max > 0 else 0 %}
-                                    <tr>
-                                        <td><strong>{{ hour }}:00</strong></td>
-                                        <td>{{ views }}</td>
-                                        <td>
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar {% if bar_width > 70 %}bg-success{% elif bar_width > 40 %}bg-warning{% else %}bg-info{% endif %}" 
-                                                     role="progressbar" style="width: {{ bar_width }}%">
-                                                    {% if bar_width > 10 %}{{ "%.0f"|format(bar_width) }}%{% endif %}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
+                            <tbody id="hourlyActivityTable">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                                        Loading hourly activity...
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
+                    <script>
+                    // Calculate hourly views from raw data
+                    (function() {
+                        const hourlyData = {{ insights.youtube.hourly_activity|tojson }};
+                        const hourlyViews = {};
+                        let maxViews = 0;
+                        
+                        hourlyData.forEach(function(row) {
+                            const hour = row.length > 1 ? row[1] : 0;
+                            const views = row.length > 2 ? row[2] : 0;
+                            hourlyViews[hour] = (hourlyViews[hour] || 0) + views;
+                            maxViews = Math.max(maxViews, hourlyViews[hour]);
+                        });
+                        
+                        const tableBody = document.getElementById('hourlyActivityTable');
+                        const hours = Object.keys(hourlyViews).map(Number).sort((a, b) => a - b);
+                        
+                        tableBody.innerHTML = hours.map(function(hour) {
+                            const views = hourlyViews[hour];
+                            const barWidth = maxViews > 0 ? (views / maxViews * 100) : 0;
+                            const barClass = barWidth > 70 ? 'bg-success' : (barWidth > 40 ? 'bg-warning' : 'bg-info');
+                            return `
+                                <tr>
+                                    <td><strong>${hour}:00</strong></td>
+                                    <td>${views}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar ${barClass}" role="progressbar" style="width: ${barWidth}%">
+                                                ${barWidth > 10 ? Math.round(barWidth) + '%' : ''}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    })();
+                    </script>
                     {% endif %}
                     
                     {% if insights.youtube.geography %}
