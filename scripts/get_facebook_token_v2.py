@@ -66,7 +66,7 @@ def get_token_via_graph_explorer():
     
     user_token = input("Paste your User Access Token here: ").strip()
     
-    if not user_token:
+    if user_token:
         print()
         print("Step 4: Getting Page Access Token...")
         print()
