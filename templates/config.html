@@ -637,6 +637,21 @@
                     <label class="form-check-label" for="role_tpm">Technical Program Manager (TPM)</label>
                 </div>
                 <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="manager_tpm" 
+                        id="role_manager_tpm" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['manager_tpm']) and 'manager_tpm' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_manager_tpm">Manager of TPMs</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="program_manager" 
+                        id="role_program_manager" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['program_manager']) and 'program_manager' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_program_manager">Program Manager</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_levels" value="technical_program_manager" 
+                        id="role_technical_program_manager" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['technical_program_manager']) and 'technical_program_manager' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
+                    <label class="form-check-label" for="role_technical_program_manager">Technical Program Manager</label>
+                </div>
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="role_levels" value="director" 
                         id="role_director" {{ 'checked' if (settings.targeting.role_levels if settings.targeting else ['director']) and 'director' in (settings.targeting.role_levels if settings.targeting else []) else '' }}>
                     <label class="form-check-label" for="role_director">Director</label>
@@ -768,22 +783,7 @@
         </div>
     </div>
 
-    <!-- Save All Button -->
-    <div class="mt-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-1"><i class="bi bi-save"></i> Save All Settings</h5>
-                        <small class="text-muted">Save all configuration sections at once</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-save"></i> Save All Configuration
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Note: Each section has its own save button above. No need for "Save All" button. -->
 </form>
 {% endblock %}
 
@@ -1018,6 +1018,9 @@
                 <div class="help-content" id="helpModalContent"></div>
             </div>
             <div class="modal-footer">
+                <a href="/docs" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-book"></i> View Full Documentation
+                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -1705,15 +1708,19 @@
                 <h6>What are Interview Types?</h6>
                 <p>These checkboxes help the auto-pilot identify and prioritize videos based on your coaching expertise.</p>
                 
-                <h6>Available Types (Based on Your Coaching):</h6>
+                <h6>Available Types (Based on Your Coaching Profile):</h6>
                 <ul>
-                    <li><strong>System Design Interview:</strong> FAANG-style system design, architecture, scalability (Your main focus)</li>
-                    <li><strong>Behavioral Interview:</strong> Leadership principles, STAR method, executive communication (Your specialty)</li>
-                    <li><strong>Leadership Interview:</strong> Leadership behavior, managing up, strategic thinking (Your expertise)</li>
-                    <li><strong>Career Coaching:</strong> Career growth, leveling up, breaking into big tech</li>
-                    <li><strong>Resume Review:</strong> Resume optimization for engineers, architects, PMs</li>
-                    <li><strong>Salary Negotiation:</strong> Compensation negotiation, equity, sign-ons</li>
+                    <li><strong>System Design Interview:</strong> FAANG-style system design, architecture, scalability. You help build system design depth for senior engineers and architects. (Your main focus)</li>
+                    <li><strong>Behavioral Interview:</strong> Leadership principles, STAR method, executive communication, influencing skills. You coach behavioral interviews aligned to leadership principles. (Your specialty)</li>
+                    <li><strong>Leadership Interview:</strong> Leadership behavior, managing up, strategic thinking, navigating invisible challenges. You help engineers step into senior roles confidently. (Your expertise)</li>
+                    <li><strong>Career Coaching:</strong> Career growth, leveling up, breaking into big tech. You tailor sessions to career goals for engineers, architects, and PMs.</li>
+                    <li><strong>Resume Review:</strong> Resume optimization for engineers, architects, and PMs applying to Amazon, Google, DraftKings, Red Hat, and more. You've screened 100+ resumes.</li>
+                    <li><strong>Salary Negotiation:</strong> Compensation negotiation, equity, sign-ons. You've helped clients unlock $4M+ in total comp increases ($80K–$300K boosts).</li>
                 </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Note:</strong> You do NOT coach LeetCode/coding interviews. Focus is on System Design, Behavioral, Leadership, Career Coaching, Resume Review, and Salary Negotiation for senior professionals.
+                </div>
                 
                 <h6>How it works:</h6>
                 <ol>
@@ -1724,8 +1731,10 @@
                 </ol>
                 
                 <div class="alert alert-info">
-                    <strong>Your Focus:</strong> System Design, Behavioral, and Leadership interviews for senior technical roles at AWS, Amazon, Google, Microsoft, and other FAANG companies.
+                    <strong>Your Focus:</strong> System Design, Behavioral, and Leadership interviews for senior technical roles at AWS, Amazon, Google, Microsoft, Databricks, and other FAANG companies. You work with senior engineers, architects, engineering managers, directors, and VP-level leaders.
                 </div>
+                
+                <p><a href="/docs#targeting" target="_blank" class="help-link">📖 Learn more about targeting strategy →</a></p>
             `
         },
         'role-levels': {
@@ -1734,18 +1743,20 @@
                 <h6>What are Roles to Target?</h6>
                 <p>These checkboxes help the auto-pilot identify and prioritize videos based on the roles you coach for.</p>
                 
-                <h6>Available Roles (Based on Your Coaching):</h6>
+                <h6>Available Roles (Based on Your Coaching Profile):</h6>
                 <ul>
-                    <li><strong>Engineering Manager:</strong> Tech leadership, team management</li>
-                    <li><strong>Product Manager:</strong> Product management, product strategy</li>
-                    <li><strong>Solutions Architect:</strong> Cloud architecture, AWS, system design</li>
-                    <li><strong>Cloud Engineer:</strong> Cloud infrastructure, AWS, cloud computing</li>
-                    <li><strong>Data Engineer:</strong> Data engineering, big data</li>
-                    <li><strong>Site Reliability Engineer (SRE):</strong> Reliability, infrastructure</li>
-                    <li><strong>Staff Software Engineer:</strong> Senior engineering, technical leadership</li>
-                    <li><strong>Technical Program Manager (TPM):</strong> Program management, technical programs</li>
-                    <li><strong>Director:</strong> Senior leadership, strategic direction</li>
-                    <li><strong>VP / Executive:</strong> Executive leadership, C-level</li>
+                    <li><strong>Engineering Manager:</strong> Tech leadership, team management, managing engineers</li>
+                    <li><strong>Product Manager:</strong> Product management, product strategy, product development</li>
+                    <li><strong>Solutions Architect:</strong> Cloud architecture, AWS, system design, customer solutions (Your current role at AWS)</li>
+                    <li><strong>Cloud Engineer:</strong> Cloud infrastructure, AWS, cloud computing, cloud infrastructure</li>
+                    <li><strong>Data Engineer:</strong> Data engineering, big data, data pipelines</li>
+                    <li><strong>Site Reliability Engineer (SRE):</strong> Reliability, infrastructure, SRE practices</li>
+                    <li><strong>Staff Software Engineer:</strong> Senior engineering, technical leadership, staff-level engineering</li>
+                    <li><strong>Technical Program Manager (TPM):</strong> Program management, technical programs, TPM roles</li>
+                    <li><strong>Manager of TPMs:</strong> Managing TPM teams, TPM leadership</li>
+                    <li><strong>Program Manager:</strong> Program management, cross-functional programs</li>
+                    <li><strong>Director:</strong> Senior leadership, strategic direction, director-level roles</li>
+                    <li><strong>VP / Executive:</strong> Executive leadership, C-level, VP-level leaders</li>
                 </ul>
                 
                 <h6>How it works:</h6>
@@ -1757,11 +1768,13 @@
                 </ol>
                 
                 <h6>Your Coaching Focus:</h6>
-                <p>You coach senior engineers, architects, engineering managers, directors, and VP-level leaders at AWS and other FAANG companies. Select all roles that match your content.</p>
+                <p>As a Senior Customer Solutions Manager at AWS, you coach <strong>senior engineers, architects, engineering managers, directors, and VP-level leaders</strong> at AWS, Amazon, Google, Microsoft, Databricks, and other FAANG companies. You've conducted over 100 interviews and coached 50+ people throughout your career.</p>
                 
                 <div class="alert alert-info">
-                    <strong>Note:</strong> These settings work together with "Target Audience" and "Interview Types" to create a comprehensive targeting strategy aligned with your coaching expertise.
+                    <strong>Note:</strong> These settings work together with "Target Audience" and "Interview Types" to create a comprehensive targeting strategy aligned with your coaching expertise. Focus on senior-level professionals, not entry-level or junior roles.
                 </div>
+                
+                <p><a href="/docs#targeting" target="_blank" class="help-link">📖 Learn more about role targeting →</a></p>
             `
         }
     };
@@ -1775,7 +1788,53 @@
         }
         
         document.getElementById('helpModalTitle').textContent = help.title;
-        document.getElementById('helpModalContent').innerHTML = help.content;
+        
+        // Add help page link if not already present
+        let content = help.content;
+        if (!content.includes('help-link') || !content.includes('/docs')) {
+            // Map help keys to documentation anchors
+            const docAnchors = {
+                'linkedin-client-id': '/docs#linkedin',
+                'linkedin-client-secret': '/docs#linkedin',
+                'linkedin-access-token': '/docs#linkedin',
+                'linkedin-person-urn': '/docs#linkedin',
+                'facebook-app-id': '/docs#facebook',
+                'facebook-app-secret': '/docs#facebook',
+                'facebook-page-token': '/docs#facebook',
+                'facebook-page-id': '/docs#facebook',
+                'instagram-account-id': '/docs#instagram',
+                'instagram-access-token': '/docs#instagram',
+                'ayrshare-api-key': '/docs#ayrshare',
+                'youtube-client-secret': '/docs#youtube',
+                'videos-per-day': '/docs#scheduling',
+                'schedule-day': '/docs#scheduling',
+                'youtube-schedule-time': '/docs#scheduling',
+                'social-media-schedule-time': '/docs#scheduling',
+                'youtube-playlist-id': '/docs#scheduling',
+                'export-type': '/docs#scheduling',
+                'upload-method': '/docs#upload',
+                'linkedin-daily-limit': '/docs#thresholds',
+                'facebook-daily-limit': '/docs#thresholds',
+                'instagram-daily-limit': '/docs#thresholds',
+                'youtube-daily-limit': '/docs#thresholds',
+                'target-audience': '/docs#targeting',
+                'interview-types': '/docs#targeting',
+                'role-levels': '/docs#targeting',
+                'booking-url': '/docs#cta',
+                'whatsapp-number': '/docs#cta',
+                'linkedin-url': '/docs#cta',
+                'instagram-url': '/docs#cta',
+                'facebook-url': '/docs#cta',
+                'youtube-url': '/docs#cta',
+                'twitter-url': '/docs#cta',
+                'website-url': '/docs#cta'
+            };
+            
+            const docLink = docAnchors[helpKey] || '/docs';
+            content += `<div class="mt-3 pt-3 border-top"><a href="${docLink}" target="_blank" class="help-link"><i class="bi bi-book"></i> View detailed documentation →</a></div>`;
+        }
+        
+        document.getElementById('helpModalContent').innerHTML = content;
 
         const modalElement = document.getElementById('helpModal');
         if (!modalElement) {
