@@ -27,20 +27,20 @@
     <!-- Stats Bar -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-gradient-primary text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card" style="background: var(--gradient-blue); border: none; color: white;">
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-md-4">
-                            <h3>{{ playlists|length }}</h3>
-                            <p class="mb-0">Shorts Playlists</p>
+                            <h3 style="color: white; font-weight: 700;">{{ playlists|length }}</h3>
+                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Shorts Playlists</p>
                         </div>
                         <div class="col-md-4">
-                            <h3>{{ playlists|sum(attribute='itemCount') }}</h3>
-                            <p class="mb-0">Total Shorts Videos</p>
+                            <h3 style="color: white; font-weight: 700;">{{ playlists|sum(attribute='itemCount') }}</h3>
+                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Total Shorts Videos</p>
                         </div>
                         <div class="col-md-4">
-                            <h3>{{ weekly_schedule or '19:30' }}</h3>
-                            <p class="mb-0">Weekly Schedule Time</p>
+                            <h3 style="color: white; font-weight: 700;">{{ weekly_schedule or '19:30' }}</h3>
+                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Weekly Schedule Time</p>
                         </div>
                     </div>
                 </div>
@@ -51,19 +51,19 @@
     <!-- Auto-Pilot Section -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
+            <div class="card" style="border-left: 4px solid var(--success);">
+                <div class="card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); border-bottom: 1px solid var(--border);">
+                    <h5 class="mb-0" style="color: var(--success); font-weight: 600;">
                         <i class="bi bi-rocket-takeoff"></i> One-Click Weekly Shorts Automation
                     </h5>
                 </div>
                 <div class="card-body">
-                    <p>Automatically select one video from each Shorts playlist and schedule them for weekly posting on all social media platforms.</p>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> 
+                    <p style="color: var(--text-secondary);">Automatically select one video from each Shorts playlist and schedule them for weekly posting on all social media platforms.</p>
+                    <div class="alert" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--text-primary);">
+                        <i class="bi bi-info-circle" style="color: var(--info);"></i> 
                         <strong>How it works:</strong> Selects 1 video per playlist → Generates posts → Schedules to LinkedIn, Facebook, Instagram → Respects daily thresholds
                     </div>
-                    <button class="btn btn-success btn-lg" onclick="runAutoPilot()">
+                    <button class="btn btn-success btn-lg" onclick="runAutoPilot()" style="padding: 12px 32px; font-weight: 600;">
                         <i class="bi bi-rocket-takeoff"></i> Run Auto-Pilot Now
                     </button>
                 </div>
@@ -76,29 +76,29 @@
         <div class="col-12">
             {% if playlists %}
                 {% for playlist in playlists %}
-                <div class="card mb-3">
-                    <div class="card-header">
+                <div class="card mb-3" style="transition: all 0.3s ease;">
+                    <div class="card-header" style="background: var(--bg-tertiary);">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h5 class="mb-0">
-                                    <i class="bi bi-collection-play"></i> {{ playlist.playlistTitle }}
+                                <h5 class="mb-1" style="color: var(--text-primary); font-weight: 600;">
+                                    <i class="bi bi-collection-play" style="color: var(--primary);"></i> {{ playlist.playlistTitle }}
                                 </h5>
-                                <small class="text-muted">
+                                <small style="color: var(--text-secondary);">
                                     <i class="bi bi-film"></i> {{ playlist.itemCount }} videos
                                 </small>
                             </div>
                             <div>
-                                <a href="/content-preview" class="btn btn-sm btn-primary">
+                                <a href="/content-preview" class="btn btn-sm btn-primary" style="margin-right: 8px;">
                                     <i class="bi bi-pencil-square"></i> Preview & Schedule
                                 </a>
-                                <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm" style="background: #ff0000; color: white; border-color: #ff0000;">
                                     <i class="bi bi-youtube"></i> View on YouTube
                                 </a>
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted mb-0">
+                        <p style="color: var(--text-secondary); margin: 0;">
                             <i class="bi bi-calendar"></i> Published: {{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}
                             {% if playlist.channelTitle %}
                             <span class="ms-3"><i class="bi bi-broadcast"></i> {{ playlist.channelTitle }}</span>
