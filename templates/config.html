@@ -662,6 +662,112 @@
         </div>
     </div>
 
+    <!-- CTA & Social Media Links Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-link-45deg"></i> CTA & Social Media Links
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">Configure your social media URLs, WhatsApp numbers, and other CTAs. These will be automatically included in all generated posts.</p>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Booking URL
+                        <span class="help-icon" onclick="showHelp('booking-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="booking_url"
+                        value="{{ settings.cta.booking_url if settings.cta else 'https://fullstackmaster/book' }}"
+                        placeholder="https://fullstackmaster/book">
+                    <small class="text-muted">URL for 1-on-1 coaching bookings</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        WhatsApp Number
+                        <span class="help-icon" onclick="showHelp('whatsapp-number')" title="Help">?</span>
+                    </label>
+                    <input type="text" class="form-control" name="whatsapp_number"
+                        value="{{ settings.cta.whatsapp_number if settings.cta else '+1-609-442-4081' }}"
+                        placeholder="+1-609-442-4081">
+                    <small class="text-muted">WhatsApp number for direct contact</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        LinkedIn Profile URL
+                        <span class="help-icon" onclick="showHelp('linkedin-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="linkedin_url"
+                        value="{{ settings.cta.linkedin_url if settings.cta else '' }}"
+                        placeholder="https://linkedin.com/in/yourprofile">
+                    <small class="text-muted">Your LinkedIn profile URL</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Instagram Profile URL
+                        <span class="help-icon" onclick="showHelp('instagram-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="instagram_url"
+                        value="{{ settings.cta.instagram_url if settings.cta else '' }}"
+                        placeholder="https://instagram.com/yourprofile">
+                    <small class="text-muted">Your Instagram profile URL</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Facebook Page URL
+                        <span class="help-icon" onclick="showHelp('facebook-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="facebook_url"
+                        value="{{ settings.cta.facebook_url if settings.cta else '' }}"
+                        placeholder="https://facebook.com/yourpage">
+                    <small class="text-muted">Your Facebook page URL</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        YouTube Channel URL
+                        <span class="help-icon" onclick="showHelp('youtube-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="youtube_url"
+                        value="{{ settings.cta.youtube_url if settings.cta else '' }}"
+                        placeholder="https://youtube.com/@yourchannel">
+                    <small class="text-muted">Your YouTube channel URL</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Twitter/X Profile URL
+                        <span class="help-icon" onclick="showHelp('twitter-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="twitter_url"
+                        value="{{ settings.cta.twitter_url if settings.cta else '' }}"
+                        placeholder="https://twitter.com/yourprofile">
+                    <small class="text-muted">Your Twitter/X profile URL</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Website URL
+                        <span class="help-icon" onclick="showHelp('website-url')" title="Help">?</span>
+                    </label>
+                    <input type="url" class="form-control" name="website_url"
+                        value="{{ settings.cta.website_url if settings.cta else '' }}"
+                        placeholder="https://yourwebsite.com">
+                    <small class="text-muted">Your main website URL</small>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>Note:</strong> These URLs and numbers will be automatically included in all generated social media posts and shorts scripts.
+            </div>
+            
+            <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="bi bi-lightning-charge"></i> Auto-saves after 2 seconds
+                </small>
+                <button type="button" class="btn btn-primary section-save-btn" onclick="saveSection('cta', this)">
+                    <i class="bi bi-save"></i> <span class="btn-text">Save CTA Settings</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Save All Button -->
     <div class="mt-4 mb-4">
         <div class="card">
@@ -1960,7 +2066,8 @@
                       'auto_post_social', 'upload_method'],
         'social_platforms': ['social_platforms'],
         'thresholds': ['linkedin_daily_limit', 'facebook_daily_limit', 'instagram_daily_limit', 'youtube_daily_limit'],
-        'targeting': ['target_audience', 'interview_types', 'role_levels']
+        'targeting': ['target_audience', 'interview_types', 'role_levels'],
+        'cta': ['booking_url', 'whatsapp_number', 'linkedin_url', 'instagram_url', 'facebook_url', 'youtube_url', 'twitter_url', 'website_url']
     };
 
     // Map inputs to their sections
@@ -2148,6 +2255,15 @@
             formData.target_audience = form.querySelector('[name="target_audience"]')?.value || 'usa_professionals';
             formData.interview_types = Array.from(form.querySelectorAll('[name="interview_types"]:checked')).map(cb => cb.value);
             formData.role_levels = Array.from(form.querySelectorAll('[name="role_levels"]:checked')).map(cb => cb.value);
+        } else if (section === 'cta') {
+            formData.booking_url = form.querySelector('[name="booking_url"]')?.value || 'https://fullstackmaster/book';
+            formData.whatsapp_number = form.querySelector('[name="whatsapp_number"]')?.value || '+1-609-442-4081';
+            formData.linkedin_url = form.querySelector('[name="linkedin_url"]')?.value || '';
+            formData.instagram_url = form.querySelector('[name="instagram_url"]')?.value || '';
+            formData.facebook_url = form.querySelector('[name="facebook_url"]')?.value || '';
+            formData.youtube_url = form.querySelector('[name="youtube_url"]')?.value || '';
+            formData.twitter_url = form.querySelector('[name="twitter_url"]')?.value || '';
+            formData.website_url = form.querySelector('[name="website_url"]')?.value || '';
         }
 
         // Save silently

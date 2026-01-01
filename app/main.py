@@ -263,7 +263,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
@@ -393,8 +393,8 @@ def save_settings(settings):
     
     # Also save to JSON file as backup
     try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=2)
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=2)
     except Exception as e:
         print(f"⚠️ Warning: Failed to save settings to JSON file: {e}")
     
@@ -1253,6 +1253,288 @@ def shorts():
     except Exception as e:
         import traceback
         return render_template('error.html', message=f"Error fetching Shorts: {str(e)}\n{traceback.format_exc()}")
+
+
+@app.route('/sessions')
+def sessions():
+    """Sessions management page - load and create shorts scripts from coaching sessions."""
+    import os
+    from pathlib import Path
+    
+    sessions_dir = Path('data/sessions')
+    sessions_list = []
+    
+    if sessions_dir.exists():
+        for file_path in sessions_dir.glob('*.txt'):
+            try:
+                file_size = file_path.stat().st_size
+                sessions_list.append({
+                    'filename': file_path.name,
+                    'size': file_size,
+                    'size_kb': round(file_size / 1024, 2),
+                    'modified': datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+                })
+            except Exception as e:
+                print(f"Error reading {file_path}: {e}")
+    
+    # Sort by modified date (newest first)
+    sessions_list.sort(key=lambda x: x['modified'], reverse=True)
+    
+    return render_template('sessions.html', sessions=sessions_list)
+
+
+@app.route('/api/sessions/<filename>')
+def api_get_session(filename):
+    """Get content of a session file."""
+    import os
+    from pathlib import Path
+    from flask import safe_join
+    
+    # Security: prevent directory traversal
+    if '..' in filename or '/' in filename or '\\' in filename:
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    sessions_dir = Path('data/sessions')
+    file_path = sessions_dir / filename
+    
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({'error': 'File not found'}), 404
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'content': content,
+            'size': len(content)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sessions/<filename>/generate-shorts', methods=['POST'])
+def api_generate_shorts_from_session(filename):
+    """Generate viral shorts scripts from a session file."""
+    import os
+    from pathlib import Path
+    import re
+    
+    # Security: prevent directory traversal
+    if '..' in filename or '/' in filename or '\\' in filename:
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    sessions_dir = Path('data/sessions')
+    file_path = sessions_dir / filename
+    
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({'error': 'File not found'}), 404
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Get settings for CTAs
+        settings = load_settings()
+        cta_settings = settings.get('cta', {})
+        booking_url = cta_settings.get('booking_url', 'https://fullstackmaster/book')
+        whatsapp_number = cta_settings.get('whatsapp_number', '+1-609-442-4081')
+        
+        # Generate shorts scripts
+        shorts_scripts = generate_shorts_from_session(content, booking_url, whatsapp_number)
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'scripts': shorts_scripts,
+            'count': len(shorts_scripts)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+def generate_shorts_from_session(session_content: str, booking_url: str, whatsapp_number: str) -> list:
+    """
+    Generate viral shorts scripts from session content.
+    Uses AI-like patterns to create engaging, clickbait-style scripts.
+    """
+    scripts = []
+    
+    # Extract key insights, questions, and answers from session
+    lines = session_content.split('\n')
+    
+    # Pattern 1: Extract interview questions and answers
+    current_qa = []
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line or len(line) < 20:
+            continue
+        
+        # Look for question patterns
+        if any(keyword in line.lower() for keyword in ['?', 'how', 'what', 'why', 'tell me', 'describe', 'explain']):
+            if current_qa:
+                # Generate script from previous Q&A
+                script = create_viral_script_from_qa(current_qa, booking_url, whatsapp_number)
+                if script:
+                    scripts.append(script)
+            current_qa = [line]
+        elif current_qa:
+            current_qa.append(line)
+            if len(current_qa) >= 5:  # Enough context
+                script = create_viral_script_from_qa(current_qa, booking_url, whatsapp_number)
+                if script:
+                    scripts.append(script)
+                current_qa = []
+    
+    # Process remaining Q&A
+    if current_qa:
+        script = create_viral_script_from_qa(current_qa, booking_url, whatsapp_number)
+        if script:
+            scripts.append(script)
+    
+    # Pattern 2: Extract key insights and tips
+    insights = extract_insights(session_content)
+    for insight in insights[:10]:  # Limit to 10
+        script = create_viral_script_from_insight(insight, booking_url, whatsapp_number)
+        if script:
+            scripts.append(script)
+    
+    # Pattern 3: Extract mistakes and lessons learned
+    mistakes = extract_mistakes(session_content)
+    for mistake in mistakes[:5]:  # Limit to 5
+        script = create_viral_script_from_mistake(mistake, booking_url, whatsapp_number)
+        if script:
+            scripts.append(script)
+    
+    return scripts[:20]  # Return max 20 scripts
+
+
+def create_viral_script_from_qa(qa_lines: list, booking_url: str, whatsapp_number: str) -> str:
+    """Create a viral shorts script from Q&A content."""
+    content = ' '.join(qa_lines[:3])  # Use first 3 lines
+    
+    hooks = [
+        "🚨 90% of candidates FAIL this question...",
+        "Most engineers get REJECTED because of this mistake...",
+        "FAANG interviewers reject 8/10 candidates. Here's why...",
+        "This one mistake cost someone their dream job...",
+        "The #1 reason why talented engineers fail interviews..."
+    ]
+    
+    import random
+    hook = random.choice(hooks)
+    
+    # Extract the key point (first 100 chars)
+    key_point = content[:100].strip()
+    if len(key_point) < 30:
+        return None
+    
+    script = f"""{hook}
+
+{key_point}...
+
+💡 Want to master this and avoid common mistakes?
+
+📅 Book 1-on-1 coaching: {booking_url}
+💬 WhatsApp: {whatsapp_number}
+
+#TechInterview #CareerGrowth #FAANGInterview"""
+    
+    return script
+
+
+def create_viral_script_from_insight(insight: str, booking_url: str, whatsapp_number: str) -> str:
+    """Create a viral shorts script from an insight."""
+    hooks = [
+        "💡 Pro tip that changed my career...",
+        "This insight helped 100+ engineers get offers...",
+        "The secret most engineers don't know...",
+        "This one thing separates senior engineers from juniors..."
+    ]
+    
+    import random
+    hook = random.choice(hooks)
+    
+    script = f"""{hook}
+
+{insight[:150]}...
+
+📅 Book 1-on-1 coaching: {booking_url}
+💬 WhatsApp: {whatsapp_number}
+
+#TechInterview #CareerGrowth"""
+    
+    return script
+
+
+def create_viral_script_from_mistake(mistake: str, booking_url: str, whatsapp_number: str) -> str:
+    """Create a viral shorts script from a mistake/lesson."""
+    hooks = [
+        "🚨 This mistake cost someone their ${}K offer...",
+        "Don't make this mistake in your interview...",
+        "I've seen 100+ candidates fail because of this...",
+        "This is why talented engineers get rejected..."
+    ]
+    
+    import random
+    hook = random.choice(hooks).format(random.randint(50, 300))
+    
+    script = f"""{hook}
+
+{mistake[:150]}...
+
+💡 Learn from this and avoid the same mistake!
+
+📅 Book 1-on-1 coaching: {booking_url}
+💬 WhatsApp: {whatsapp_number}
+
+#TechInterview #CareerGrowth #InterviewPrep"""
+    
+    return script
+
+
+def extract_insights(content: str) -> list:
+    """Extract key insights from session content."""
+    insights = []
+    lines = content.split('\n')
+    
+    keywords = ['insight', 'tip', 'key', 'important', 'remember', 'pro tip', 'secret', 'strategy']
+    
+    for i, line in enumerate(lines):
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in keywords) and len(line.strip()) > 30:
+            # Get context (next 2 lines)
+            context = line
+            if i + 1 < len(lines):
+                context += ' ' + lines[i + 1]
+            if i + 2 < len(lines):
+                context += ' ' + lines[i + 2]
+            insights.append(context.strip()[:200])
+    
+    return insights
+
+
+def extract_mistakes(content: str) -> list:
+    """Extract mistakes and lessons from session content."""
+    mistakes = []
+    lines = content.split('\n')
+    
+    keywords = ['mistake', 'wrong', 'error', 'failed', 'rejected', 'don\'t', 'avoid', 'lesson']
+    
+    for i, line in enumerate(lines):
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in keywords) and len(line.strip()) > 30:
+            # Get context (next 2 lines)
+            context = line
+            if i + 1 < len(lines):
+                context += ' ' + lines[i + 1]
+            if i + 2 < len(lines):
+                context += ' ' + lines[i + 2]
+            mistakes.append(context.strip()[:200])
+    
+    return mistakes
 
 
 @app.route('/insights')
@@ -2252,6 +2534,17 @@ def api_save_config_section():
                 'role_levels': data.get('role_levels', []),
                 'timezone': 'America/New_York',
                 'optimal_times': ['14:00', '17:00', '21:00']
+            }
+        elif section == 'cta':
+            settings['cta'] = {
+                'booking_url': data.get('booking_url', 'https://fullstackmaster/book'),
+                'whatsapp_number': data.get('whatsapp_number', '+1-609-442-4081'),
+                'linkedin_url': data.get('linkedin_url', ''),
+                'instagram_url': data.get('instagram_url', ''),
+                'facebook_url': data.get('facebook_url', ''),
+                'youtube_url': data.get('youtube_url', ''),
+                'twitter_url': data.get('twitter_url', ''),
+                'website_url': data.get('website_url', '')
             }
         else:
             return jsonify({'success': False, 'error': f'Unknown section: {section}'}), 400

@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions - YouTube Automation{% endblock %}
+
+{% block page_title %}Coaching Sessions{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Stats Bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="bi bi-file-text" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Total Sessions</h6>
+                                    <h3 class="mb-0">{{ sessions|length }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="bi bi-lightning-charge" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Ready for Scripts</h6>
+                                    <h3 class="mb-0">{{ sessions|length }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center h-100">
+                                <div>
+                                    <h6 class="mb-2">Generate Viral Shorts Scripts</h6>
+                                    <p class="mb-0 opacity-75">Transform your coaching sessions into engaging shorts content automatically</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-folder"></i> Session Files
+                    </div>
+                    <div>
+                        <input type="text" class="form-control form-control-sm" id="searchSessions" 
+                               placeholder="Search sessions..." style="width: 300px;">
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="sessionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Size</th>
+                                    <th>Last Modified</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions %}
+                                <tr data-filename="{{ session.filename }}">
+                                    <td>
+                                        <i class="bi bi-file-text text-primary"></i>
+                                        <strong>{{ session.filename }}</strong>
+                                    </td>
+                                    <td>{{ session.size_kb }} KB</td>
+                                    <td>{{ session.modified }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewSession('{{ session.filename }}')">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="generateShorts('{{ session.filename }}')">
+                                                <i class="bi bi-magic"></i> Generate Shorts
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No session files found in <code>data/sessions/</code> directory.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session View Modal -->
+<div class="modal fade" id="sessionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sessionModalTitle">Session Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sessionContent" style="max-height: 70vh; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="generateFromViewBtn">
+                    <i class="bi bi-magic"></i> Generate Shorts Scripts
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shorts Scripts Modal -->
+<div class="modal fade" id="shortsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shortsModalTitle">Generated Shorts Scripts</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="shortsScripts" style="max-height: 70vh; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="copyAllScripts()">
+                    <i class="bi bi-clipboard"></i> Copy All
+                </button>
+                <button type="button" class="btn btn-success" onclick="exportScripts()">
+                    <i class="bi bi-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentScripts = [];
+    let currentFilename = '';
+
+    // Search functionality
+    document.getElementById('searchSessions').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#sessionsTable tbody tr');
+        
+        rows.forEach(row => {
+            const filename = row.getAttribute('data-filename').toLowerCase();
+            if (filename.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // View session
+    function viewSession(filename) {
+        currentFilename = filename;
+        const modal = new bootstrap.Modal(document.getElementById('sessionModal'));
+        document.getElementById('sessionModalTitle').textContent = filename;
+        document.getElementById('sessionContent').textContent = 'Loading...';
+        
+        fetch(`/api/sessions/${filename}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('sessionContent').textContent = data.content;
+                    document.getElementById('generateFromViewBtn').onclick = () => generateShorts(filename);
+                } else {
+                    document.getElementById('sessionContent').textContent = 'Error: ' + data.error;
+                }
+            })
+            .catch(error => {
+                document.getElementById('sessionContent').textContent = 'Error loading session: ' + error;
+            });
+        
+        modal.show();
+    }
+
+    // Generate shorts scripts
+    function generateShorts(filename) {
+        currentFilename = filename;
+        const modal = new bootstrap.Modal(document.getElementById('shortsModal'));
+        document.getElementById('shortsModalTitle').textContent = `Shorts Scripts from ${filename}`;
+        document.getElementById('shortsScripts').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Generating viral shorts scripts...</p></div>';
+        
+        fetch(`/api/sessions/${filename}/generate-shorts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentScripts = data.scripts;
+                    displayScripts(data.scripts);
+                } else {
+                    document.getElementById('shortsScripts').innerHTML = 
+                        `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('shortsScripts').innerHTML = 
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        
+        modal.show();
+    }
+
+    // Display scripts
+    function displayScripts(scripts) {
+        const container = document.getElementById('shortsScripts');
+        
+        if (scripts.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning">No scripts generated. The session may not contain enough content.</div>';
+            return;
+        }
+        
+        let html = `<div class="alert alert-success"><strong>Generated ${scripts.length} shorts scripts!</strong></div>`;
+        
+        scripts.forEach((script, index) => {
+            html += `
+                <div class="card mb-3 script-card" data-index="${index}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Script #${index + 1}</strong>
+                        <button class="btn btn-sm btn-outline-primary" onclick="copyScript(${index})">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <pre style="white-space: pre-wrap; font-family: inherit; background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 0;">${escapeHtml(script)}</pre>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    // Copy single script
+    function copyScript(index) {
+        const script = currentScripts[index];
+        navigator.clipboard.writeText(script).then(() => {
+            // Show toast
+            showToast('Script copied to clipboard!', 'success');
+        });
+    }
+
+    // Copy all scripts
+    function copyAllScripts() {
+        const allScripts = currentScripts.join('\n\n---\n\n');
+        navigator.clipboard.writeText(allScripts).then(() => {
+            showToast('All scripts copied to clipboard!', 'success');
+        });
+    }
+
+    // Export scripts
+    function exportScripts() {
+        const allScripts = currentScripts.join('\n\n---\n\n');
+        const blob = new Blob([allScripts], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentFilename.replace('.txt', '')}_shorts_scripts.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Scripts exported!', 'success');
+    }
+
+    // Helper functions
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 3000);
+    }
+</script>
+{% endblock %}
+
