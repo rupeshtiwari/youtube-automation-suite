@@ -233,6 +233,16 @@ static_dir = os.path.join(os.path.dirname(__file__), 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+# Performance optimizations
+from app.performance import compress_response, optimize_response_headers, cached
+
+@app.after_request
+def after_request(response):
+    """Apply performance optimizations to all responses."""
+    response = optimize_response_headers(response)
+    response = compress_response(response)
+    return response
+
 # Initialize database on app startup (ensures settings table exists)
 init_database()
 
