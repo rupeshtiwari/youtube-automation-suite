@@ -2772,94 +2772,256 @@ def api_upload_client_secret():
 
 @app.route('/api/calendar-data')
 def api_calendar_data():
-    """API endpoint for calendar data (JSON) - shows scheduled videos by day and channel."""
-    from app.database import get_db_connection
+    """API endpoint for calendar data - fetches YouTube scheduled videos from all playlists and social media posts."""
+    from app.database import get_db_connection, get_video_social_posts_from_db
     from datetime import datetime
+    import pytz
     
     try:
+        calendar_events = []
+        
+        # Fetch YouTube scheduled videos from all playlists
+        youtube = get_youtube_service()
+        if youtube:
+            channel_id = get_my_channel_id_helper(youtube)
+            if channel_id:
+                playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+                ist = pytz.timezone('Asia/Kolkata')
+                
+                for playlist in playlists:
+                    playlist_id = playlist.get('playlistId', '')
+                    playlist_title = playlist.get('playlistTitle', '')
+                    
+                    videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_id)
+                    
+                    for video in videos:
+                        video_id = video.get('videoId', '')
+                        title = video.get('title', '')
+                        publish_at = video.get('publishAt', '')
+                        published_at = video.get('publishedAt', '')
+                        is_scheduled = video.get('isScheduled', False)
+                        
+                        # Determine the date to display
+                        display_date = None
+                        if is_scheduled and publish_at:
+                            try:
+                                if 'T' in publish_at:
+                                    display_date = datetime.fromisoformat(publish_at.replace('Z', '+00:00'))
+                                else:
+                                    display_date = datetime.strptime(publish_at, '%Y-%m-%dT%H:%M:%S')
+                            except:
+                                pass
+                        elif published_at:
+                            try:
+                                if 'T' in published_at:
+                                    display_date = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                                else:
+                                    display_date = datetime.strptime(published_at, '%Y-%m-%dT%H:%M:%S')
+                            except:
+                                pass
+                        
+                        if display_date:
+                            # Convert to IST if needed
+                            if display_date.tzinfo is None:
+                                display_date = ist.localize(display_date)
+                            else:
+                                display_date = display_date.astimezone(ist)
+                            
+                            # Add YouTube video event
+                            calendar_events.append({
+                                'date': display_date.strftime('%Y-%m-%d'),
+                                'time': display_date.strftime('%H:%M:%S'),
+                                'datetime': display_date.isoformat(),
+                                'platform': 'YouTube',
+                                'video_title': title,
+                                'video_id': video_id,
+                                'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
+                                'status': 'scheduled' if is_scheduled else 'published',
+                                'post_content': '',
+                                'playlist_name': playlist_title,
+                                'channel_name': 'YouTube',
+                                'video_type': '',
+                                'role': '',
+                                'custom_tags': '',
+                                'description': video.get('description', '')[:200]
+                            })
+                            
+                            # Get social media posts for this video
+                            social_posts = get_video_social_posts_from_db(video_id)
+                            for platform in ['linkedin', 'facebook', 'instagram']:
+                                post = social_posts.get(platform, {})
+                                schedule_date_str = post.get('schedule_date', '')
+                                
+                                if schedule_date_str:
+                                    try:
+                                        schedule_date = datetime.fromisoformat(schedule_date_str.replace('Z', '+00:00'))
+                                        if schedule_date.tzinfo is None:
+                                            schedule_date = ist.localize(schedule_date)
+                                        else:
+                                            schedule_date = schedule_date.astimezone(ist)
+                                        
+                                        calendar_events.append({
+                                            'date': schedule_date.strftime('%Y-%m-%d'),
+                                            'time': schedule_date.strftime('%H:%M:%S'),
+                                            'datetime': schedule_date.isoformat(),
+                                            'platform': platform.title(),
+                                            'video_title': title,
+                                            'video_id': video_id,
+                                            'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
+                                            'status': post.get('status', 'scheduled'),
+                                            'post_content': post.get('post_content', ''),
+                                            'playlist_name': playlist_title,
+                                            'channel_name': platform.title(),
+                                            'video_type': '',
+                                            'role': '',
+                                            'custom_tags': '',
+                                            'description': ''
+                                        })
+                                    except:
+                                        pass
+        
+        # Also get social media posts from database (for any videos not in playlists)
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Get all scheduled posts with video details
         cursor.execute('''
             SELECT 
-                smp.id,
                 smp.video_id,
                 smp.platform,
                 smp.post_content,
                 smp.schedule_date,
-                smp.actual_scheduled_date,
                 smp.status,
                 v.title as video_title,
                 v.youtube_url,
-                v.video_type,
-                v.role,
-                v.custom_tags,
-                v.playlist_name,
-                v.description,
-                v.youtube_schedule_date,
-                v.youtube_published_date
+                v.playlist_name
             FROM social_media_posts smp
             LEFT JOIN videos v ON smp.video_id = v.video_id
-            WHERE smp.status IN ('scheduled', 'pending', 'published')
-                AND (smp.schedule_date IS NOT NULL OR smp.actual_scheduled_date IS NOT NULL)
-            ORDER BY 
-                COALESCE(smp.schedule_date, smp.actual_scheduled_date) ASC
+            WHERE smp.status IN ('scheduled', 'pending')
+                AND smp.schedule_date IS NOT NULL
         ''')
         
-        rows = cursor.fetchall()
-        conn.close()
-        
-        calendar_events = []
-        for row in rows:
+        for row in cursor.fetchall():
             row_dict = dict(row)
-            
-            # Get the scheduled date
-            schedule_date = row_dict.get('schedule_date') or row_dict.get('actual_scheduled_date')
-            if not schedule_date:
-                continue
-            
-            try:
-                # Parse date
-                if isinstance(schedule_date, str):
-                    dt = datetime.fromisoformat(schedule_date.replace('Z', '+00:00'))
-                else:
-                    dt = schedule_date
-                
-                # Also check YouTube schedule date
-                youtube_schedule = row_dict.get('youtube_schedule_date') or row_dict.get('youtube_published_date')
-                if youtube_schedule and row_dict.get('platform', '').lower() == 'youtube':
-                    if isinstance(youtube_schedule, str):
-                        dt = datetime.fromisoformat(youtube_schedule.replace('Z', '+00:00'))
+            schedule_date_str = row_dict.get('schedule_date')
+            if schedule_date_str:
+                try:
+                    dt = datetime.fromisoformat(schedule_date_str.replace('Z', '+00:00'))
+                    ist = pytz.timezone('Asia/Kolkata')
+                    if dt.tzinfo is None:
+                        dt = ist.localize(dt)
                     else:
-                        dt = youtube_schedule
-                
+                        dt = dt.astimezone(ist)
+                    
+                    # Check if this event already exists
+                    exists = any(
+                        e.get('video_id') == row_dict.get('video_id') and 
+                        e.get('platform') == row_dict.get('platform', '').title() and
+                        e.get('datetime') == dt.isoformat()
+                        for e in calendar_events
+                    )
+                    
+                    if not exists:
                         calendar_events.append({
                             'date': dt.strftime('%Y-%m-%d'),
-                    'time': dt.strftime('%H:%M:%S') if dt.hour or dt.minute else '12:00:00',
+                            'time': dt.strftime('%H:%M:%S'),
                             'datetime': dt.isoformat(),
-                    'platform': row_dict.get('platform', '').title(),
-                    'video_title': row_dict.get('video_title', 'Untitled Video'),
-                    'video_id': row_dict.get('video_id', ''),
-                    'youtube_url': row_dict.get('youtube_url', ''),
-                    'status': row_dict.get('status', 'pending'),
-                    'post_content': row_dict.get('post_content', ''),
-                    'video_type': row_dict.get('video_type', '') or '',
-                    'role': row_dict.get('role', '') or '',
-                    'custom_tags': row_dict.get('custom_tags', '') or '',
-                    'playlist_name': row_dict.get('playlist_name', '') or '',
-                    'description': (row_dict.get('description', '') or '')[:200] + ('...' if len(row_dict.get('description', '') or '') > 200 else ''),
-                    'channel_name': 'YouTube'  # Default channel
-                })
-            except Exception as e:
-                # Skip invalid dates
-                continue
+                            'platform': row_dict.get('platform', '').title(),
+                            'video_title': row_dict.get('video_title', 'Untitled Video'),
+                            'video_id': row_dict.get('video_id', ''),
+                            'youtube_url': row_dict.get('youtube_url', ''),
+                            'status': row_dict.get('status', 'pending'),
+                            'post_content': row_dict.get('post_content', ''),
+                            'playlist_name': row_dict.get('playlist_name', '') or '',
+                            'channel_name': row_dict.get('platform', '').title(),
+                            'video_type': '',
+                            'role': '',
+                            'custom_tags': '',
+                            'description': ''
+                        })
+                except:
+                    pass
+        
+        conn.close()
+        
+        # Get optimal posting times and generate recommendations
+        optimal_times = get_optimal_posting_times_from_analytics()
+        recommendations = generate_calendar_recommendations(calendar_events, optimal_times)
         
         calendar_events.sort(key=lambda x: x['datetime'])
-        return jsonify({'events': calendar_events})
+        
+        return jsonify({
+            'events': calendar_events,
+            'optimal_times': optimal_times,
+            'recommendations': recommendations
+        })
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc(), 'events': []}), 500
+
+
+def get_optimal_posting_times_from_analytics():
+    """Get optimal posting times from analytics data."""
+    try:
+        youtube_analytics = get_youtube_analytics()
+        optimal_times = calculate_optimal_posting_times(youtube_analytics, {}, {})
+        
+        best_hours = []
+        if optimal_times.get('youtube') and optimal_times['youtube'].get('best_times'):
+            best_hours = [f"{hour:02d}:00" for hour, views in optimal_times['youtube']['best_times'][:3]]
+        
+        return {
+            'youtube': optimal_times.get('youtube', {}),
+            'best_hours': best_hours if best_hours else ['14:00', '17:00', '21:00'],
+            'overall_best': optimal_times.get('overall', {})
+        }
+    except:
+        return {'best_hours': ['14:00', '17:00', '21:00']}
+
+
+def generate_calendar_recommendations(events, optimal_times):
+    """Generate recommendations for promoting videos to other channels."""
+    recommendations = []
+    
+    # Group YouTube videos by date
+    youtube_videos_by_date = {}
+    social_posts_by_video = {}
+    
+    for event in events:
+        if event.get('platform') == 'YouTube':
+            date_key = event['date']
+            if date_key not in youtube_videos_by_date:
+                youtube_videos_by_date[date_key] = []
+            youtube_videos_by_date[date_key].append(event)
+        
+        # Track which platforms are scheduled for each video
+        video_id = event.get('video_id')
+        platform = event.get('platform', '').lower()
+        if video_id and platform != 'youtube':
+            if video_id not in social_posts_by_video:
+                social_posts_by_video[video_id] = set()
+            social_posts_by_video[video_id].add(platform)
+    
+    # Generate recommendations
+    for date_key, video_events in youtube_videos_by_date.items():
+        for video_event in video_events:
+            video_id = video_event.get('video_id')
+            video_title = video_event.get('video_title', '')
+            
+            scheduled_platforms = social_posts_by_video.get(video_id, set())
+            missing_platforms = {'linkedin', 'facebook', 'instagram'} - scheduled_platforms
+            
+            if missing_platforms:
+                best_time = optimal_times.get('best_hours', ['14:00'])[0] if optimal_times.get('best_hours') else '14:00'
+                recommendations.append({
+                    'date': date_key,
+                    'video_id': video_id,
+                    'video_title': video_title,
+                    'youtube_time': video_event.get('time', '12:00'),
+                    'missing_platforms': list(missing_platforms),
+                    'recommended_time': best_time,
+                    'message': f"Promote '{video_title[:50]}{'...' if len(video_title) > 50 else ''}' to {', '.join([p.title() for p in missing_platforms])} at {best_time}"
+                })
+    
+    return recommendations
 
 
 @app.route('/api/queue')

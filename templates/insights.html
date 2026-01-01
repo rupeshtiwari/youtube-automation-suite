@@ -80,14 +80,70 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5>YouTube Analytics</h5>
+                    <h5><i class="bi bi-youtube text-danger"></i> YouTube Analytics</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Channel ID:</strong> {{ insights.youtube.channel_id }}</p>
-                    <p><strong>Views Data Points:</strong> {{ insights.youtube.views_data|length if insights.youtube.views_data else 0 }}</p>
-                    <p><strong>Geography Data Points:</strong> {{ insights.youtube.geography|length if insights.youtube.geography else 0 }}</p>
-                    <p><strong>Demographics Data Points:</strong> {{ insights.youtube.demographics|length if insights.youtube.demographics else 0 }}</p>
-                    <p><strong>Hourly Activity Points:</strong> {{ insights.youtube.hourly_activity|length if insights.youtube.hourly_activity else 0 }}</p>
+                    {% if insights.youtube.hourly_activity %}
+                    <h6 class="mb-3">📊 Viewer Activity by Hour (When Your Audience is Watching)</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Hour (24h)</th>
+                                    <th>Views</th>
+                                    <th>Activity Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set hourly_views = {} %}
+                                {% for row in insights.youtube.hourly_activity %}
+                                    {% set hour = row[1] if row|length > 1 else 0 %}
+                                    {% set views = row[2] if row|length > 2 else 0 %}
+                                    {% set _ = hourly_views.update({hour: hourly_views.get(hour, 0) + views}) %}
+                                {% endfor %}
+                                {% for hour, views in hourly_views.items()|sort %}
+                                    {% set bar_width = (views / hourly_views.values()|max * 100) if hourly_views.values()|max > 0 else 0 %}
+                                    <tr>
+                                        <td><strong>{{ hour }}:00</strong></td>
+                                        <td>{{ views }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar {% if bar_width > 70 %}bg-success{% elif bar_width > 40 %}bg-warning{% else %}bg-info{% endif %}" 
+                                                     role="progressbar" style="width: {{ bar_width }}%">
+                                                    {% if bar_width > 10 %}{{ "%.0f"|format(bar_width) }}%{% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                    
+                    {% if insights.youtube.geography %}
+                    <h6 class="mb-3">🌍 Top Geographic Locations</h6>
+                    <div class="row">
+                        {% for row in insights.youtube.geography[:5] %}
+                            <div class="col-md-4 mb-2">
+                                <div class="badge bg-primary">{{ row[0] if row|length > 0 else 'Unknown' }}</div>
+                                <span class="ms-2">{{ row[1] if row|length > 1 else 0 }} views</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if insights.youtube.demographics %}
+                    <h6 class="mb-3 mt-4">👥 Demographics</h6>
+                    <div class="row">
+                        {% for row in insights.youtube.demographics[:5] %}
+                            <div class="col-md-6 mb-2">
+                                <div class="badge bg-info">{{ row[0] if row|length > 0 else 'Unknown' }} / {{ row[1] if row|length > 1 else 'Unknown' }}</div>
+                                <span class="ms-2">{{ row[2] if row|length > 2 else 0 }} views</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -195,11 +251,108 @@
         </div>
     </div>
 
+    <!-- Booking & Purchase Information -->
+    {% if insights.cta %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cart-check"></i> Booking & Purchase Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Include this information in your video descriptions to convert viewers into clients:</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="bi bi-calendar-check text-primary"></i> Book Coaching Session
+                                    </h6>
+                                    {% if insights.cta.booking_url %}
+                                    <p class="card-text">
+                                        <strong>Booking URL:</strong><br>
+                                        <a href="{{ insights.cta.booking_url }}" target="_blank" class="btn btn-sm btn-primary mt-2">
+                                            {{ insights.cta.booking_url }}
+                                        </a>
+                                    </p>
+                                    {% else %}
+                                    <p class="text-muted">Configure booking URL in Settings → CTA section</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="bi bi-whatsapp text-success"></i> WhatsApp Contact
+                                    </h6>
+                                    {% if insights.cta.whatsapp_number %}
+                                    <p class="card-text">
+                                        <strong>Phone Number:</strong><br>
+                                        <a href="https://wa.me/{{ insights.cta.whatsapp_number.replace('+', '').replace('-', '').replace(' ', '') }}" 
+                                           target="_blank" class="btn btn-sm btn-success mt-2">
+                                            <i class="bi bi-whatsapp"></i> {{ insights.cta.whatsapp_number }}
+                                        </a>
+                                    </p>
+                                    {% else %}
+                                    <p class="text-muted">Configure WhatsApp number in Settings → CTA section</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <strong>💡 Recommended Video Description Template:</strong>
+                        <pre class="mt-2 mb-0" style="white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+📅 Book 1-on-1 coaching: {{ insights.cta.booking_url or 'https://fullstackmaster/book' }}
+💬 WhatsApp: {{ insights.cta.whatsapp_number or '+1-609-442-4081' }}
+
+#SystemDesign #TechInterview #FAANG #CareerGrowth</pre>
+                    </div>
+                    
+                    {% if insights.cta.linkedin_url or insights.cta.instagram_url or insights.cta.facebook_url or insights.cta.youtube_url %}
+                    <hr>
+                    <h6>Social Media Links</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if insights.cta.linkedin_url %}
+                        <a href="{{ insights.cta.linkedin_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-linkedin"></i> LinkedIn
+                        </a>
+                        {% endif %}
+                        {% if insights.cta.instagram_url %}
+                        <a href="{{ insights.cta.instagram_url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-instagram"></i> Instagram
+                        </a>
+                        {% endif %}
+                        {% if insights.cta.facebook_url %}
+                        <a href="{{ insights.cta.facebook_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-facebook"></i> Facebook
+                        </a>
+                        {% endif %}
+                        {% if insights.cta.youtube_url %}
+                        <a href="{{ insights.cta.youtube_url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-youtube"></i> YouTube
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="row">
         <div class="col-12">
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> 
-                <strong>Note:</strong> Rich visualizations with charts, demographics, and geography maps will be added soon. Use the recommendations above to optimize your posting strategy.
+                <strong>Note:</strong> Use the analytics above to determine when your audience is most active. Schedule your posts during peak hours for maximum engagement.
             </div>
         </div>
     </div>

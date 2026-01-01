@@ -634,6 +634,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             });
             
+            // Display recommendations if available
+            if (data.recommendations && data.recommendations.length > 0) {
+                const recommendationsHtml = data.recommendations.slice(0, 5).map(rec => `
+                    <div class="tip-item tip-warning">
+                        <div class="tip-item-header">
+                            <i class="bi bi-lightbulb"></i> Recommendation
+                        </div>
+                        <div class="tip-item-content">
+                            ${rec.message}<br>
+                            <small class="text-muted">Recommended time: ${rec.recommended_time}</small>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('smartTips').innerHTML = recommendationsHtml;
+            }
+            
+            // Display optimal times if available
+            if (data.optimal_times && data.optimal_times.best_hours) {
+                const optimalTimesHtml = `
+                    <div class="tip-item tip-success">
+                        <div class="tip-item-header">
+                            <i class="bi bi-clock"></i> Optimal Posting Times
+                        </div>
+                        <div class="tip-item-content">
+                            Best times: ${data.optimal_times.best_hours.join(', ')}<br>
+                            <small class="text-muted">Based on viewer activity analytics</small>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('smartTips').innerHTML = optimalTimesHtml + (document.getElementById('smartTips').innerHTML || '');
+            }
+            
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 headerToolbar: {
