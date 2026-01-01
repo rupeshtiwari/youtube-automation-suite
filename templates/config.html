@@ -394,8 +394,11 @@
                     </small>
                 </div>
             </div>
-            <div class="mt-3 d-flex justify-content-end">
-                <button type="button" class="btn btn-primary" onclick="saveSection('scheduling', this)">
+            <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="bi bi-lightning-charge"></i> Auto-saves after 2 seconds
+                </small>
+                <button type="button" class="btn btn-primary section-save-btn" onclick="saveSection('scheduling', this)">
                     <i class="bi bi-save"></i> <span class="btn-text">Save Scheduling Settings</span>
                 </button>
             </div>
@@ -460,8 +463,11 @@
                     <strong>Link Sharing:</strong> Just posts YouTube link (faster, lower engagement)
                 </small>
             </div>
-            <div class="mt-3 d-flex justify-content-end">
-                <button type="button" class="btn btn-primary" onclick="saveSection('social_media', this)">
+            <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="bi bi-lightning-charge"></i> Auto-saves after 2 seconds
+                </small>
+                <button type="button" class="btn btn-primary section-save-btn" onclick="saveSection('social_media', this)">
                     <i class="bi bi-save"></i> <span class="btn-text">Save Social Media Settings</span>
                 </button>
             </div>
@@ -516,8 +522,11 @@
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> These limits prevent exceeding platform rate limits. Auto-pilot mode will respect these thresholds.
             </div>
-            <div class="mt-3 d-flex justify-content-end">
-                <button type="button" class="btn btn-primary" onclick="saveSection('thresholds', this)">
+            <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="bi bi-lightning-charge"></i> Auto-saves after 2 seconds
+                </small>
+                <button type="button" class="btn btn-primary section-save-btn" onclick="saveSection('thresholds', this)">
                     <i class="bi bi-save"></i> <span class="btn-text">Save Daily Limits</span>
                 </button>
             </div>
@@ -642,8 +651,11 @@
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> <strong>Targeting Strategy:</strong> Auto-pilot will prioritize videos matching System Design, Behavioral, and Leadership interviews for Engineering Managers, Product Managers, Solutions Architects, Cloud Engineers, and other senior technical roles.
             </div>
-            <div class="mt-3 d-flex justify-content-end">
-                <button type="button" class="btn btn-primary" onclick="saveSection('targeting', this)">
+            <div class="mt-3 d-flex justify-content-end align-items-center gap-2">
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="bi bi-lightning-charge"></i> Auto-saves after 2 seconds
+                </small>
+                <button type="button" class="btn btn-primary section-save-btn" onclick="saveSection('targeting', this)">
                     <i class="bi bi-save"></i> <span class="btn-text">Save Targeting Settings</span>
                 </button>
             </div>
@@ -676,23 +688,25 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
-        background: var(--buffer-primary);
+        background: var(--info);
         color: white;
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
-        margin-left: 6px;
+        margin-left: 8px;
         vertical-align: middle;
         transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        line-height: 1;
     }
 
     .help-icon:hover {
-        background: var(--buffer-primary);
-        opacity: 0.8;
-        transform: scale(1.1);
+        background: var(--primary);
+        transform: scale(1.15);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
     }
 
     .form-label {
@@ -812,6 +826,76 @@
 
     .section-save-btn {
         min-width: 180px;
+    }
+
+    /* Auto-save indicator */
+    .auto-save-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        margin-left: 12px;
+        font-weight: 500;
+        animation: fadeIn 0.3s;
+    }
+
+    .auto-save-indicator.saving {
+        background: var(--warning);
+        color: white;
+    }
+
+    .auto-save-indicator.saved {
+        background: var(--success);
+        color: white;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Make help icons more visible */
+    .help-icon {
+        background: var(--info) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .help-icon:hover {
+        background: var(--primary) !important;
+        transform: scale(1.15);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+
+    /* Auto-save notice */
+    .auto-save-notice {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--success);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: none;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .auto-save-notice.show {
+        display: block;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 </style>
 {% endblock %}
@@ -1864,5 +1948,246 @@
             }, 3000);
         });
     }
+
+    // Auto-save functionality
+    let autoSaveTimeouts = {};
+    let autoSaveSections = {
+        'api_keys': ['linkedin_client_id', 'linkedin_client_secret', 'linkedin_access_token', 'linkedin_person_urn', 
+                     'facebook_app_id', 'facebook_app_secret', 'facebook_page_access_token', 'facebook_page_id',
+                     'instagram_business_account_id', 'instagram_access_token', 'ayrshare_api_key'],
+        'scheduling': ['scheduling_enabled', 'videos_per_day', 'schedule_day', 'youtube_schedule_time', 
+                      'social_media_schedule_time', 'playlist_id', 'export_type', 'use_database', 
+                      'auto_post_social', 'upload_method'],
+        'social_platforms': ['social_platforms'],
+        'thresholds': ['linkedin_daily_limit', 'facebook_daily_limit', 'instagram_daily_limit', 'youtube_daily_limit'],
+        'targeting': ['target_audience', 'interview_types', 'role_levels']
+    };
+
+    // Map inputs to their sections
+    function getSectionForInput(inputName) {
+        for (const [section, fields] of Object.entries(autoSaveSections)) {
+            if (fields.includes(inputName) || inputName.startsWith('social_platforms') || 
+                inputName.startsWith('interview_types') || inputName.startsWith('role_levels')) {
+                return section;
+            }
+        }
+        // Default mapping
+        if (inputName.includes('linkedin') || inputName.includes('facebook') || 
+            inputName.includes('instagram') || inputName.includes('ayrshare')) {
+            return 'api_keys';
+        }
+        if (inputName.includes('limit') || inputName.includes('threshold')) {
+            return 'thresholds';
+        }
+        if (inputName.includes('audience') || inputName.includes('interview') || inputName.includes('role')) {
+            return 'targeting';
+        }
+        return 'scheduling';
+    }
+
+    // Auto-save function
+    function autoSave(section, inputName) {
+        // Clear existing timeout for this section
+        if (autoSaveTimeouts[section]) {
+            clearTimeout(autoSaveTimeouts[section]);
+        }
+
+        // Show saving indicator
+        showAutoSaveIndicator(section, 'saving');
+
+        // Set new timeout (2 seconds after user stops typing)
+        autoSaveTimeouts[section] = setTimeout(() => {
+            // Get the save button for this section
+            const sectionCards = document.querySelectorAll('.card');
+            let saveButton = null;
+            
+            for (const card of sectionCards) {
+                const button = card.querySelector(`button[onclick*="saveSection('${section}'"]`);
+                if (button) {
+                    saveButton = button;
+                    break;
+                }
+            }
+
+            if (saveButton) {
+                // Trigger save
+                saveSection(section, saveButton, true); // true = auto-save mode
+            } else {
+                // Fallback: try to find button by section name
+                const buttons = document.querySelectorAll('button[onclick*="saveSection"]');
+                for (const btn of buttons) {
+                    if (btn.getAttribute('onclick').includes(`'${section}'`)) {
+                        saveSection(section, btn, true);
+                        break;
+                    }
+                }
+            }
+        }, 2000); // 2 second delay
+    }
+
+    // Show auto-save indicator
+    function showAutoSaveIndicator(section, status) {
+        // Remove existing indicator
+        const existing = document.getElementById(`auto-save-indicator-${section}`);
+        if (existing) {
+            existing.remove();
+        }
+
+        // Create indicator
+        const indicator = document.createElement('div');
+        indicator.id = `auto-save-indicator-${section}`;
+        indicator.className = 'auto-save-indicator';
+        
+        if (status === 'saving') {
+            indicator.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+            indicator.className += ' saving';
+        } else if (status === 'saved') {
+            indicator.innerHTML = '<i class="bi bi-check-circle"></i> Saved';
+            indicator.className += ' saved';
+        }
+
+        // Find the section card and append indicator
+        const sectionCards = document.querySelectorAll('.card');
+        for (const card of sectionCards) {
+            const button = card.querySelector(`button[onclick*="saveSection('${section}'"]`);
+            if (button) {
+                const cardHeader = card.querySelector('.card-header');
+                if (cardHeader) {
+                    cardHeader.appendChild(indicator);
+                    break;
+                }
+            }
+        }
+
+        // Auto-remove after 3 seconds if saved
+        if (status === 'saved') {
+            setTimeout(() => {
+                if (indicator.parentElement) {
+                    indicator.remove();
+                }
+            }, 3000);
+        }
+    }
+
+    // Attach auto-save listeners to all inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('configForm');
+        if (!form) return;
+
+        // Add event listeners to all inputs
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            const inputName = input.name || input.id;
+            if (!inputName) return;
+
+            // Skip file inputs
+            if (input.type === 'file') return;
+
+            // Determine section
+            const section = getSectionForInput(inputName);
+
+            // Add event listeners
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.addEventListener('change', () => {
+                    autoSave(section, inputName);
+                });
+            } else {
+                input.addEventListener('input', () => {
+                    autoSave(section, inputName);
+                });
+            }
+        });
+
+        // Also handle checkboxes for social platforms, interview types, role levels
+        const checkboxes = form.querySelectorAll('input[type="checkbox"][name^="social_platforms"], input[type="checkbox"][name^="interview_types"], input[type="checkbox"][name^="role_levels"]');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const section = getSectionForInput(cb.name);
+                autoSave(section, cb.name);
+            });
+        });
+    });
+
+    // Store original saveSection function
+    const originalSaveSection = window.saveSection;
+    
+    // Override saveSection to support auto-save mode
+    window.saveSection = function(section, button, isAutoSave = false) {
+        if (isAutoSave) {
+            // Auto-save mode: don't show button animation, just save silently
+            const form = document.getElementById('configForm');
+            const formData = {};
+            
+            // Collect form data (same logic as before)
+            if (section === 'api_keys') {
+                formData.linkedin_client_id = form.querySelector('[name="linkedin_client_id"]')?.value || '';
+                formData.linkedin_client_secret = form.querySelector('[name="linkedin_client_secret"]')?.value || '';
+                formData.linkedin_access_token = form.querySelector('[name="linkedin_access_token"]')?.value || '';
+                formData.linkedin_person_urn = form.querySelector('[name="linkedin_person_urn"]')?.value || '';
+                formData.facebook_app_id = form.querySelector('[name="facebook_app_id"]')?.value || '';
+                formData.facebook_app_secret = form.querySelector('[name="facebook_app_secret"]')?.value || '';
+                formData.facebook_page_access_token = form.querySelector('[name="facebook_page_access_token"]')?.value || '';
+                formData.facebook_page_id = form.querySelector('[name="facebook_page_id"]')?.value || '';
+                formData.instagram_business_account_id = form.querySelector('[name="instagram_business_account_id"]')?.value || '';
+                formData.instagram_access_token = form.querySelector('[name="instagram_access_token"]')?.value || '';
+                formData.ayrshare_api_key = form.querySelector('[name="ayrshare_api_key"]')?.value || '';
+            } else if (section === 'scheduling') {
+                formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
+                formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
+                formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
+                formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
+                formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
+                formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
+                formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
+                formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
+                formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
+                formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+                formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
+            } else if (section === 'social_media') {
+                formData.auto_post_social = form.querySelector('[name="auto_post_social"]')?.checked || false;
+                formData.social_platforms = Array.from(form.querySelectorAll('[name="social_platforms"]:checked')).map(cb => cb.value);
+                formData.scheduling_enabled = form.querySelector('[name="scheduling_enabled"]')?.checked || false;
+                formData.videos_per_day = parseInt(form.querySelector('[name="videos_per_day"]')?.value) || 1;
+                formData.youtube_schedule_time = form.querySelector('[name="youtube_schedule_time"]')?.value || '';
+                formData.social_media_schedule_time = form.querySelector('[name="social_media_schedule_time"]')?.value || '';
+                formData.schedule_day = form.querySelector('[name="schedule_day"]')?.value || 'wednesday';
+                formData.playlist_id = form.querySelector('[name="playlist_id"]')?.value || '';
+                formData.export_type = form.querySelector('[name="export_type"]')?.value || 'shorts';
+                formData.use_database = form.querySelector('[name="use_database"]')?.checked || true;
+                formData.upload_method = form.querySelector('[name="upload_method"]')?.value || 'native';
+                section = 'scheduling';
+            } else if (section === 'thresholds') {
+                formData.linkedin_daily_limit = parseInt(form.querySelector('[name="linkedin_daily_limit"]')?.value) || 25;
+                formData.facebook_daily_limit = parseInt(form.querySelector('[name="facebook_daily_limit"]')?.value) || 25;
+                formData.instagram_daily_limit = parseInt(form.querySelector('[name="instagram_daily_limit"]')?.value) || 25;
+                formData.youtube_daily_limit = parseInt(form.querySelector('[name="youtube_daily_limit"]')?.value) || 10;
+            } else if (section === 'targeting') {
+                formData.target_audience = form.querySelector('[name="target_audience"]')?.value || 'usa_professionals';
+                formData.interview_types = Array.from(form.querySelectorAll('[name="interview_types"]:checked')).map(cb => cb.value);
+                formData.role_levels = Array.from(form.querySelectorAll('[name="role_levels"]:checked')).map(cb => cb.value);
+            }
+
+            // Save silently
+            fetch('/api/config/save-section', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: section, data: formData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAutoSaveIndicator(section, 'saved');
+                } else {
+                    console.error('Auto-save failed:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Auto-save error:', error);
+            });
+        } else {
+            // Manual save: use original function
+            originalSaveSection(section, button);
+        }
+    };
 </script>
 {% endblock %}
