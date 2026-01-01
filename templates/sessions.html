@@ -240,19 +240,22 @@
             return;
         }
         
-        let html = `<div class="alert alert-success"><strong>Generated ${scripts.length} shorts scripts!</strong></div>`;
+        let html = `<div class="alert alert-success"><strong>Generated ${scripts.length} shorts scripts!</strong> Each script is 40 seconds and includes role, type, and playlist suggestions.</div>`;
         
         scripts.forEach((script, index) => {
             html += `
-                <div class="card mb-3 script-card" data-index="${index}">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <strong>Script #${index + 1}</strong>
+                <div class="card mb-3 script-card" data-index="${index}" style="border-left: 4px solid var(--primary);">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                        <div>
+                            <strong>Script #${index + 1}</strong>
+                            <span class="badge bg-info ms-2">40 seconds</span>
+                        </div>
                         <button class="btn btn-sm btn-outline-primary" onclick="copyScript(${index})">
                             <i class="bi bi-clipboard"></i> Copy
                         </button>
                     </div>
                     <div class="card-body">
-                        <pre style="white-space: pre-wrap; font-family: inherit; background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 0;">${escapeHtml(script)}</pre>
+                        <pre style="white-space: pre-wrap; font-family: inherit; background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 0; font-size: 14px; line-height: 1.6;">${escapeHtml(script)}</pre>
                     </div>
                 </div>
             `;
