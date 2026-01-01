@@ -1320,12 +1320,54 @@ def api_autopilot_run():
                         break
                 
                 if not post_content:
-                    # Generate simple post content
+                    # Generate post content with CTAs using YouTube metadata
                     db_video = get_video(video_id)
                     title = db_video.get('title', video_title) if db_video else video_title
                     description = db_video.get('description', video.get('description', '')) if db_video else video.get('description', '')
+                    tags = db_video.get('tags', video.get('tags', '')) if db_video else video.get('tags', '')
                     youtube_url = f"https://youtube.com/watch?v={video_id}"
-                    post_content = f"{title}\n\n{youtube_url}"
+                    playlist_name = playlist.get('playlistTitle', '')
+                    
+                    # Derive video type and role for better hashtags
+                    from app.tagging import derive_type_enhanced, derive_role_enhanced
+                    video_type = derive_type_enhanced(playlist_name, title, description, tags)
+                    video_role = derive_role_enhanced(playlist_name, title, description, tags)
+                    
+                    # Generate hashtags
+                    hashtags = generate_hashtags_for_rupesh(video_type, video_role, title, description)
+                    
+                    # CTAs
+                    booking_cta = "📅 Book 1-on-1 coaching: https://fullstackmaster/book"
+                    whatsapp_cta = "💬 WhatsApp: +1-609-442-4081"
+                    
+                    # Extract key points from description
+                    description_lines = description.split('\n')[:3] if description else []
+                    key_points = '\n'.join([line.strip() for line in description_lines if line.strip()][:2])
+                    
+                    # Generate platform-specific posts
+                    if platform == 'linkedin':
+                        post_content = f"{title}\n\n"
+                        if key_points:
+                            post_content += f"{key_points}\n\n"
+                        post_content += f"Watch the full video: {youtube_url}\n\n"
+                        post_content += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                        post_content += hashtags
+                    elif platform == 'facebook':
+                        post_content = f"{title}\n\n"
+                        if key_points:
+                            post_content += f"{key_points}\n\n"
+                        post_content += f"👉 Watch here: {youtube_url}\n\n"
+                        post_content += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                        post_content += hashtags
+                    elif platform == 'instagram':
+                        post_content = f"{title} 🎯\n\n"
+                        if key_points:
+                            post_content += f"{key_points}\n\n"
+                        post_content += f"▶️ Watch: {youtube_url}\n\n"
+                        post_content += f"{booking_cta}\n{whatsapp_cta}\n\n"
+                        post_content += hashtags
+                    else:
+                        post_content = f"{title}\n\n{youtube_url}\n\n{booking_cta}\n{whatsapp_cta}\n\n{hashtags}"
                 
                 # Calculate schedule date (next scheduled day/time)
                 schedule_time = settings.get('scheduling', {}).get('social_media_schedule_time', '19:30')
