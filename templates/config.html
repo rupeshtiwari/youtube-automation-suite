@@ -1940,6 +1940,37 @@
         });
     }
 
+    function loadConfigFromFile() {
+        if (!confirm('This will load settings from MY_CONFIG.json and overwrite current settings. Continue?')) {
+            return;
+        }
+        
+        fetch('/api/config/load-from-file', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.stats;
+                alert(`✅ Configuration loaded successfully!\n\n` +
+                      `- API Keys: ${stats.api_keys_configured} configured\n` +
+                      `- Scheduling: ${stats.scheduling_enabled ? 'Enabled' : 'Disabled'}\n` +
+                      `- Upload Method: ${stats.upload_method}\n` +
+                      `- CTA Settings: ${stats.cta_configured} configured\n\n` +
+                      `Page will reload to show updated settings.`);
+                window.location.reload();
+            } else {
+                alert(`❌ Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`❌ Error loading config: ${error.message}`);
+        });
+    }
+
     function showTestResults(results) {
         let message = 'Connection Test Results:\n\n';
         results.forEach(result => {
