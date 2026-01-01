@@ -229,7 +229,8 @@ from app import views
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 template_dir = os.path.join(project_root, 'templates')
 
-app = Flask(__name__, template_folder=template_dir)
+static_dir = os.path.join(os.path.dirname(__file__), 'static')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Initialize database on app startup (ensures settings table exists)
