@@ -1306,7 +1306,13 @@ def api_content_preview_videos():
                 video_id = video['videoId']
                 
                 # Get social posts from database
-                social_posts = get_video_social_posts_from_db(video_id)
+                social_posts_list = get_video_social_posts_from_db(video_id)
+                
+                # Convert list to dict format
+                social_posts = {}
+                for post in social_posts_list:
+                    if post and post.get('platform'):
+                        social_posts[post['platform']] = post
                 
                 # Get video from database for metadata
                 db_video = get_video(video_id)
