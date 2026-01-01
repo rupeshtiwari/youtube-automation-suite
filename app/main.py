@@ -2524,8 +2524,6 @@ def api_save_config_section():
                 'linkedin_client_secret': data.get('linkedin_client_secret', ''),
                 'linkedin_access_token': data.get('linkedin_access_token', ''),
                 'linkedin_person_urn': data.get('linkedin_person_urn', ''),
-                'facebook_app_id': data.get('facebook_app_id', ''),
-                'facebook_app_secret': data.get('facebook_app_secret', ''),
                 'facebook_page_access_token': data.get('facebook_page_access_token', ''),
                 'facebook_page_id': data.get('facebook_page_id', ''),
                 'instagram_business_account_id': data.get('instagram_business_account_id', ''),
