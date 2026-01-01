@@ -2,6 +2,12 @@
 """
 Automated script to fetch all Facebook configuration data using OAuth.
 Similar to YouTube authentication - opens browser, gets authorization, fetches all data.
+
+Usage:
+    python3 scripts/fetch_facebook_config.py
+    
+    Or use the helper script:
+    ./scripts/run_with_venv.sh fetch_facebook_config.py
 """
 
 import sys
