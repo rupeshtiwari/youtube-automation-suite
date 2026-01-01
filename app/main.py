@@ -333,6 +333,7 @@ def validate_config():
     # Check LinkedIn configuration
     linkedin_client_id = api_keys.get('linkedin_client_id', '').strip()
     linkedin_client_secret = api_keys.get('linkedin_client_secret', '').strip()
+    linkedin_access_token = api_keys.get('linkedin_access_token', '').strip()
     linkedin_person_urn = api_keys.get('linkedin_person_urn', '').strip()
     
     if not linkedin_client_id or not linkedin_client_secret:
@@ -344,13 +345,40 @@ def validate_config():
             'link': '/config#linkedin'
         })
     elif not linkedin_person_urn:
-        warnings.append({
-            'platform': 'LinkedIn',
-            'severity': 'warning',
-            'message': 'LinkedIn Person URN is recommended for posting',
-            'fields': ['LinkedIn Person URN'],
-            'link': '/config#linkedin'
-        })
+        # Auto-fetch Person URN if we have access token
+        if linkedin_access_token:
+            try:
+                person_urn = auto_fetch_linkedin_person_urn(linkedin_access_token)
+                if person_urn:
+                    # Save it to settings
+                    api_keys['linkedin_person_urn'] = person_urn
+                    settings['api_keys'] = api_keys
+                    save_settings(settings)
+                    print(f"✅ Auto-fetched and saved LinkedIn Person URN: {person_urn}")
+                else:
+                    warnings.append({
+                        'platform': 'LinkedIn',
+                        'severity': 'warning',
+                        'message': 'LinkedIn Person URN could not be auto-fetched. Please fetch it manually.',
+                        'fields': ['LinkedIn Person URN'],
+                        'link': '/config#linkedin'
+                    })
+            except Exception as e:
+                warnings.append({
+                    'platform': 'LinkedIn',
+                    'severity': 'warning',
+                    'message': f'LinkedIn Person URN auto-fetch failed: {str(e)}. Please fetch it manually.',
+                    'fields': ['LinkedIn Person URN'],
+                    'link': '/config#linkedin'
+                })
+        else:
+            warnings.append({
+                'platform': 'LinkedIn',
+                'severity': 'warning',
+                'message': 'LinkedIn Person URN is recommended for posting. Add access token to auto-fetch.',
+                'fields': ['LinkedIn Person URN'],
+                'link': '/config#linkedin'
+            })
     
     # Check Facebook configuration
     facebook_page_token = api_keys.get('facebook_page_access_token', '').strip()
@@ -386,6 +414,48 @@ def validate_config():
         })
     
     return warnings
+
+
+def auto_fetch_linkedin_person_urn(access_token):
+    """Auto-fetch LinkedIn Person URN from access token."""
+    try:
+        import requests
+        
+        # Get user profile to extract Person URN
+        url = 'https://api.linkedin.com/v2/userinfo'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Person URN is typically in 'sub' field or we can construct it
+            sub = data.get('sub', '')
+            if sub:
+                # Format: urn:li:person:xxxxx
+                if not sub.startswith('urn:li:person:'):
+                    return f'urn:li:person:{sub}'
+                return sub
+        
+        # Alternative: Try to get from /me endpoint
+        url = 'https://api.linkedin.com/v2/me'
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            person_id = data.get('id', '')
+            if person_id:
+                if not person_id.startswith('urn:li:person:'):
+                    return f'urn:li:person:{person_id}'
+                return person_id
+        
+        return None
+    except Exception as e:
+        print(f"⚠️ Error auto-fetching LinkedIn Person URN: {e}")
+        return None
 
 
 def save_settings(settings):
