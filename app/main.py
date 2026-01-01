@@ -20,6 +20,66 @@ import atexit
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import init_database
+
+
+def generate_hashtags_for_rupesh(video_type: str, video_role: str, title: str, description: str) -> str:
+    """
+    Generate hashtags aligned with Rupesh's coaching expertise from IGotAnOffer.
+    Based on: AWS Senior CSM, Interview Coaching, System Design, Leadership, Career Growth
+    """
+    hashtags = []
+    text = f"{title} {description}".lower()
+    
+    # Core expertise hashtags (always include some)
+    core_tags = ['TechInterview', 'CareerGrowth']
+    
+    # Interview-related (Rupesh's main focus)
+    if any(kw in text for kw in ['system design', 'sys design', 'architecture', 'scalability']):
+        hashtags.extend(['SystemDesign', 'SystemDesignInterview', 'SolutionsArchitect', 'AWS'])
+    if any(kw in text for kw in ['coding', 'leetcode', 'algorithm', 'programming']):
+        hashtags.extend(['CodingInterview', 'LeetCode', 'Algorithm', 'TechInterview'])
+    if any(kw in text for kw in ['behavioral', 'leadership principles', 'stories']):
+        hashtags.extend(['BehavioralInterview', 'Leadership', 'CareerCoaching'])
+    if any(kw in text for kw in ['mock interview', 'interview prep', 'interview']):
+        hashtags.extend(['MockInterview', 'InterviewPrep', 'FAANGInterview'])
+    
+    # Role-based hashtags (Rupesh coaches these roles)
+    if any(kw in text for kw in ['engineering manager', 'em', 'manager']):
+        hashtags.extend(['EngineeringManager', 'TechLeadership', 'Management'])
+    if any(kw in text for kw in ['product manager', 'pm', 'product']):
+        hashtags.extend(['ProductManager', 'ProductManagement', 'PM'])
+    if any(kw in text for kw in ['solutions architect', 'architect', 'sa']):
+        hashtags.extend(['SolutionsArchitect', 'CloudArchitecture', 'AWS'])
+    if any(kw in text for kw in ['data engineer', 'data engineering']):
+        hashtags.extend(['DataEngineering', 'DataEngineer', 'BigData'])
+    if any(kw in text for kw in ['cloud engineer', 'aws', 'cloud']):
+        hashtags.extend(['CloudEngineering', 'AWS', 'CloudComputing', 'DevOps'])
+    if any(kw in text for kw in ['staff engineer', 'senior engineer', 'principal']):
+        hashtags.extend(['StaffEngineer', 'SeniorEngineer', 'TechCareer'])
+    if any(kw in text for kw in ['director', 'vp', 'executive']):
+        hashtags.extend(['TechLeadership', 'Executive', 'SeniorLeadership'])
+    
+    # Career growth (Rupesh's specialty)
+    if any(kw in text for kw in ['resume', 'cv', 'resume review']):
+        hashtags.extend(['ResumeReview', 'ResumeTips', 'JobSearch'])
+    if any(kw in text for kw in ['salary', 'negotiation', 'compensation']):
+        hashtags.extend(['SalaryNegotiation', 'CareerAdvice', 'TechSalary'])
+    if any(kw in text for kw in ['career', 'promotion', 'growth']):
+        hashtags.extend(['CareerGrowth', 'CareerCoaching', 'TechCareer'])
+    
+    # AWS/Cloud specific (Rupesh's current role)
+    if any(kw in text for kw in ['aws', 'amazon', 'cloud infrastructure']):
+        hashtags.extend(['AWS', 'CloudComputing', 'SolutionsArchitect'])
+    
+    # FAANG focus (Rupesh coaches for FAANG)
+    if any(kw in text for kw in ['faang', 'amazon', 'google', 'microsoft', 'meta', 'apple']):
+        hashtags.extend(['FAANG', 'BigTech', 'TechInterview'])
+    
+    # Remove duplicates and limit to 10-12 most relevant
+    hashtags = list(dict.fromkeys(hashtags))  # Preserve order, remove dupes
+    hashtags = core_tags + [h for h in hashtags if h not in core_tags][:10]
+    
+    return ' '.join(['#' + tag for tag in hashtags])
 from app import views
 
 # Get project root (parent of app/)
@@ -1316,27 +1376,46 @@ def api_content_preview_videos():
                 
                 # Generate posts if not exist
                 if not social_posts or len(social_posts) == 0:
-                    # Generate simple posts
+                    # Generate posts aligned with Rupesh's coaching expertise
+                    from app.tagging import derive_type_enhanced, derive_role_enhanced
+                    
                     title = video.get('title', '')
                     description = video.get('description', '')
                     youtube_url = f"https://youtube.com/watch?v={video_id}"
+                    playlist_name = playlist.get('playlistTitle', '')
+                    
+                    # Derive video type and role for better hashtags
+                    video_type = derive_type_enhanced(playlist_name, title, description, '')
+                    video_role = derive_role_enhanced(playlist_name, title, description, '')
+                    
+                    # Generate hashtags based on Rupesh's expertise
+                    hashtags = generate_hashtags_for_rupesh(video_type, video_role, title, description)
+                    
+                    # LinkedIn post - Professional, detailed
+                    linkedin_post = f"{title}\n\n{youtube_url}\n\n{hashtags}"
+                    
+                    # Facebook post - More casual, engaging
+                    facebook_post = f"{title}\n\n{youtube_url}\n\n{hashtags}"
+                    
+                    # Instagram post - Visual, emoji-rich
+                    instagram_post = f"{title} 🎯\n\n{youtube_url}\n\n{hashtags}"
                     
                     social_posts = {
                         'linkedin': {
                             'platform': 'linkedin',
-                            'post_content': f"{title}\n\n{youtube_url}\n\n#TechInterview #CodingInterview #SystemDesign",
+                            'post_content': linkedin_post,
                             'status': 'pending',
                             'schedule_date': None
                         },
                         'facebook': {
                             'platform': 'facebook',
-                            'post_content': f"{title}\n\n{youtube_url}",
+                            'post_content': facebook_post,
                             'status': 'pending',
                             'schedule_date': None
                         },
                         'instagram': {
                             'platform': 'instagram',
-                            'post_content': f"{title} {youtube_url}\n\n#TechInterview #CodingInterview #SystemDesign #LeetCode",
+                            'post_content': instagram_post,
                             'status': 'pending',
                             'schedule_date': None
                         }
