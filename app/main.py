@@ -393,8 +393,8 @@ def save_settings(settings):
     
     # Also save to JSON file as backup
     try:
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=2)
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
     except Exception as e:
         print(f"⚠️ Warning: Failed to save settings to JSON file: {e}")
     
