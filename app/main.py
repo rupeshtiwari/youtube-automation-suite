@@ -292,7 +292,7 @@ def load_settings():
             'facebook_page_access_token': '',
             'facebook_page_id': '',
             'instagram_business_account_id': '',
-            'instagram_access_token': '',
+            'ayrshare_api_key': '',
         },
         'scheduling': {
             'enabled': False,
@@ -453,7 +453,6 @@ def update_env_file(settings):
         'FACEBOOK_PAGE_ACCESS_TOKEN': api_keys.get('facebook_page_access_token', ''),
         'FACEBOOK_PAGE_ID': api_keys.get('facebook_page_id', ''),
         'INSTAGRAM_BUSINESS_ACCOUNT_ID': api_keys.get('instagram_business_account_id', ''),
-        'INSTAGRAM_ACCESS_TOKEN': api_keys.get('instagram_access_token', ''),
         'AYRSHARE_API_KEY': api_keys.get('ayrshare_api_key', ''),
         'YOUTUBE_PLAYLIST_ID': settings.get('scheduling', {}).get('playlist_id', ''),
     }
@@ -3090,8 +3089,8 @@ def api_queue_publish_item(post_id):
                     'linkedin_person_urn': api_keys.get('linkedin_person_urn'),
                     'facebook_page_id': api_keys.get('facebook_page_id'),
                     'facebook_page_access_token': api_keys.get('facebook_page_access_token'),
-                    'instagram_business_account_id': api_keys.get('instagram_business_account_id'),
-                    'instagram_access_token': api_keys.get('instagram_access_token')
+                    'instagram_business_account_id': api_keys.get('instagram_business_account_id')
+                    # Note: Instagram uses Facebook Page Access Token, not a separate token
                 }
                 
                 # Prepare captions
