@@ -870,7 +870,6 @@ def config():
             'facebook_page_access_token': request.form.get('facebook_page_access_token', ''),
             'facebook_page_id': request.form.get('facebook_page_id', ''),
             'instagram_business_account_id': request.form.get('instagram_business_account_id', ''),
-            'instagram_access_token': request.form.get('instagram_access_token', ''),
             'ayrshare_api_key': request.form.get('ayrshare_api_key', ''),
         }
         
@@ -2557,7 +2556,6 @@ def api_save_config_section():
                 'facebook_page_access_token': data.get('facebook_page_access_token', ''),
                 'facebook_page_id': data.get('facebook_page_id', ''),
                 'instagram_business_account_id': data.get('instagram_business_account_id', ''),
-                'instagram_access_token': data.get('instagram_access_token', ''),
                 'ayrshare_api_key': data.get('ayrshare_api_key', ''),
             }
         elif section == 'scheduling':
@@ -3228,7 +3226,6 @@ def test_connection():
         })
     elif platform == 'instagram':
         has_account = bool(api_keys.get('instagram_business_account_id'))
-        has_token = bool(api_keys.get('facebook_page_access_token')) or bool(api_keys.get('instagram_access_token'))
         
         # Instagram Business Account ID and Facebook Page Token (or Instagram token) are required
         is_configured = has_account and has_token
