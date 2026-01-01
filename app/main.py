@@ -89,6 +89,12 @@ template_dir = os.path.join(project_root, 'templates')
 app = Flask(__name__, template_folder=template_dir)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+
+@app.before_request
+def before_request():
+    """Add config warnings to all requests."""
+    g.config_warnings = validate_config()
+
 # Settings file - support NAS/Docker deployment
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(__file__))
 SETTINGS_FILE = os.path.join(DATA_DIR, 'automation_settings.json')
