@@ -877,6 +877,7 @@ def config():
             'use_database': request.form.get('use_database') == 'on',
             'auto_post_social': request.form.get('auto_post_social') == 'on',
             'social_platforms': request.form.getlist('social_platforms'),
+            'upload_method': request.form.get('upload_method', 'native'),
         }
         
         # Update thresholds
