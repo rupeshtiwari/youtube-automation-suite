@@ -2636,7 +2636,8 @@ def api_facebook_get_token_guide():
     settings = load_settings()
     api_keys = settings.get('api_keys', {})
     
-    app_id = api_keys.get('facebook_app_id', '421181512329379')
+    # Facebook App ID not needed - only Page Access Token is required
+    # app_id = api_keys.get('facebook_app_id', '421181512329379')
     page_id = api_keys.get('facebook_page_id', '617021748762367')
     
     # Graph API Explorer URL with pre-filled app
