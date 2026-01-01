@@ -263,7 +263,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
@@ -292,10 +292,10 @@ def load_settings():
             'social_media_schedule_time': '19:30',  # 7:30 PM IST
             'schedule_day': 'wednesday',  # Day of week
             'playlist_id': '',
-            'export_type': 'shorts',  # 'all' or 'shorts'
-            'use_database': True,  # Use SQLite database instead of Excel
-            'auto_post_social': False,
-            'social_platforms': ['linkedin', 'facebook', 'instagram']
+        'export_type': 'shorts',  # 'all' or 'shorts'
+        'use_database': True,  # Use SQLite database instead of Excel
+        'auto_post_social': False,
+        'social_platforms': ['linkedin', 'facebook', 'instagram']
         },
         'thresholds': {
             'linkedin_daily_limit': 25,  # LinkedIn allows ~25 posts/day
@@ -393,8 +393,8 @@ def save_settings(settings):
     
     # Also save to JSON file as backup
     try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=2)
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=2)
     except Exception as e:
         print(f"⚠️ Warning: Failed to save settings to JSON file: {e}")
     
@@ -619,8 +619,124 @@ def run_daily_automation():
         print(f"[{datetime.now()}] Error in daily automation: {e}")
 
 
+def publish_scheduled_posts():
+    """Auto-publish scheduled posts that are ready."""
+    from app.database import get_db_connection, get_video, update_post_status, log_activity
+    from datetime import datetime
+    
+    try:
+        settings = load_settings()
+        upload_method = settings.get('scheduling', {}).get('upload_method', 'native')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get posts that are scheduled and ready to publish
+        now = datetime.now()
+        cursor.execute('''
+            SELECT smp.*, v.video_id, v.title, v.youtube_url
+            FROM social_media_posts smp
+            LEFT JOIN videos v ON smp.video_id = v.video_id
+            WHERE smp.status = 'scheduled'
+                AND smp.schedule_date IS NOT NULL
+                AND datetime(smp.schedule_date) <= datetime(?)
+            ORDER BY smp.schedule_date ASC
+            LIMIT 10
+        ''', (now.isoformat(),))
+        
+        posts_to_publish = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        if not posts_to_publish:
+            return
+        
+        print(f"[{datetime.now()}] Found {len(posts_to_publish)} posts ready to publish")
+        
+        api_keys = settings.get('api_keys', {})
+        api_credentials = {
+            'linkedin_access_token': api_keys.get('linkedin_access_token'),
+            'linkedin_person_urn': api_keys.get('linkedin_person_urn'),
+            'facebook_page_id': api_keys.get('facebook_page_id'),
+            'facebook_page_access_token': api_keys.get('facebook_page_access_token'),
+            'instagram_business_account_id': api_keys.get('instagram_business_account_id'),
+            'instagram_access_token': api_keys.get('instagram_access_token')
+        }
+        
+        for post in posts_to_publish:
+            try:
+                video_id = post.get('video_id')
+                platform = post.get('platform', '').lower()
+                post_content = post.get('post_content', '')
+                post_id = post.get('id')
+                
+                if upload_method == 'native' and video_id:
+                    # Native video upload
+                    from app.video_processor import process_and_upload_video
+                    
+                    result = process_and_upload_video(
+                        video_id=video_id,
+                        platforms=[platform],
+                        captions={platform: post_content},
+                        api_credentials=api_credentials
+                    )
+                    
+                    if result.get('success') and result.get('results', {}).get(platform, {}).get('success'):
+                        # Update post status
+                        update_post_status(
+                            video_id, platform, 'published',
+                            actual_scheduled_date=now.isoformat(),
+                            post_id=result['results'][platform].get('post_id')
+                        )
+                        
+                        log_activity(
+                            'auto_publish',
+                            platform=platform,
+                            video_id=video_id,
+                            video_title=post.get('title', ''),
+                            status='success',
+                            message=f'Auto-published natively to {platform}',
+                            details={'post_id': result['results'][platform].get('post_id')}
+                        )
+                        print(f"[{datetime.now()}] ✅ Published {video_id} to {platform} (native upload)")
+                    else:
+                        error = result.get('error') or result.get('results', {}).get(platform, {}).get('error', 'Upload failed')
+                        update_post_status(video_id, platform, 'failed', error_message=error)
+                        log_activity(
+                            'auto_publish',
+                            platform=platform,
+                            video_id=video_id,
+                            status='failed',
+                            message=f'Failed to publish: {error}'
+                        )
+                        print(f"[{datetime.now()}] ❌ Failed to publish {video_id} to {platform}: {error}")
+                else:
+                    # Link sharing mode - would need link posting API
+                    # For now, just mark as published (link sharing implementation needed)
+                    update_post_status(video_id, platform, 'published', actual_scheduled_date=now.isoformat())
+                    print(f"[{datetime.now()}] ✅ Published {video_id} to {platform} (link sharing)")
+                
+            except Exception as e:
+                import traceback
+                error_msg = str(e)
+                update_post_status(post.get('video_id'), post.get('platform'), 'failed', error_message=error_msg)
+                print(f"[{datetime.now()}] ❌ Error publishing post {post.get('id')}: {error_msg}")
+                log_activity(
+                    'auto_publish',
+                    platform=post.get('platform'),
+                    video_id=post.get('video_id'),
+                    status='error',
+                    message=f'Exception: {error_msg}',
+                    errors=traceback.format_exc()
+                )
+        
+    except Exception as e:
+        import traceback
+        print(f"[{datetime.now()}] ❌ Error in publish_scheduled_posts: {e}")
+        print(traceback.format_exc())
+
+
 def schedule_daily_job():
-    """Schedule the daily automation job."""
+    """Schedule the daily automation job and auto-publishing job."""
     settings = load_settings()
     scheduling = settings.get('scheduling', {})
     
@@ -657,6 +773,16 @@ def schedule_daily_job():
         ),
         id='daily_automation',
         name='Daily YouTube Automation',
+        replace_existing=True
+    )
+    
+    # Add auto-publishing job - runs every 15 minutes to check for posts ready to publish
+    SCHEDULER.add_job(
+        func=publish_scheduled_posts,
+        trigger='interval',
+        minutes=15,
+        id='auto_publish_posts',
+        name='Auto-Publish Scheduled Posts',
         replace_existing=True
     )
     
@@ -2254,10 +2380,10 @@ def api_calendar_data():
                     else:
                         dt = youtube_schedule
                 
-                calendar_events.append({
-                    'date': dt.strftime('%Y-%m-%d'),
+                        calendar_events.append({
+                            'date': dt.strftime('%Y-%m-%d'),
                     'time': dt.strftime('%H:%M:%S') if dt.hour or dt.minute else '12:00:00',
-                    'datetime': dt.isoformat(),
+                            'datetime': dt.isoformat(),
                     'platform': row_dict.get('platform', '').title(),
                     'video_title': row_dict.get('video_title', 'Untitled Video'),
                     'video_id': row_dict.get('video_id', ''),

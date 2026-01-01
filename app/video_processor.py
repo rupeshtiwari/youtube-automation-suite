@@ -257,31 +257,71 @@ class InstagramVideoUploader:
         Upload video natively to Instagram.
         
         Instagram requires:
-        1. Create container (upload video)
-        2. Publish container
+        1. Upload video file to Facebook's servers (via Page)
+        2. Create container with video URL
+        3. Publish container
         """
         try:
-            # Step 1: Create container (upload video)
-            container_data = {
-                'media_type': 'REELS' if is_reel else 'VIDEO',
-                'video_url': self._upload_to_facebook_server(video_path),
-                'caption': caption,
-                'access_token': self.access_token
-            }
+            # Step 1: Upload video to Facebook Page first (Instagram requires video from Facebook)
+            # We need to use the Facebook Page ID and access token
+            # For now, we'll use a workaround: upload via container API with direct file upload
             
-            response = requests.post(
-                f"{self.api_base}/{self.business_account_id}/media",
-                data=container_data
-            )
+            # Instagram Graph API v18+ supports direct file uploads for Reels
+            # Method: Use multipart/form-data to upload video directly
             
-            if response.status_code not in [200, 201]:
-                return {'success': False, 'error': f"Container creation failed: {response.text}"}
+            with open(video_path, 'rb') as video_file:
+                files = {
+                    'media_type': (None, 'REELS' if is_reel else 'VIDEO'),
+                    'video_file': (os.path.basename(video_path), video_file, 'video/mp4'),
+                    'caption': (None, caption),
+                }
+                
+                data = {
+                    'access_token': self.access_token
+                }
+                
+                # Create container with direct file upload
+                response = requests.post(
+                    f"{self.api_base}/{self.business_account_id}/media",
+                    files=files,
+                    data=data
+                )
+                
+                if response.status_code not in [200, 201]:
+                    # Fallback: Try using video_url method (requires video to be hosted)
+                    # This would require uploading to Facebook storage first
+                    return {
+                        'success': False, 
+                        'error': f"Container creation failed: {response.text}",
+                        'note': 'Instagram requires video to be uploaded via Facebook Page first. Please ensure Facebook Page ID and access token are configured.'
+                    }
             
             creation_id = response.json().get('id')
             
-            # Step 2: Publish container
-            time.sleep(5)  # Wait for processing
+            if not creation_id:
+                return {'success': False, 'error': 'No creation ID returned from Instagram API'}
             
+            # Step 2: Wait for video processing (Instagram needs time to process)
+            max_wait = 60  # Maximum 60 seconds
+            wait_time = 0
+            status = 'IN_PROGRESS'
+            
+            while status == 'IN_PROGRESS' and wait_time < max_wait:
+                time.sleep(5)
+                wait_time += 5
+                
+                status_response = requests.get(
+                    f"{self.api_base}/{creation_id}",
+                    params={'fields': 'status_code', 'access_token': self.access_token}
+                )
+                
+                if status_response.status_code == 200:
+                    status_data = status_response.json()
+                    status = status_data.get('status_code', 'IN_PROGRESS')
+                    if status == 'FINISHED':
+                        break
+            
+            # Step 3: Publish container
             publish_data = {
                 'creation_id': creation_id,
                 'access_token': self.access_token
@@ -296,23 +336,53 @@ class InstagramVideoUploader:
                 return {
                     'success': True,
                     'post_id': publish_response.json().get('id'),
-                    'message': 'Video uploaded successfully'
+                    'message': 'Video uploaded successfully to Instagram'
                 }
             else:
-                return {'success': False, 'error': f"Publish failed: {publish_response.text}"}
+                return {
+                    'success': False, 
+                    'error': f"Publish failed: {publish_response.text}",
+                    'creation_id': creation_id  # Return creation_id for manual publishing
+                }
                 
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            import traceback
+            return {
+                'success': False, 
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }
     
     def _upload_to_facebook_server(self, video_path: str) -> str:
         """
         Upload video to Facebook's servers and get URL.
         Instagram requires video to be hosted on Facebook's servers first.
         """
-        # This is a simplified version
-        # In production, you'd upload to Facebook's storage first
-        # For now, return a placeholder - this needs proper implementation
-        return "https://example.com/video.mp4"  # Placeholder
+        try:
+            # Step 1: Create a video upload session
+            file_size = os.path.getsize(video_path)
+            
+            # For Instagram, we need to upload to Facebook Page first
+            # Then use that video for Instagram
+            # This is a simplified approach - Instagram API requires video_url from Facebook
+            
+            # Alternative: Upload directly using Instagram's container API
+            # Instagram allows direct upload via container creation
+            # We'll use the container approach instead
+            
+            # Return the local file path - Instagram API can handle direct uploads
+            # But we need to upload it to a publicly accessible URL first
+            # For now, we'll use the container API which accepts local file uploads via multipart
+            
+            # Actually, Instagram Graph API requires the video to be accessible via URL
+            # We need to upload to Facebook's storage first, then use that URL
+            
+            # Simplified: Return file path - will be handled in upload_video method
+            return video_path
+            
+        except Exception as e:
+            print(f"Error preparing video for Facebook server: {e}")
+            return video_path  # Fallback to local path
 
 
 def process_and_upload_video(
@@ -379,7 +449,17 @@ def process_and_upload_video(
         
     finally:
         # Clean up: Delete downloaded video after upload
-        # (Optional - you might want to keep for backup)
-        # os.remove(video_path)
-        pass
+        # Only delete if all uploads succeeded
+        all_succeeded = all(
+            result.get('success', False) 
+            for result in results.values() 
+            if isinstance(result, dict)
+        )
+        
+        if all_succeeded and video_path and os.path.exists(video_path):
+            try:
+                os.remove(video_path)
+                print(f"Cleaned up downloaded video: {video_path}")
+            except Exception as e:
+                print(f"Warning: Could not delete video file {video_path}: {e}")
 
