@@ -1361,8 +1361,30 @@ def api_generate_shorts_from_session(filename):
         booking_url = cta_settings.get('booking_url', 'https://fullstackmaster/book')
         whatsapp_number = cta_settings.get('whatsapp_number', '+1-609-442-4081')
         
-        # Generate shorts scripts
-        shorts_scripts = generate_shorts_from_session(content, booking_url, whatsapp_number)
+        # Generate shorts scripts using enhanced generator
+        from app.session_shorts_generator import generate_shorts_from_session_enhanced
+        shorts_scripts_data = generate_shorts_from_session_enhanced(content, booking_url, whatsapp_number)
+        
+        # Format scripts for response (extract script text and metadata)
+        shorts_scripts = []
+        for script_data in shorts_scripts_data:
+            if isinstance(script_data, dict):
+                # Format with metadata
+                formatted = f"""SCRIPT #{len(shorts_scripts) + 1}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROLE: {script_data.get('role', 'N/A')}
+TYPE: {script_data.get('type', 'N/A')}
+SUGGESTED PLAYLIST: {script_data.get('playlist_suggestion', 'N/A')}
+DURATION: {script_data.get('estimated_duration', '40 seconds')}
+
+{script_data.get('script', '')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+                shorts_scripts.append(formatted.strip())
+            else:
+                shorts_scripts.append(str(script_data))
         
         return jsonify({
             'success': True,
@@ -1375,7 +1397,7 @@ def api_generate_shorts_from_session(filename):
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
-def generate_shorts_from_session(session_content: str, booking_url: str, whatsapp_number: str) -> list:
+def generate_shorts_from_session_old(session_content: str, booking_url: str, whatsapp_number: str) -> list:
     """
     Generate viral shorts scripts from session content.
     Uses AI-like patterns to create engaging, clickbait-style scripts.
