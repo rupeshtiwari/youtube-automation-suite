@@ -1517,10 +1517,18 @@ def api_content_preview_videos():
                         }
                     }
                 
+                # Get tags and published date from video data
+                video_tags = video.get('tags', '')
+                if isinstance(video_tags, list):
+                    video_tags = ', '.join(video_tags)
+                published_at = video.get('publishedAt', '') or video.get('published_at', '')
+                
                 all_videos.append({
                     'video_id': video_id,
                     'title': title,
                     'description': description,
+                    'tags': video_tags,
+                    'published_at': published_at,
                     'thumbnail': video.get('thumbnail', ''),
                     'video_url': youtube_url,
                     'playlist_name': playlist.get('playlistTitle', ''),
