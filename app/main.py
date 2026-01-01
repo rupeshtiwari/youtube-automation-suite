@@ -416,7 +416,7 @@ def save_settings(settings):
     # Also save to JSON file as backup (always do this as secondary backup)
     json_saved = False
     try:
-    with open(SETTINGS_FILE, 'w') as f:
+        with open(SETTINGS_FILE, 'w') as f:
         json.dump(settings, f, indent=2)
             json_saved = True
             print(f"✅ Settings saved to JSON backup file")
