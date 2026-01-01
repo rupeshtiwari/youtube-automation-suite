@@ -547,11 +547,11 @@
                     <span class="help-icon" onclick="showHelp('target-audience')" title="Help">?</span>
                 </label>
                 <select class="form-select" name="target_audience">
-                    <option value="professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else 'professionals') == 'professionals' else '' }}>Professionals (Senior Roles)</option>
+                    <option value="usa_professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else 'usa_professionals') == 'usa_professionals' else '' }}>USA Professionals (Senior Roles) - Recommended</option>
+                    <option value="professionals" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'professionals' else '' }}>Professionals (Senior Roles)</option>
                     <option value="all" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'all' else '' }}>All Audiences</option>
-                    <option value="usa_students" {{ 'selected' if (settings.targeting.target_audience if settings.targeting else '') == 'usa_students' else '' }}>USA Students (Interview Prep)</option>
                 </select>
-                <small class="text-muted">Target professionals preparing for senior technical and leadership roles</small>
+                <small class="text-muted">Target senior professionals (Engineering Managers, Product Managers, Solutions Architects, Directors, VPs) preparing for System Design, Behavioral, and Leadership interviews at FAANG companies.</small>
             </div>
 
             <div class="mb-3">
