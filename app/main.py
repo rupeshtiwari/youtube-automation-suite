@@ -2638,6 +2638,64 @@ def api_load_config_from_file():
         }), 500
 
 
+@app.route('/api/facebook/get-token', methods=['GET'])
+def api_facebook_get_token_guide():
+    """Provide a guide URL for getting Facebook Page Access Token."""
+    settings = load_settings()
+    api_keys = settings.get('api_keys', {})
+    
+    app_id = api_keys.get('facebook_app_id', '421181512329379')
+    page_id = api_keys.get('facebook_page_id', '617021748762367')
+    
+    # Graph API Explorer URL with pre-filled app
+    explorer_url = f"https://developers.facebook.com/tools/explorer/?version=v18.0"
+    
+    # Permissions needed
+    permissions = [
+        'pages_manage_posts',
+        'pages_read_engagement',
+        'instagram_basic',
+        'instagram_content_publish',
+        'business_management'
+    ]
+    
+    return jsonify({
+        'success': True,
+        'guide': {
+            'explorer_url': explorer_url,
+            'app_id': app_id,
+            'page_id': page_id,
+            'permissions': permissions,
+            'steps': [
+                {
+                    'step': 1,
+                    'title': 'Open Graph API Explorer',
+                    'description': f'Visit: {explorer_url}',
+                    'action': 'Select your App in the dropdown (top right)'
+                },
+                {
+                    'step': 2,
+                    'title': 'Add Permissions',
+                    'description': f'Add these permissions: {", ".join(permissions)}',
+                    'action': 'Click permissions dropdown and add all required permissions'
+                },
+                {
+                    'step': 3,
+                    'title': 'Generate Token',
+                    'description': 'Click "Generate Access Token" and authorize',
+                    'action': 'Copy the User Access Token that appears'
+                },
+                {
+                    'step': 4,
+                    'title': 'Get Page Token',
+                    'description': f'Visit: https://graph.facebook.com/v18.0/me/accounts?access_token={{your-token}}',
+                    'action': f'Find Page ID {page_id} and copy its access_token'
+                }
+            ]
+        }
+    })
+
+
 @app.route('/api/config/upload-client-secret', methods=['POST'])
 def api_upload_client_secret():
     """API endpoint to upload client_secret.json file."""
