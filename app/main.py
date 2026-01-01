@@ -850,6 +850,12 @@ def health():
     })
 
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon directly."""
+    return app.send_static_file('favicon.ico')
+
+
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     """Configuration page."""
