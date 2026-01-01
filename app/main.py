@@ -274,7 +274,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
@@ -416,8 +416,8 @@ def save_settings(settings):
     # Also save to JSON file as backup (always do this as secondary backup)
     json_saved = False
     try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=2)
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=2)
             json_saved = True
             print(f"✅ Settings saved to JSON backup file")
     except Exception as e:
@@ -429,7 +429,7 @@ def save_settings(settings):
     
     # Also update .env file for compatibility (for scripts that read .env)
     try:
-        update_env_file(settings)
+    update_env_file(settings)
     except Exception as e:
         print(f"⚠️ Warning: Failed to update .env file: {e}")
     
@@ -689,8 +689,8 @@ def publish_scheduled_posts():
             'linkedin_person_urn': api_keys.get('linkedin_person_urn'),
             'facebook_page_id': api_keys.get('facebook_page_id'),
             'facebook_page_access_token': api_keys.get('facebook_page_access_token'),
-            'instagram_business_account_id': api_keys.get('instagram_business_account_id'),
-            'instagram_access_token': api_keys.get('instagram_access_token')
+            'instagram_business_account_id': api_keys.get('instagram_business_account_id')
+            # Note: Instagram uses Facebook Page Access Token, not a separate token
         }
         
         for post in posts_to_publish:
