@@ -274,7 +274,7 @@ def load_settings():
     # Fallback to JSON file (for migration from old system)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE, 'r') as f:
                 json_settings = json.load(f)
                 # Migrate to database
                 save_settings(json_settings)
@@ -416,7 +416,7 @@ def save_settings(settings):
     # Also save to JSON file as backup (always do this as secondary backup)
     json_saved = False
     try:
-        with open(SETTINGS_FILE, 'w') as f:
+    with open(SETTINGS_FILE, 'w') as f:
         json.dump(settings, f, indent=2)
             json_saved = True
             print(f"✅ Settings saved to JSON backup file")
@@ -2828,13 +2828,13 @@ def api_calendar_data():
                                 display_date = display_date.astimezone(ist)
                             
                             # Add YouTube video event
-                            calendar_events.append({
+                        calendar_events.append({
                                 'date': display_date.strftime('%Y-%m-%d'),
                                 'time': display_date.strftime('%H:%M:%S'),
                                 'datetime': display_date.isoformat(),
                                 'platform': 'YouTube',
-                                'video_title': title,
-                                'video_id': video_id,
+                            'video_title': title,
+                            'video_id': video_id,
                                 'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
                                 'status': 'scheduled' if is_scheduled else 'published',
                                 'post_content': '',
@@ -2876,9 +2876,9 @@ def api_calendar_data():
                                             'role': '',
                                             'custom_tags': '',
                                             'description': ''
-                                        })
-                                    except:
-                                        pass
+                        })
+                    except:
+                        pass
         
         # Also get social media posts from database (for any videos not in playlists)
         conn = get_db_connection()
