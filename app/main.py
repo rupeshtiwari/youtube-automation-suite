@@ -2728,6 +2728,71 @@ def api_linkedin_oauth_authorize():
         return redirect(url_for('config'))
 
 
+@app.route('/api/facebook/oauth/authorize')
+def api_facebook_oauth_authorize():
+    """Buffer-style Facebook OAuth - just click 'Connect Facebook' and authorize."""
+    try:
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        # For Facebook, we need App ID (not client_id like LinkedIn)
+        # But Facebook OAuth requires App ID and App Secret
+        # However, for Page Access Token, we can use a simpler flow
+        
+        # Check if we have Facebook App ID (optional - can use Graph API Explorer method)
+        # For now, redirect to a helper page that guides through Facebook token generation
+        flash('Facebook connection requires Page Access Token. Use the Facebook Token Helper or Graph API Explorer method.', 'info')
+        return redirect(url_for('config'))
+        
+        # TODO: Implement full Facebook OAuth flow if App ID/Secret are available
+        # For now, the manual token entry method is more reliable
+        
+    except Exception as e:
+        flash(f'Error starting Facebook authorization: {str(e)}', 'error')
+        return redirect(url_for('config'))
+
+
+@app.route('/api/facebook/oauth/callback')
+def api_facebook_oauth_callback():
+    """Handle Facebook OAuth callback - automatically get Page Access Token and Page ID."""
+    try:
+        import requests
+        
+        # Get authorization code
+        code = request.args.get('code')
+        state = request.args.get('state')
+        error = request.args.get('error')
+        
+        if error:
+            error_desc = request.args.get('error_description', '')
+            flash(f'Facebook authorization failed: {error} - {error_desc}', 'error')
+            return redirect(url_for('config'))
+        
+        if not code:
+            flash('Facebook authorization failed: No authorization code received', 'error')
+            return redirect(url_for('config'))
+        
+        # Verify state
+        stored_state = session.get('facebook_oauth_state')
+        if state != stored_state:
+            flash('Facebook authorization failed: Invalid state parameter', 'error')
+            return redirect(url_for('config'))
+        
+        # Get settings
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        
+        # Exchange code for access token
+        # Get Page Access Token and Page ID automatically
+        # This is a simplified flow - full implementation would require App ID/Secret
+        
+        flash('Facebook OAuth callback received. Full implementation requires App ID/Secret.', 'info')
+        return redirect(url_for('config'))
+        
+    except Exception as e:
+        flash(f'Facebook connection error: {str(e)}', 'error')
+        return redirect(url_for('config'))
+
+
 @app.route('/api/linkedin/oauth/callback')
 def api_linkedin_oauth_callback():
     """Handle LinkedIn OAuth callback - automatically get token and Person URN."""
