@@ -86,15 +86,22 @@
                                             <i class="bi bi-x-circle"></i> Disconnect
                                         </button>
                                     {% else %}
-                                        <p class="text-muted small mb-3">Connect your LinkedIn account to automatically post content</p>
+                                        <p class="text-muted small mb-3">Click the button below to connect your LinkedIn account. We'll automatically fetch your Access Token and Person URN.</p>
                                         {% if settings.api_keys.linkedin_client_id and settings.api_keys.linkedin_client_secret %}
-                                            <a href="/api/linkedin/oauth/authorize" class="btn btn-primary">
-                                                <i class="bi bi-box-arrow-in-right"></i> Connect LinkedIn
+                                            <a href="/api/linkedin/oauth/authorize" class="btn btn-primary btn-lg w-100">
+                                                <i class="bi bi-box-arrow-in-right"></i> Connect LinkedIn & Fetch All Details
                                             </a>
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="bi bi-info-circle"></i> This will open LinkedIn login, then automatically collect your Access Token and Person URN
+                                            </small>
                                         {% else %}
-                                            <div class="alert alert-warning">
-                                                <small>Please add LinkedIn Client ID & Secret first in API Keys section below</small>
+                                            <div class="alert alert-warning mb-3">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                <strong>Setup Required:</strong> Please add LinkedIn Client ID & Secret first in the API Keys section below, then come back here to connect.
                                             </div>
+                                            <a href="#api_keys" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-arrow-down"></i> Go to API Keys Section
+                                            </a>
                                         {% endif %}
                                     {% endif %}
                                 </div>
