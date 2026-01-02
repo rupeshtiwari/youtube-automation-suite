@@ -499,7 +499,7 @@ def save_settings(settings):
     
     # Also update .env file for compatibility (for scripts that read .env)
     try:
-    update_env_file(settings)
+        update_env_file(settings)
     except Exception as e:
         print(f"⚠️ Warning: Failed to update .env file: {e}")
     
