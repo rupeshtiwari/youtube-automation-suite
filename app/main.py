@@ -2720,23 +2720,21 @@ def api_linkedin_oauth_authorize():
         # Store redirect_uri for debugging
         session['linkedin_redirect_uri'] = redirect_uri
         
-        # Show redirect URI in flash message for user to register in LinkedIn
-        flash(f'⚠️ Make sure this redirect URI is registered in LinkedIn app: {redirect_uri}', 'info')
-        
-        # URL encode the redirect_uri
-        from urllib.parse import quote
-        redirect_uri_encoded = quote(redirect_uri, safe='')
-        
         scopes = ['w_member_social', 'r_liteprofile', 'r_emailaddress']
         
-        auth_url = (
-            f"https://www.linkedin.com/oauth/v2/authorization?"
-            f"response_type=code&"
-            f"client_id={client_id}&"
-            f"redirect_uri={redirect_uri_encoded}&"
-            f"scope={'%20'.join(scopes)}&"
-            f"state={state}"
-        )
+        # Use urlencode for proper URL parameter encoding
+        from urllib.parse import urlencode
+        auth_params = {
+            'response_type': 'code',
+            'client_id': client_id,
+            'redirect_uri': redirect_uri,  # urlencode will handle encoding properly
+            'scope': ' '.join(scopes),  # Space-separated, not %20
+            'state': state
+        }
+        auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(auth_params)}"
+        
+        # Debug: Show redirect URI in flash message
+        flash(f'🔗 Redirect URI: {redirect_uri} - Verify this matches LinkedIn settings exactly!', 'info')
         
         # Store redirect_uri for debugging
         session['linkedin_redirect_uri'] = redirect_uri
