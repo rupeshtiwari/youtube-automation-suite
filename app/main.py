@@ -3055,13 +3055,13 @@ def api_calendar_data():
                                 display_date = display_date.astimezone(ist)
                             
                             # Add YouTube video event
-                        calendar_events.append({
+                            calendar_events.append({
                                 'date': display_date.strftime('%Y-%m-%d'),
                                 'time': display_date.strftime('%H:%M:%S'),
                                 'datetime': display_date.isoformat(),
                                 'platform': 'YouTube',
-                            'video_title': title,
-                            'video_id': video_id,
+                                'video_title': title,
+                                'video_id': video_id,
                                 'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
                                 'status': 'scheduled' if is_scheduled else 'published',
                                 'post_content': '',
