@@ -38,9 +38,116 @@
                         <span class="badge bg-warning ms-2">Pending</span>
                         {% endif %}
                     </div>
-                `;
-                
-                // Auto-dismiss after 3 seconds
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buffer-Style One-Click Connections -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-plug"></i> Connect Social Media Accounts</h5>
+                    <small>One-click connection - just like Buffer.com! Login and we'll collect everything automatically.</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- LinkedIn Connection -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-linkedin" style="font-size: 3rem; color: #0077b5;"></i>
+                                    </div>
+                                    <h6>LinkedIn</h6>
+                                    {% if settings.api_keys.linkedin_access_token and settings.api_keys.linkedin_person_urn %}
+                                        <div class="alert alert-success mb-3">
+                                            <i class="bi bi-check-circle"></i> Connected
+                                            <br><small>Token: {{ settings.api_keys.linkedin_access_token[:20] }}...</small>
+                                            <br><small>Person URN: {{ settings.api_keys.linkedin_person_urn }}</small>
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="disconnectLinkedIn()">
+                                            <i class="bi bi-x-circle"></i> Disconnect
+                                        </button>
+                                    {% else %}
+                                        <p class="text-muted small mb-3">Connect your LinkedIn account to automatically post content</p>
+                                        {% if settings.api_keys.linkedin_client_id and settings.api_keys.linkedin_client_secret %}
+                                            <a href="/api/linkedin/oauth/authorize" class="btn btn-primary">
+                                                <i class="bi bi-box-arrow-in-right"></i> Connect LinkedIn
+                                            </a>
+                                        {% else %}
+                                            <div class="alert alert-warning">
+                                                <small>Please add LinkedIn Client ID & Secret first in API Keys section below</small>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Facebook Connection -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-facebook" style="font-size: 3rem; color: #1877f2;"></i>
+                                    </div>
+                                    <h6>Facebook & Instagram</h6>
+                                    {% if settings.api_keys.facebook_page_access_token and settings.api_keys.facebook_page_id %}
+                                        <div class="alert alert-success mb-3">
+                                            <i class="bi bi-check-circle"></i> Connected
+                                            <br><small>Page ID: {{ settings.api_keys.facebook_page_id }}</small>
+                                            <br><small>Token: {{ settings.api_keys.facebook_page_access_token[:20] }}...</small>
+                                            {% if settings.api_keys.instagram_business_account_id %}
+                                                <br><small>Instagram Account: {{ settings.api_keys.instagram_business_account_id }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="disconnectFacebook()">
+                                            <i class="bi bi-x-circle"></i> Disconnect
+                                        </button>
+                                    {% else %}
+                                        <p class="text-muted small mb-3">Connect Facebook to post to Facebook Pages and Instagram</p>
+                                        <a href="/api/facebook/oauth/authorize" class="btn btn-primary mb-2">
+                                            <i class="bi bi-box-arrow-in-right"></i> Connect Facebook
+                                        </a>
+                                        <div class="mt-2">
+                                            <small class="text-muted d-block mb-1">Or use:</small>
+                                            <a href="/facebook-token-helper" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-tools"></i> Token Helper
+                                            </a>
+                                        </div>
+                                        <div class="alert alert-info mt-2 mb-0" style="font-size: 0.75rem;">
+                                            <strong>Tip:</strong> Use Graph API Explorer method for easiest setup
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-dismiss after 3 seconds
                 setTimeout(() => {
                     if (saveIndicator && saveIndicator.parentElement) {
                         saveIndicator.remove();
