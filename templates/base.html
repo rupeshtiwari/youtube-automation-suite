@@ -19,6 +19,12 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
             rel="stylesheet">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-enhancements.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
+        <meta name="theme-color" content="#7c3aed">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="YT Auto">
+        <meta name="mobile-web-app-capable" content="yes">
         <style>
             :root {
                 /* Modern Professional Color Scheme - Light Mode */
@@ -459,6 +465,230 @@
                 width: 20px;
                 text-align: center;
             }
+
+            /* Toast Notifications */
+            .toast-container {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                max-width: 400px;
+            }
+
+            .toast {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px 20px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                animation: slideInRight 0.3s ease-out;
+                min-width: 300px;
+                transition: all 0.3s ease;
+            }
+
+            .toast.hiding {
+                animation: slideOutRight 0.3s ease-out forwards;
+            }
+
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+
+            .toast-icon {
+                font-size: 24px;
+                flex-shrink: 0;
+            }
+
+            .toast-content {
+                flex: 1;
+            }
+
+            .toast-title {
+                font-weight: 600;
+                font-size: 14px;
+                margin-bottom: 4px;
+                color: var(--text-primary);
+            }
+
+            .toast-message {
+                font-size: 13px;
+                color: var(--text-secondary);
+                line-height: 1.5;
+            }
+
+            .toast-close {
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                font-size: 18px;
+                padding: 0;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            }
+
+            .toast-close:hover {
+                background: var(--bg-hover);
+                color: var(--text-primary);
+            }
+
+            .toast-success {
+                border-left: 4px solid var(--success);
+            }
+
+            .toast-success .toast-icon {
+                color: var(--success);
+            }
+
+            .toast-error {
+                border-left: 4px solid var(--danger);
+            }
+
+            .toast-error .toast-icon {
+                color: var(--danger);
+            }
+
+            .toast-warning {
+                border-left: 4px solid var(--warning);
+            }
+
+            .toast-warning .toast-icon {
+                color: var(--warning);
+            }
+
+            .toast-info {
+                border-left: 4px solid var(--info);
+            }
+
+            .toast-info .toast-icon {
+                color: var(--info);
+            }
+
+            /* Loading States */
+            .btn-loading {
+                position: relative;
+                color: transparent !important;
+                pointer-events: none;
+            }
+
+            .btn-loading::after {
+                content: "";
+                position: absolute;
+                width: 16px;
+                height: 16px;
+                top: 50%;
+                left: 50%;
+                margin-left: -8px;
+                margin-top: -8px;
+                border: 2px solid currentColor;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 0.6s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .spinner-border-sm {
+                width: 1rem;
+                height: 1rem;
+                border-width: 0.15em;
+            }
+
+            /* Smooth Transitions */
+            .card, .btn, .form-control, .form-select {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            /* Form Validation */
+            .form-control.is-invalid,
+            .form-select.is-invalid {
+                border-color: var(--danger);
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+            }
+
+            .form-control.is-valid,
+            .form-select.is-valid {
+                border-color: var(--success);
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+            .invalid-feedback {
+                display: block;
+                color: var(--danger);
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            .valid-feedback {
+                display: block;
+                color: var(--success);
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            /* Fade In Animation */
+            .fade-in {
+                animation: fadeIn 0.3s ease-in;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Pulse Animation for Loading */
+            .pulse {
+                animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
         </style>
         {% block extra_css %}{% endblock %}
     </head>
@@ -488,11 +718,8 @@
                         Shorts
                     </a>
                 </li>
+                <!-- Playlists hidden - focusing on Shorts only -->
                 <li>
-                    <a href="/playlists" id="nav-playlists">
-                        <i class="bi bi-collection-play"></i>
-                        Playlists
-                    </a>
                     <a href="/sessions" id="nav-sessions">
                         <i class="bi bi-file-text"></i>
                         Sessions
@@ -554,7 +781,12 @@
             <!-- Main Content -->
             <div class="main-content">
                 <div class="top-bar">
-                    <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+                    </div>
                 </div>
                 <div class="content-container">
                     <!-- Config Validation Warnings -->
@@ -586,7 +818,83 @@
                 </div>
             </div>
 
+        <!-- Toast Notification Container -->
+        <div class="toast-container" id="toastContainer"></div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Alpine.js for better interactivity -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script>
+            // Mobile Sidebar Toggle
+            function toggleSidebar() {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.toggle('open');
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                const sidebar = document.querySelector('.sidebar');
+                const toggle = document.querySelector('.mobile-menu-toggle');
+                if (window.innerWidth <= 768 && sidebar && toggle) {
+                    if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                        sidebar.classList.remove('open');
+                    }
+                }
+            });
+
+            // Service Worker Registration for PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/static/js/service-worker.js')
+                        .then(function(registration) {
+                            console.log('ServiceWorker registration successful:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                });
+            }
+
+            // PWA Install Prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallPrompt();
+            });
+
+            function showInstallPrompt() {
+                const prompt = document.createElement('div');
+                prompt.className = 'pwa-install-prompt';
+                prompt.innerHTML = `
+                    <div style="display: flex; align-items: start; gap: 1rem;">
+                        <i class="bi bi-download" style="font-size: 24px; color: var(--primary);"></i>
+                        <div style="flex: 1;">
+                            <h6 style="margin: 0 0 0.5rem 0; font-weight: 600;">Install App</h6>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">
+                                Install this app for a better experience
+                            </p>
+                        </div>
+                        <button onclick="installPWA()" class="btn btn-sm btn-primary" style="margin-left: 0.5rem;">
+                            Install
+                        </button>
+                        <button onclick="this.parentElement.remove()" class="btn btn-sm" style="background: transparent; border: none; padding: 0.25rem;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(prompt);
+            }
+
+            async function installPWA() {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+                document.querySelector('.pwa-install-prompt')?.remove();
+            }
+        </script>
         <script>
             // Theme Management
             function getSystemTheme() {
@@ -653,8 +961,12 @@
                 const path = window.location.pathname;
                 const navMap = {
                     '/': 'nav-dashboard',
-                    '/playlists': 'nav-playlists',
                     '/calendar': 'nav-calendar',
+                    '/shorts': 'nav-shorts',
+                    '/sessions': 'nav-sessions',
+                    '/content-preview': 'nav-content-preview',
+                    '/insights': 'nav-insights',
+                    '/activity': 'nav-activity',
                     '/config': 'nav-config',
                     '/docs': 'nav-docs'
                 };
@@ -691,6 +1003,145 @@
                 const themeMenu = document.getElementById('theme-menu');
                 if (themeSwitcher && themeMenu && !themeSwitcher.contains(event.target) && !themeMenu.contains(event.target)) {
                     themeMenu.classList.remove('active');
+                }
+            });
+
+            // Toast Notification System
+            window.Toast = {
+                show: function(message, type = 'info', duration = 5000) {
+                    const container = document.getElementById('toastContainer');
+                    if (!container) return;
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast toast-${type}`;
+
+                    const icons = {
+                        success: 'bi-check-circle-fill',
+                        error: 'bi-x-circle-fill',
+                        warning: 'bi-exclamation-triangle-fill',
+                        info: 'bi-info-circle-fill'
+                    };
+
+                    const titles = {
+                        success: 'Success',
+                        error: 'Error',
+                        warning: 'Warning',
+                        info: 'Info'
+                    };
+
+                    toast.innerHTML = `
+                        <i class="bi ${icons[type]} toast-icon"></i>
+                        <div class="toast-content">
+                            <div class="toast-title">${titles[type]}</div>
+                            <div class="toast-message">${message}</div>
+                        </div>
+                        <button class="toast-close" onclick="this.parentElement.remove()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+
+                    container.appendChild(toast);
+
+                    // Auto remove after duration
+                    if (duration > 0) {
+                        setTimeout(() => {
+                            toast.classList.add('hiding');
+                            setTimeout(() => toast.remove(), 300);
+                        }, duration);
+                    }
+
+                    return toast;
+                },
+                success: function(message, duration) {
+                    return this.show(message, 'success', duration);
+                },
+                error: function(message, duration) {
+                    return this.show(message, 'error', duration);
+                },
+                warning: function(message, duration) {
+                    return this.show(message, 'warning', duration);
+                },
+                info: function(message, duration) {
+                    return this.show(message, 'info', duration);
+                }
+            };
+
+            // Button Loading State Helper
+            window.setButtonLoading = function(button, loading = true) {
+                if (typeof button === 'string') {
+                    button = document.querySelector(button);
+                }
+                if (!button) return;
+
+                if (loading) {
+                    button.disabled = true;
+                    button.classList.add('btn-loading');
+                    button.dataset.originalText = button.innerHTML;
+                    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+                } else {
+                    button.disabled = false;
+                    button.classList.remove('btn-loading');
+                    if (button.dataset.originalText) {
+                        button.innerHTML = button.dataset.originalText;
+                        delete button.dataset.originalText;
+                    }
+                }
+            };
+
+            // Enhanced Fetch Helper with Loading States
+            window.fetchWithLoading = async function(url, options = {}, button = null) {
+                if (button) {
+                    setButtonLoading(button, true);
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (button) {
+                        setButtonLoading(button, false);
+                    }
+
+                    return { response, data };
+                } catch (error) {
+                    if (button) {
+                        setButtonLoading(button, false);
+                    }
+                    throw error;
+                }
+            };
+
+            // Form Validation Helper
+            window.validateForm = function(form) {
+                let isValid = true;
+                const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        input.classList.add('is-invalid');
+                        input.classList.remove('is-valid');
+                        isValid = false;
+                    } else {
+                        input.classList.remove('is-invalid');
+                        input.classList.add('is-valid');
+                    }
+                });
+
+                return isValid;
+            };
+
+            // Add fade-in animation to content on load
+            document.addEventListener('DOMContentLoaded', function() {
+                const content = document.querySelector('.content-container');
+                if (content) {
+                    content.classList.add('fade-in');
                 }
             });
         </script>

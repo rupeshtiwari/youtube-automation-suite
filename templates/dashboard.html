@@ -520,7 +520,7 @@ function saveQuickPost() {
             loadQueue();
             showToast('Post scheduled successfully!', 'success');
         } else {
-            alert('Error: ' + (data.error || 'Failed to schedule post'));
+            Toast.error(data.error || 'Failed to schedule post');
         }
     })
     .catch(error => {
@@ -534,7 +534,7 @@ function publishNow() {
     const videoUrl = document.getElementById('compose-video-url').value;
     
     if (!content.trim()) {
-        alert('Please enter post content');
+        Toast.error('Please enter post content');
         return;
     }
     
@@ -554,16 +554,19 @@ function publishNow() {
             loadQueue();
             showToast('Post published successfully!', 'success');
         } else {
-            alert('Error: ' + (data.error || 'Failed to publish post'));
+            Toast.error(data.error || 'Failed to publish post');
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        Toast.error('Error: ' + error.message);
     });
 }
 
 function publishItem(id) {
     if (!confirm('Publish this post now?')) return;
+    
+    const button = event.target.closest('button');
+    if (button) setButtonLoading(button, true);
     
     fetch(`/api/queue/${id}/publish`, { method: 'POST' })
         .then(response => response.json())
@@ -572,8 +575,9 @@ function publishItem(id) {
                 loadQueue();
                 showToast('Post published!', 'success');
             } else {
-                alert('Error: ' + (data.error || 'Failed to publish'));
+                Toast.error(data.error || 'Failed to publish');
             }
+            if (button) setButtonLoading(button, false);
         });
 }
 
@@ -591,7 +595,9 @@ function deleteItem(id) {
                 loadQueue();
                 showToast('Post deleted', 'success');
             } else {
-                alert('Error: ' + (data.error || 'Failed to delete'));
+                Toast.error(data.error || 'Failed to delete');
+            } else {
+                Toast.success('Post deleted successfully');
             }
         });
 }
@@ -606,7 +612,9 @@ function runAutoPilot() {
                 showToast('Auto-pilot completed! Check your queue.', 'success');
                 setTimeout(loadQueue, 2000);
             } else {
-                alert('Error: ' + (data.error || 'Auto-pilot failed'));
+                Toast.error(data.error || 'Auto-pilot failed');
+            } else {
+                Toast.success(`Auto-Pilot Complete! ${data.videos_selected} videos selected, ${data.posts_scheduled} posts scheduled.`);
             }
         });
 }

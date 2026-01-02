@@ -261,7 +261,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    container.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                    console.error('API Error:', data.error);
+                    if (data.traceback) {
+                        console.error('Traceback:', data.traceback);
+                    }
+                    Toast.error('Error: ' + data.error);
+                    container.innerHTML = `<div class="alert alert-danger">
+                        <strong>Error:</strong> ${data.error}
+                        ${data.traceback ? `<details><summary>Technical Details</summary><pre>${data.traceback}</pre></details>` : ''}
+                    </div>`;
                     return;
                 }
 
@@ -281,6 +289,8 @@
                 renderVideos(allVideos);
             })
             .catch(error => {
+                console.error('Error loading videos:', error);
+                Toast.error('Error loading videos: ' + error.message);
                 container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
             });
     }
@@ -369,8 +379,10 @@
                 </div>
                 
                 ${platforms.map((platform, pIndex) => {
-                const post = video.social_posts[platform] || {
-                    post_content: `${video.title}\n\n${video.video_url}`,
+                // Ensure social_posts is an object
+                const socialPosts = video.social_posts || {};
+                const post = socialPosts[platform] || {
+                    post_content: `${video.title || 'Untitled Video'}\n\n${video.video_url || ''}`,
                     status: 'pending',
                     schedule_date: null
                 };
@@ -440,19 +452,23 @@
     function schedulePost(videoId, platform) {
         const content = document.getElementById(`content-${videoId}-${platform}`).value;
         const datetime = document.getElementById(`datetime-${videoId}-${platform}`).value;
+        const button = document.querySelector(`[onclick*="schedulePost('${videoId}', '${platform}')"]`);
 
         if (!content.trim()) {
-            alert('Please enter post content');
+            Toast.error('Please enter post content');
             return;
         }
 
         if (!datetime) {
-            alert('Please select a date and time');
+            Toast.error('Please select a date and time');
             return;
         }
 
         // Convert datetime-local format to database format
         const scheduleDate = datetime.replace('T', ' ');
+
+        // Set button loading state
+        if (button) setButtonLoading(button, true);
 
         fetch('/api/schedule-post', {
             method: 'POST',
@@ -468,22 +484,29 @@
         })
             .then(response => response.json())
             .then(data => {
+                if (button) setButtonLoading(button, false);
+                
                 if (data.error) {
-                    alert('Error: ' + data.error);
+                    Toast.error(data.error);
                 } else {
-                    alert('✅ Post scheduled successfully!');
+                    Toast.success(`Post scheduled successfully for ${platform}!`);
                     loadAllVideos(); // Refresh to show updated status
                 }
             })
             .catch(error => {
-                alert('Error scheduling post: ' + error.message);
+                if (button) setButtonLoading(button, false);
+                Toast.error('Error scheduling post: ' + error.message);
             });
     }
 
     function runAutoPilot() {
+        // Use a better confirmation dialog
         if (!confirm('Run Auto-Pilot? This will automatically select videos and schedule them to all platforms based on your targeting settings.')) {
             return;
         }
+
+        const button = document.querySelector('[onclick*="runAutoPilot"]');
+        if (button) setButtonLoading(button, true);
 
         fetch('/api/autopilot/run', {
             method: 'POST',
@@ -493,15 +516,18 @@
         })
             .then(response => response.json())
             .then(data => {
+                if (button) setButtonLoading(button, false);
+                
                 if (data.error) {
-                    alert('Error: ' + data.error);
+                    Toast.error('Error: ' + data.error);
                 } else {
-                    alert(`✅ Auto-Pilot Complete!\n\n${data.message}\n\nVideos Selected: ${data.videos_selected}\nPosts Scheduled: ${data.posts_scheduled}`);
+                    Toast.success(`Auto-Pilot Complete! ${data.videos_selected} videos selected, ${data.posts_scheduled} posts scheduled.`);
                     loadAllVideos(); // Refresh to show scheduled posts
                 }
             })
             .catch(error => {
-                alert('Error running auto-pilot: ' + error.message);
+                if (button) setButtonLoading(button, false);
+                Toast.error('Error running auto-pilot: ' + error.message);
             });
     }
 

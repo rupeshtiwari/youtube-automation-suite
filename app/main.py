@@ -4,6 +4,10 @@ Provides a web interface to configure API keys and schedule daily automation.
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g, session, get_flashed_messages
+try:
+    from flask_cors import CORS
+except ImportError:
+    CORS = None
 import json
 import os
 import sys
@@ -20,6 +24,13 @@ import atexit
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import init_database
+from app.validators import (
+    validate_required_fields, sanitize_input, validate_integer,
+    validate_string_length, validate_platform, validate_post_status,
+    validate_video_id, validate_playlist_id, sanitize_filename,
+    validate_role, validate_session_type, validate_date_format,
+    validate_time_format, validate_url, validate_phone
+)
 
 
 def generate_clickbait_post(title: str, description: str, video_type: str, video_role: str, platform: str, youtube_url: str) -> str:
@@ -231,6 +242,25 @@ template_dir = os.path.join(project_root, 'templates')
 
 static_dir = os.path.join(os.path.dirname(__file__), 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
+
+# Enable CORS for React frontend
+if CORS:
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
+else:
+    # Fallback CORS headers if flask-cors not available
+    @app.after_request
+    def after_request(response):
+        if request.path.startswith('/api/'):
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Performance optimizations
@@ -931,6 +961,18 @@ def favicon():
     )
 
 
+@app.route('/static/js/service-worker.js')
+def service_worker():
+    """Serve service worker for PWA."""
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'js'),
+        'service-worker.js',
+        mimetype='application/javascript'
+    )
+
+
 @app.route('/config', methods=['GET', 'POST'])
 def config():
     """Configuration page."""
@@ -1099,7 +1141,8 @@ def get_youtube_service():
                 if not os.path.exists(CLIENT_SECRET_FILE):
                     return None
                 flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
+                # Use port 5001 to match the Flask app port for OAuth redirect URI
+                creds = flow.run_local_server(port=5001, open_browser=True)
             
             with open(TOKEN_FILE, "w", encoding="utf-8") as f:
                 f.write(creds.to_json())
@@ -1319,50 +1362,162 @@ def playlists():
         return render_template('error.html', message=f"Error fetching playlists: {str(e)}\n{traceback.format_exc()}")
 
 
-@app.route('/shorts')
-def shorts():
-    """Display only Shorts playlists for weekly scheduling automation."""
-    youtube = get_youtube_service()
-    if not youtube:
-        return render_template('error.html', 
-                             message="YouTube API not configured. Please set up client_secret.json")
-    
+@app.route('/api/shorts')
+def api_shorts():
+    """API endpoint for Shorts data with role/type tagging and filtering."""
     try:
-        channel_id = get_my_channel_id_helper(youtube)
-        if not channel_id:
-            return render_template('error.html', 
-                                 message="Could not find your YouTube channel. Please check authentication.")
+        youtube = get_youtube_service()
+        if not youtube:
+            return jsonify({'error': 'YouTube API not configured'}), 400
         
-        # Fetch all playlists and filter for Shorts
-        all_playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+        # Get filter parameters
+        role_filter = request.args.get('role', '').strip()
+        type_filter = request.args.get('type', '').strip()
         
-        # Filter for Shorts playlists (case-insensitive check for "short" in title)
-        shorts_playlists = [
-            pl for pl in all_playlists 
-            if 'short' in pl.get('playlistTitle', '').lower()
-        ]
-        
-        # Initialize videos as empty (will be loaded on demand)
-        for playlist in shorts_playlists:
-            playlist["videos"] = []
-            playlist["videosLoaded"] = False
-        
-        # Get settings for weekly schedule info
-        settings = load_settings()
-        weekly_schedule = settings.get('scheduling', {}).get('youtube_schedule_time', '23:00')
-        schedule_day = settings.get('scheduling', {}).get('schedule_day', 'wednesday')
-        
-        response = make_response(render_template(
-            'shorts.html', 
-            playlists=shorts_playlists,
-            weekly_schedule=weekly_schedule,
-            schedule_day=schedule_day
-        ))
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
+        try:
+            channel_id = get_my_channel_id_helper(youtube)
+            if not channel_id:
+                return jsonify({'error': 'Could not find your YouTube channel. Please check authentication.'}), 400
+            
+            # Fetch all playlists and filter for Shorts
+            all_playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+            
+            # Filter for Shorts playlists (case-insensitive check for "short" in title)
+            shorts_playlists = [
+                pl for pl in all_playlists 
+                if 'short' in pl.get('playlistTitle', '').lower()
+            ]
+            
+            # Get video counts for each playlist and social media status
+            from app.database import get_db_connection
+            from app.tagging import derive_role_enhanced, derive_type_enhanced, ROLES, TYPES
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Get counts of videos scheduled on social media and tag playlists
+            for playlist in shorts_playlists:
+                playlist_id = playlist.get('playlistId', '')
+                playlist_title = playlist.get('playlistTitle', '')
+                
+                # Try to get role/type from database first
+                cursor.execute('''
+                    SELECT playlist_role, playlist_type 
+                    FROM playlists 
+                    WHERE playlist_id = ?
+                ''', (playlist_id,))
+                db_result = cursor.fetchone()
+                
+                if db_result and db_result[0]:
+                    playlist_role = db_result[0]
+                    playlist_type = db_result[1] if db_result[1] else ''
+                else:
+                    # Derive role and type from playlist title
+                    playlist_role = derive_role_enhanced(playlist_title, '', '', '')
+                    playlist_type = derive_type_enhanced(playlist_title, '', '', '')
+                    
+                    # Save to database for future use
+                    try:
+                        cursor.execute('''
+                            INSERT OR REPLACE INTO playlists 
+                            (playlist_id, playlist_name, playlist_role, playlist_type, updated_at)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ''', (playlist_id, playlist_title, playlist_role, playlist_type))
+                        conn.commit()
+                    except Exception as e:
+                        app.logger.error(f"Error saving playlist tags: {e}")
+                
+                playlist["role"] = playlist_role
+                playlist["type"] = playlist_type
+                playlist["role_label"] = ROLES.get(playlist_role, playlist_role.title() if playlist_role else '')
+                playlist["type_label"] = TYPES.get(playlist_type, playlist_type.replace('_', ' ').title() if playlist_type else '')
+                
+                # Get videos in this playlist
+                try:
+                    videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_id)
+                    playlist["videos"] = videos
+                    playlist["total_videos"] = len(videos) if videos else 0
+                    
+                    # Count videos on YouTube (published or scheduled)
+                    youtube_count = 0
+                    if videos:
+                        youtube_count = sum(1 for v in videos if v.get('privacyStatus') == 'public' or v.get('isScheduled', False))
+                    playlist["youtube_count"] = youtube_count
+                    
+                    # Count videos scheduled on other platforms
+                    other_platforms_count = 0
+                    if videos:
+                        for video in videos:
+                            video_id = video.get('videoId', '')
+                            if video_id:
+                                cursor.execute('''
+                                    SELECT COUNT(DISTINCT platform) as platform_count
+                                    FROM social_media_posts
+                                    WHERE video_id = ? AND status IN ('scheduled', 'published')
+                                ''', (video_id,))
+                                result = cursor.fetchone()
+                                if result and result[0] > 0:
+                                    other_platforms_count += 1
+                except Exception as e:
+                    app.logger.error(f"Error fetching videos for playlist {playlist_id}: {e}")
+                    playlist["videos"] = []
+                    playlist["total_videos"] = playlist.get('itemCount', 0)
+                    playlist["youtube_count"] = 0
+                    other_platforms_count = 0
+                
+                playlist["other_platforms_count"] = other_platforms_count
+                playlist["not_scheduled_count"] = playlist["total_videos"] - other_platforms_count
+            
+            # Apply filters
+            if role_filter:
+                shorts_playlists = [p for p in shorts_playlists if p.get('role') == role_filter]
+            if type_filter:
+                shorts_playlists = [p for p in shorts_playlists if p.get('type') == type_filter]
+            
+            conn.close()
+            
+            # Calculate totals
+            total_videos = sum(p.get('total_videos', 0) for p in shorts_playlists)
+            total_youtube = sum(p.get('youtube_count', 0) for p in shorts_playlists)
+            total_other_platforms = sum(p.get('other_platforms_count', 0) for p in shorts_playlists)
+            total_not_scheduled = sum(p.get('not_scheduled_count', 0) for p in shorts_playlists)
+            
+            # Get settings for weekly schedule info
+            settings = load_settings()
+            weekly_schedule = settings.get('scheduling', {}).get('youtube_schedule_time', '23:00')
+            schedule_day = settings.get('scheduling', {}).get('schedule_day', 'wednesday')
+            
+            # Get available roles and types for filters
+            available_roles = list(set(p.get('role') for p in shorts_playlists if p.get('role')))
+            available_types = list(set(p.get('type') for p in shorts_playlists if p.get('type')))
+            
+            return jsonify({
+                'playlists': shorts_playlists or [],
+                'weekly_schedule': weekly_schedule or '23:00',
+                'schedule_day': schedule_day or 'wednesday',
+                'total_videos': total_videos or 0,
+                'total_youtube': total_youtube or 0,
+                'total_other_platforms': total_other_platforms or 0,
+                'total_not_scheduled': total_not_scheduled or 0,
+                'available_roles': available_roles,
+                'available_types': available_types,
+                'roles': {k: v for k, v in ROLES.items() if k in available_roles},
+                'types': {k: v for k, v in TYPES.items() if k in available_types}
+            })
+        except Exception as e:
+            app.logger.error(f"Error fetching Shorts playlists: {str(e)}")
+            import traceback
+            app.logger.error(traceback.format_exc())
+            return jsonify({'error': f"Error fetching Shorts: {str(e)}"}), 500
     except Exception as e:
         import traceback
-        return render_template('error.html', message=f"Error fetching Shorts: {str(e)}\n{traceback.format_exc()}")
+        app.logger.error(f"Error in api_shorts route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': f"Error loading Shorts: {str(e)}"}), 500
+
+@app.route('/shorts')
+def shorts():
+    """Legacy route - serves React app."""
+    return render_template('react_app.html')
 
 
 @app.route('/sessions')
@@ -1392,6 +1547,93 @@ def sessions():
     sessions_list.sort(key=lambda x: x['modified'], reverse=True)
     
     return render_template('sessions.html', sessions=sessions_list)
+
+
+@app.route('/api/sessions/submit', methods=['POST'])
+def api_submit_session():
+    """Submit a new coaching session with role and type."""
+    try:
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'error': 'Request must be JSON'
+            }), 400
+        
+        data = request.json
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        # Validate required fields
+        required_fields = ['role', 'session_type', 'content']
+        is_valid, error_msg = validate_required_fields(data, required_fields)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), 400
+        
+        role = sanitize_input(data.get('role', ''))
+        session_type = sanitize_input(data.get('session_type', ''))
+        content = sanitize_input(data.get('content', ''), max_length=50000)  # Limit content size
+        
+        # Validate role and session type
+        if not validate_role(role):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid role selected'
+            }), 400
+        
+        if not validate_session_type(session_type):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid session type selected'
+            }), 400
+        
+        # Validate content length
+        is_valid, error_msg = validate_string_length(content, min_length=10, max_length=50000)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), 400
+        
+        # Create sessions directory if it doesn't exist
+        sessions_dir = Path('data/sessions')
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate filename from role, type, and timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_role = re.sub(r'[^\w\s-]', '', role).replace(' ', '_')[:30]
+        safe_type = re.sub(r'[^\w\s-]', '', session_type).replace(' ', '_')[:30]
+        filename = f"{safe_role}_{safe_type}_{timestamp}.txt"
+        
+        # Create file with metadata header
+        file_path = sessions_dir / filename
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            # Write metadata header
+            f.write(f"ROLE: {role}\n")
+            f.write(f"SESSION_TYPE: {session_type}\n")
+            f.write(f"CREATED: {datetime.now().isoformat()}\n")
+            f.write("=" * 80 + "\n\n")
+            # Write content
+            f.write(content)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session saved successfully',
+            'filename': filename
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/sessions/<filename>')
@@ -1683,12 +1925,16 @@ def insights():
         # Get LinkedIn Analytics if available
         linkedin_analytics = get_linkedin_analytics()
         
-        # Combine all insights
+        # Combine all insights - ensure all keys exist and add CTA data
+        settings = load_settings()
+        cta_data = settings.get('cta', {})
+        
         insights_data = {
-            'youtube': youtube_analytics,
-            'facebook': facebook_insights,
-            'linkedin': linkedin_analytics,
-            'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics)
+            'youtube': youtube_analytics or {'error': 'Not configured'},
+            'facebook': facebook_insights or {'error': 'Not configured'},
+            'linkedin': linkedin_analytics or {'error': 'Not configured'},
+            'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics) or {},
+            'cta': cta_data
         }
         
         return render_template('insights.html', insights=insights_data)
@@ -1780,7 +2026,15 @@ def get_youtube_analytics():
                 'channel_id': channel_id
             }
         except Exception as e:
-            return {'error': f'YouTube Analytics API error: {str(e)}', 'note': 'YouTube Analytics API may need to be enabled in Google Cloud Console'}
+            error_msg = str(e)
+            # Extract user-friendly error message
+            if 'accessNotConfigured' in error_msg or 'has not been used' in error_msg:
+                error_msg = 'YouTube Analytics API not enabled. Enable it in Google Cloud Console.'
+            elif '403' in error_msg:
+                error_msg = 'YouTube Analytics API access denied. Check permissions in Google Cloud Console.'
+            elif len(error_msg) > 200:
+                error_msg = error_msg[:200] + '...'
+            return {'error': error_msg, 'note': 'YouTube Analytics API may need to be enabled in Google Cloud Console'}
     except Exception as e:
         return {'error': f'Error getting YouTube Analytics: {str(e)}'}
 
@@ -1798,6 +2052,40 @@ def get_facebook_insights():
         
         import requests
         
+        # First, validate the token by checking if it's still valid
+        # Use a simple API call to verify token
+        validate_url = f'https://graph.facebook.com/v18.0/me?access_token={access_token}'
+        validate_response = requests.get(validate_url, timeout=10)
+        
+        if validate_response.status_code != 200:
+            error_data = validate_response.json() if validate_response.text else {}
+            if error_data.get('error'):
+                error_info = error_data['error']
+                error_code = error_info.get('code')
+                error_subcode = error_info.get('error_subcode')
+                
+                # Code 190 can mean expired OR invalid token format
+                # Check subcode to be more specific
+                if error_code == 190:
+                    if error_subcode == 463:  # Token expired
+                        return {'error': 'Facebook access token expired. Please reconnect Facebook in Settings.'}
+                    elif error_subcode == 467:  # Token invalid
+                        return {'error': 'Facebook access token invalid. Please reconnect Facebook in Settings.'}
+                    else:
+                        # Try to get page info to see if token works for page operations
+                        page_url = f'https://graph.facebook.com/v18.0/{page_id}?fields=id,name&access_token={access_token}'
+                        page_response = requests.get(page_url, timeout=10)
+                        if page_response.status_code == 200:
+                            # Token is valid for page operations, continue
+                            pass
+                        else:
+                            return {'error': 'Facebook access token issue. Please reconnect Facebook in Settings.'}
+                else:
+                    error_msg = error_info.get('message', 'Facebook API error')
+                    if len(error_msg) > 150:
+                        error_msg = error_msg[:150] + '...'
+                    return {'error': error_msg}
+        
         # Get page insights
         url = f'https://graph.facebook.com/v18.0/{page_id}/insights'
         params = {
@@ -1808,12 +2096,33 @@ def get_facebook_insights():
             'access_token': access_token
         }
         
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=10)
         if response.status_code == 200:
             data = response.json()
             return {'insights': data.get('data', [])}
         else:
-            return {'error': f'Facebook API error: {response.text}'}
+            error_data = response.json() if response.text else {}
+            error_msg = 'Facebook API error'
+            if error_data.get('error'):
+                error_info = error_data['error']
+                error_code = error_info.get('code')
+                error_subcode = error_info.get('error_subcode')
+                
+                # More specific error handling
+                if error_code == 190:
+                    if error_subcode == 463:
+                        error_msg = 'Facebook access token expired. Please reconnect Facebook in Settings.'
+                    elif error_subcode == 467:
+                        error_msg = 'Facebook access token invalid. Please reconnect Facebook in Settings.'
+                    else:
+                        error_msg = error_info.get('message', 'Facebook token issue. Please reconnect.')
+                elif error_info.get('message'):
+                    error_msg = error_info['message']
+                    if len(error_msg) > 150:
+                        error_msg = error_msg[:150] + '...'
+            else:
+                error_msg = response.text[:150] if response.text else 'Unknown error'
+            return {'error': error_msg}
     except Exception as e:
         return {'error': f'Error getting Facebook Insights: {str(e)}'}
 
@@ -1892,6 +2201,38 @@ def activity():
     logs = get_activity_logs(limit=200)
     
     return render_template('activity.html', logs=logs)
+
+
+@app.route('/api/activity/<int:activity_id>')
+def api_activity_details(activity_id):
+    """Get detailed information about a specific activity."""
+    try:
+        from app.database import get_db_connection
+        import json
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM activity_logs WHERE id = ?', (activity_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Activity not found'}), 404
+        
+        log = dict(row)
+        
+        # Parse details JSON if it's a string
+        if log.get('details') and isinstance(log['details'], str):
+            try:
+                log['details'] = json.loads(log['details'])
+            except:
+                pass
+        
+        return jsonify({'log': log})
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 @app.route('/api/autopilot/run', methods=['POST'])
@@ -2083,6 +2424,31 @@ def api_autopilot_run():
                         youtube_url=youtube_url
                     )
                 
+                # Validate platform credentials BEFORE scheduling
+                is_valid, error_message = validate_platform_credentials(platform)
+                if not is_valid:
+                    log_activity(
+                        'schedule_post',
+                        platform=platform,
+                        video_id=video_id,
+                        video_title=video_title,
+                        playlist_id=playlist_id,
+                        playlist_name=playlist_name,
+                        status='error',
+                        message=f'Failed to schedule: {error_message}',
+                        details={
+                            'error': error_message,
+                            'validation_failed': True
+                        }
+                    )
+                    activities.append({
+                        'action': 'failed',
+                        'platform': platform,
+                        'video_title': video_title,
+                        'reason': error_message
+                    })
+                    continue
+                
                 # Calculate schedule date (next scheduled day/time)
                 schedule_time = settings.get('scheduling', {}).get('social_media_schedule_time', '19:30')
                 schedule_day = settings.get('scheduling', {}).get('schedule_day', 'wednesday')
@@ -2101,7 +2467,7 @@ def api_autopilot_run():
                 insert_or_update_social_post(video_id, platform, {
                     'post_content': post_content,
                     'schedule_date': schedule_datetime,
-                    'status': 'pending'
+                    'status': 'scheduled'
                 })
                 
                 log_activity(
@@ -2193,25 +2559,30 @@ def api_content_preview_videos():
                 video_id = video['videoId']
                 
                 # Get social posts from database
-                social_posts_dict = get_video_social_posts_from_db(video_id)
+                social_posts_list = get_video_social_posts_from_db(video_id)
                 
-                # social_posts_dict is already a dict from get_video_social_posts_from_db
-                social_posts = social_posts_dict if social_posts_dict else {}
+                # Convert list to dict for easier access
+                social_posts = {}
+                if social_posts_list:
+                    for post in social_posts_list:
+                        if post and post.get('platform'):
+                            social_posts[post['platform']] = post
                 
                 # Get video from database for metadata
                 db_video = get_video(video_id)
+                
+                # Extract video metadata (always needed)
+                title = video.get('title', '')
+                description = video.get('description', '')
+                tags = video.get('tags', '')
+                published_at = video.get('publishedAt', '')
+                youtube_url = f"https://youtube.com/watch?v={video_id}"
+                playlist_name = playlist.get('playlistTitle', '')
                 
                 # Generate posts if not exist
                 if not social_posts or len(social_posts) == 0:
                     # Generate posts aligned with Rupesh's coaching expertise
                     from app.tagging import derive_type_enhanced, derive_role_enhanced
-                    
-                    title = video.get('title', '')
-                    description = video.get('description', '')
-                    tags = video.get('tags', '')
-                    published_at = video.get('publishedAt', '')
-                    youtube_url = f"https://youtube.com/watch?v={video_id}"
-                    playlist_name = playlist.get('playlistTitle', '')
                     
                     # Derive video type and role for better hashtags
                     video_type = derive_type_enhanced(playlist_name, title, description, tags)
@@ -2278,20 +2649,27 @@ def api_content_preview_videos():
                     }
                 
                 # Get tags and published date from video data
-                video_tags = video.get('tags', '')
+                video_tags = tags
                 if isinstance(video_tags, list):
                     video_tags = ', '.join(video_tags)
-                published_at = video.get('publishedAt', '') or video.get('published_at', '')
+                elif not video_tags:
+                    video_tags = video.get('tags', '')
+                    if isinstance(video_tags, list):
+                        video_tags = ', '.join(video_tags)
+                
+                # Ensure published_at is set (use the one extracted earlier)
+                if not published_at:
+                    published_at = video.get('publishedAt', '') or video.get('published_at', '')
                 
                 all_videos.append({
                     'video_id': video_id,
-                    'title': title,
-                    'description': description,
-                    'tags': video_tags,
-                    'published_at': published_at,
+                    'title': title or 'Untitled Video',
+                    'description': description or '',
+                    'tags': video_tags or '',
+                    'published_at': published_at or '',
                     'thumbnail': video.get('thumbnail', ''),
                     'video_url': youtube_url,
-                    'playlist_name': playlist.get('playlistTitle', ''),
+                    'playlist_name': playlist_name or playlist.get('playlistTitle', ''),
                     'playlist_id': playlist['playlistId'],
                     'social_posts': social_posts,
                     'video_type': db_video.get('video_type', '') if db_video else '',
@@ -2302,6 +2680,53 @@ def api_content_preview_videos():
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+def validate_platform_credentials(platform: str) -> tuple[bool, str]:
+    """Validate that platform credentials are configured.
+    
+    Returns:
+        (is_valid, error_message)
+    """
+    settings = load_settings()
+    api_keys = settings.get('api_keys', {})
+    platform_lower = platform.lower()
+    
+    if platform_lower == 'linkedin':
+        access_token = api_keys.get('linkedin_access_token', '').strip()
+        person_urn = api_keys.get('linkedin_person_urn', '').strip()
+        
+        if not access_token:
+            return False, 'LinkedIn Access Token is not configured. Please connect LinkedIn in Settings.'
+        if not person_urn:
+            return False, 'LinkedIn Person URN is not configured. Please connect LinkedIn in Settings.'
+        
+        return True, ''
+    
+    elif platform_lower == 'facebook':
+        page_access_token = api_keys.get('facebook_page_access_token', '').strip()
+        page_id = api_keys.get('facebook_page_id', '').strip()
+        
+        if not page_access_token:
+            return False, 'Facebook Page Access Token is not configured. Please connect Facebook in Settings.'
+        if not page_id:
+            return False, 'Facebook Page ID is not configured. Please connect Facebook in Settings.'
+        
+        return True, ''
+    
+    elif platform_lower == 'instagram':
+        instagram_account_id = api_keys.get('instagram_business_account_id', '').strip()
+        page_access_token = api_keys.get('facebook_page_access_token', '').strip()
+        
+        if not instagram_account_id:
+            return False, 'Instagram Business Account ID is not configured. Please connect Facebook (which includes Instagram) in Settings.'
+        if not page_access_token:
+            return False, 'Facebook Page Access Token is not configured (required for Instagram). Please connect Facebook in Settings.'
+        
+        return True, ''
+    
+    else:
+        return False, f'Unknown platform: {platform}'
 
 
 @app.route('/api/schedule-post', methods=['POST'])
@@ -2319,14 +2744,36 @@ def api_schedule_post():
         if not all([video_id, platform, post_content, schedule_datetime]):
             return jsonify({'error': 'Missing required fields'}), 400
         
+        # Validate platform credentials BEFORE scheduling
+        is_valid, error_message = validate_platform_credentials(platform)
+        if not is_valid:
+            # Log as error
+            log_activity(
+                'schedule_post',
+                platform=platform,
+                video_id=video_id,
+                status='error',
+                message=f'Failed to schedule: {error_message}',
+                details={
+                    'schedule_date': schedule_datetime,
+                    'manual': True,
+                    'error': error_message,
+                    'validation_failed': True
+                }
+            )
+            return jsonify({
+                'success': False,
+                'error': error_message
+            }), 400
+        
         # Save to database
         insert_or_update_social_post(video_id, platform, {
             'post_content': post_content,
             'schedule_date': schedule_datetime,
-            'status': 'pending'
+            'status': 'scheduled'
         })
         
-        # Log activity
+        # Log activity as success
         log_activity(
             'schedule_post',
             platform=platform,
@@ -2342,6 +2789,18 @@ def api_schedule_post():
         })
     except Exception as e:
         import traceback
+        from app.database import log_activity
+        
+        # Log exception
+        log_activity(
+            'schedule_post',
+            platform=data.get('platform', 'unknown'),
+            video_id=data.get('video_id', ''),
+            status='error',
+            message=f'Exception: {str(e)}',
+            details={'error': str(e), 'traceback': traceback.format_exc()}
+        )
+        
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
@@ -3002,8 +3461,7 @@ def api_facebook_get_token_guide():
     api_keys = settings.get('api_keys', {})
     
     # Facebook App ID not needed - only Page Access Token is required
-    # app_id = api_keys.get('facebook_app_id', '421181512329379')
-    page_id = api_keys.get('facebook_page_id', '617021748762367')
+    page_id = api_keys.get('facebook_page_id', '')
     
     # Graph API Explorer URL with pre-filled app
     explorer_url = f"https://developers.facebook.com/tools/explorer/?version=v18.0"
@@ -3021,7 +3479,6 @@ def api_facebook_get_token_guide():
         'success': True,
         'guide': {
             'explorer_url': explorer_url,
-            'app_id': app_id,
             'page_id': page_id,
             'permissions': permissions,
             'steps': [
@@ -3366,30 +3823,70 @@ def api_queue():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get all scheduled posts
+        # Get queue posts (pending + scheduled)
         cursor.execute('''
             SELECT smp.id, smp.video_id, smp.platform, smp.post_content, 
                    smp.schedule_date, smp.actual_scheduled_date, smp.status,
                    smp.created_at, smp.updated_at,
-                   v.title as video_title, v.youtube_url
+                   v.title as video_title, v.youtube_url, v.playlist_name
             FROM social_media_posts smp
             LEFT JOIN videos v ON smp.video_id = v.video_id
-            WHERE smp.status IN ('pending', 'scheduled', 'published')
+            WHERE smp.status IN ('pending', 'scheduled')
             ORDER BY 
                 CASE WHEN smp.schedule_date IS NOT NULL THEN smp.schedule_date ELSE smp.created_at END ASC,
                 smp.created_at DESC
             LIMIT 100
         ''')
         
-        posts = []
+        queue_posts = []
         for row in cursor.fetchall():
             post = dict(row)
-            post['content'] = post.get('post_content', '')
-            post['text'] = post.get('post_content', '')
-            post['scheduled_at'] = post.get('schedule_date') or post.get('actual_scheduled_date')
-            if post.get('created_at'):
-                post['created_at'] = post['created_at']
-            posts.append(post)
+            post['post_content'] = post.get('post_content', '')
+            post['video_title'] = post.get('video_title', 'Unknown Video')
+            post['playlist_name'] = post.get('playlist_name', '')
+            queue_posts.append(post)
+        
+        # Get drafts (posts without schedule_date)
+        cursor.execute('''
+            SELECT smp.id, smp.video_id, smp.platform, smp.post_content, 
+                   smp.schedule_date, smp.actual_scheduled_date, smp.status,
+                   smp.created_at, smp.updated_at,
+                   v.title as video_title, v.youtube_url, v.playlist_name
+            FROM social_media_posts smp
+            LEFT JOIN videos v ON smp.video_id = v.video_id
+            WHERE smp.status = 'pending' AND smp.schedule_date IS NULL
+            ORDER BY smp.created_at DESC
+            LIMIT 100
+        ''')
+        
+        draft_posts = []
+        for row in cursor.fetchall():
+            post = dict(row)
+            post['post_content'] = post.get('post_content', '')
+            post['video_title'] = post.get('video_title', 'Unknown Video')
+            post['playlist_name'] = post.get('playlist_name', '')
+            draft_posts.append(post)
+        
+        # Get published posts
+        cursor.execute('''
+            SELECT smp.id, smp.video_id, smp.platform, smp.post_content, 
+                   smp.schedule_date, smp.actual_scheduled_date, smp.status,
+                   smp.created_at, smp.updated_at,
+                   v.title as video_title, v.youtube_url, v.playlist_name
+            FROM social_media_posts smp
+            LEFT JOIN videos v ON smp.video_id = v.video_id
+            WHERE smp.status = 'published'
+            ORDER BY smp.updated_at DESC
+            LIMIT 100
+        ''')
+        
+        published_posts = []
+        for row in cursor.fetchall():
+            post = dict(row)
+            post['post_content'] = post.get('post_content', '')
+            post['video_title'] = post.get('video_title', 'Unknown Video')
+            post['playlist_name'] = post.get('playlist_name', '')
+            published_posts.append(post)
         
         # Get stats
         today = date.today().isoformat()
@@ -3409,7 +3906,9 @@ def api_queue():
         conn.close()
         
         return jsonify({
-            'queue': posts,
+            'queue': queue_posts,
+            'drafts': draft_posts,
+            'published': published_posts,
             'stats': {
                 'queue_count': queue_count,
                 'scheduled_count': scheduled_count,
@@ -3421,6 +3920,8 @@ def api_queue():
         import traceback
         return jsonify({
             'queue': [],
+            'drafts': [],
+            'published': [],
             'stats': {
                 'queue_count': 0,
                 'scheduled_count': 0,
@@ -3681,6 +4182,33 @@ def api_queue_delete(post_id):
         conn.close()
         
         return jsonify({'success': True, 'message': 'Post deleted'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/linkedin/disconnect', methods=['POST'])
+def api_linkedin_disconnect():
+    """Disconnect LinkedIn by clearing tokens."""
+    try:
+        settings = load_settings()
+        settings['api_keys']['linkedin_access_token'] = ''
+        settings['api_keys']['linkedin_person_urn'] = ''
+        save_settings(settings)
+        return jsonify({'success': True, 'message': 'LinkedIn disconnected'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/facebook/disconnect', methods=['POST'])
+def api_facebook_disconnect():
+    """Disconnect Facebook by clearing tokens."""
+    try:
+        settings = load_settings()
+        settings['api_keys']['facebook_page_access_token'] = ''
+        settings['api_keys']['facebook_page_id'] = ''
+        settings['api_keys']['instagram_business_account_id'] = ''
+        save_settings(settings)
+        return jsonify({'success': True, 'message': 'Facebook and Instagram disconnected'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

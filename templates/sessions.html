@@ -48,6 +48,70 @@
         </div>
     </div>
 
+    <!-- Submit New Session Form -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-primary" style="border-left: 4px solid var(--primary);">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="mb-0" style="color: var(--primary);">
+                        <i class="bi bi-plus-circle"></i> Submit New Session
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="sessionForm" onsubmit="submitSession(event)">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Session Role</strong> <span class="text-danger">*</span></label>
+                                <select class="form-select" name="role" required>
+                                    <option value="">Select Role...</option>
+                                    <option value="Engineering Manager">Engineering Manager</option>
+                                    <option value="Product Manager">Product Manager</option>
+                                    <option value="Solutions Architect">Solutions Architect</option>
+                                    <option value="Data Engineer">Data Engineer</option>
+                                    <option value="Software Engineer">Software Engineer</option>
+                                    <option value="Staff Software Engineer">Staff Software Engineer</option>
+                                    <option value="Technical Program Manager">Technical Program Manager</option>
+                                    <option value="Site Reliability Engineer">Site Reliability Engineer</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <small class="text-muted">The role/position the candidate is applying for</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Session Type</strong> <span class="text-danger">*</span></label>
+                                <select class="form-select" name="session_type" required>
+                                    <option value="">Select Type...</option>
+                                    <option value="System Design">System Design</option>
+                                    <option value="Behavioral">Behavioral</option>
+                                    <option value="Leadership">Leadership</option>
+                                    <option value="Career Coaching">Career Coaching</option>
+                                    <option value="Resume Review">Resume Review</option>
+                                    <option value="Salary Negotiation">Salary Negotiation</option>
+                                    <option value="Coding">Coding</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <small class="text-muted">Type of coaching session</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Session Content</strong> <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="content" rows="10" required 
+                                      placeholder="Paste your coaching session content here...&#10;&#10;Include:&#10;- Candidate's background&#10;- Questions asked&#10;- Answers provided&#10;- Feedback given&#10;- Key takeaways"></textarea>
+                            <small class="text-muted">Copy and paste the full session transcript or notes</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Session
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('sessionForm').reset()">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sessions List -->
     <div class="row">
         <div class="col-md-12">
@@ -68,6 +132,8 @@
                             <thead>
                                 <tr>
                                     <th>Filename</th>
+                                    <th>Role</th>
+                                    <th>Type</th>
                                     <th>Size</th>
                                     <th>Last Modified</th>
                                     <th>Actions</th>
@@ -79,6 +145,20 @@
                                     <td>
                                         <i class="bi bi-file-text text-primary"></i>
                                         <strong>{{ session.filename }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if session.role %}
+                                        <span class="badge bg-info">{{ session.role }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.session_type %}
+                                        <span class="badge bg-primary">{{ session.session_type }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ session.size_kb }} KB</td>
                                     <td>{{ session.modified }}</td>
@@ -296,6 +376,54 @@
         showToast('Scripts exported!', 'success');
     }
 
+    // Submit new session
+    function submitSession(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = {
+            role: formData.get('role'),
+            session_type: formData.get('session_type'),
+            content: formData.get('content')
+        };
+        
+        if (!data.role || !data.session_type || !data.content.trim()) {
+            Toast.error('Please fill in all required fields');
+            return;
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+        
+        fetch('/api/sessions/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            setButtonLoading(submitBtn, false);
+            
+            if (result.success) {
+                Toast.success('Session saved successfully!');
+                form.reset();
+                // Reload page after 1 second to show new session
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                Toast.error('Error: ' + (result.error || 'Failed to save session'));
+            }
+        })
+        .catch(error => {
+            setButtonLoading(submitBtn, false);
+            Toast.error('Error: ' + error.message);
+        });
+    }
+
     // Helper functions
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -304,19 +432,24 @@
     }
 
     function showToast(message, type) {
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        toast.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.remove();
-            }
-        }, 3000);
+        // Use global Toast if available, otherwise fallback
+        if (window.Toast) {
+            Toast[type === 'success' ? 'success' : 'error'](message);
+        } else {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
     }
 </script>
 {% endblock %}

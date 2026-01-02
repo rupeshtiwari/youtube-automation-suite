@@ -176,13 +176,8 @@
                 button.classList.remove('btn-primary', 'btn-saving');
                 button.classList.add('btn-danger');
                 
-                // Show error message
-                saveIndicator.innerHTML = `
-                    <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
-                        <i class="bi bi-exclamation-triangle"></i> <strong>Error!</strong> ${data.error || 'Failed to save'}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="document.getElementById('save-indicator').remove()"></button>
-                    </div>
-                `;
+                // Show error message with toast
+                Toast.error(data.error || 'Failed to save');
                 
                 // Auto-dismiss after 5 seconds
                 setTimeout(() => {
@@ -208,12 +203,7 @@
             button.classList.remove('btn-primary', 'btn-saving');
             button.classList.add('btn-danger');
             
-            saveIndicator.innerHTML = `
-                <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
-                    <i class="bi bi-exclamation-triangle"></i> <strong>Network Error!</strong> ${error.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="document.getElementById('save-indicator').remove()"></button>
-                </div>
-            `;
+            Toast.error('Network Error: ' + error.message);
             
             setTimeout(() => {
                 if (saveIndicator && saveIndicator.parentElement) {
@@ -468,9 +458,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        Toast.success('LinkedIn disconnected successfully');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert('Error: ' + (data.error || 'Failed to disconnect'));
+                        Toast.error('Error: ' + (data.error || 'Failed to disconnect'));
                     }
                 });
         }
@@ -482,9 +473,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        Toast.success('Facebook disconnected successfully');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert('Error: ' + (data.error || 'Failed to disconnect'));
+                        Toast.error('Error: ' + (data.error || 'Failed to disconnect'));
                     }
                 });
         }

@@ -13,16 +13,36 @@
         </div>
     </div>
 
+    {% if not insights %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Loading insights...
+    </div>
+    {% endif %}
+
     <!-- Overview Cards -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">YouTube</h5>
-                    {% if insights.youtube and not insights.youtube.error %}
-                        <p class="text-muted">Analytics available</p>
+                    <h5 class="card-title"><i class="bi bi-youtube text-danger"></i> YouTube</h5>
+                    {% if insights and insights.youtube and not insights.youtube.error %}
+                        <p class="text-success mb-0"><i class="bi bi-check-circle"></i> Analytics available</p>
                     {% else %}
-                        <p class="text-danger">{{ insights.youtube.error if insights.youtube else 'Not configured' }}</p>
+                        <div class="alert alert-warning mb-0" style="font-size: 0.875rem;">
+                            <strong>⚠️ Issue:</strong><br>
+                            {% if insights and insights.youtube and insights.youtube.error %}
+                                {% if 'not enabled' in insights.youtube.error.lower() or 'accessNotConfigured' in insights.youtube.error %}
+                                    <p class="mb-2">YouTube Analytics API not enabled in Google Cloud Console.</p>
+                                    <a href="https://console.cloud.google.com/apis/library/youtubeanalytics.googleapis.com" target="_blank" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-box-arrow-up-right"></i> Enable API
+                                    </a>
+                                {% else %}
+                                    {{ insights.youtube.error[:80] }}{% if insights.youtube.error|length > 80 %}...{% endif %}
+                                {% endif %}
+                            {% else %}
+                                Not configured
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -30,11 +50,25 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Facebook</h5>
-                    {% if insights.facebook and not insights.facebook.error %}
-                        <p class="text-muted">Insights available</p>
+                    <h5 class="card-title"><i class="bi bi-facebook text-primary"></i> Facebook</h5>
+                    {% if insights and insights.facebook and not insights.facebook.error %}
+                        <p class="text-success mb-0"><i class="bi bi-check-circle"></i> Insights available</p>
                     {% else %}
-                        <p class="text-danger">{{ insights.facebook.error if insights.facebook else 'Not configured' }}</p>
+                        <div class="alert alert-warning mb-0" style="font-size: 0.875rem;">
+                            <strong>⚠️ Issue:</strong><br>
+                            {% if insights and insights.facebook and insights.facebook.error %}
+                                {% if 'expired' in insights.facebook.error.lower() or 'Session has expired' in insights.facebook.error %}
+                                    <p class="mb-2">Facebook access token expired.</p>
+                                    <a href="/config#facebook" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-gear"></i> Reconnect Facebook
+                                    </a>
+                                {% else %}
+                                    {{ insights.facebook.error[:80] }}{% if insights.facebook.error|length > 80 %}...{% endif %}
+                                {% endif %}
+                            {% else %}
+                                Not configured
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -42,11 +76,25 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">LinkedIn</h5>
-                    {% if insights.linkedin and not insights.linkedin.error %}
-                        <p class="text-muted">Analytics available</p>
+                    <h5 class="card-title"><i class="bi bi-linkedin" style="color: #0077b5;"></i> LinkedIn</h5>
+                    {% if insights and insights.linkedin and not insights.linkedin.error %}
+                        <p class="text-success mb-0"><i class="bi bi-check-circle"></i> Analytics available</p>
                     {% else %}
-                        <p class="text-danger">{{ insights.linkedin.error if insights.linkedin else 'Not configured' }}</p>
+                        <div class="alert alert-warning mb-0" style="font-size: 0.875rem;">
+                            <strong>⚠️ Issue:</strong><br>
+                            {% if insights and insights.linkedin and insights.linkedin.error %}
+                                {% if 'not configured' in insights.linkedin.error.lower() %}
+                                    <p class="mb-2">LinkedIn credentials not configured.</p>
+                                    <a href="/config#linkedin" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-gear"></i> Configure LinkedIn
+                                    </a>
+                                {% else %}
+                                    {{ insights.linkedin.error[:80] }}{% if insights.linkedin.error|length > 80 %}...{% endif %}
+                                {% endif %}
+                            {% else %}
+                                Not configured
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -54,19 +102,22 @@
     </div>
 
     <!-- Optimal Posting Times -->
-    {% if insights.optimal_posting_times %}
+    {% if insights and insights.optimal_posting_times and not insights.optimal_posting_times.error %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5>Optimal Posting Times</h5>
+                    <h5><i class="bi bi-clock"></i> Optimal Posting Times</h5>
                 </div>
                 <div class="card-body">
-                    {% if insights.optimal_posting_times and insights.optimal_posting_times.youtube %}
+                    {% if insights.optimal_posting_times.youtube %}
                         <p><strong>YouTube Best Time:</strong> Hour {{ insights.optimal_posting_times.youtube.hour }}:00</p>
                     {% endif %}
-                    {% if insights.optimal_posting_times and insights.optimal_posting_times.overall %}
+                    {% if insights.optimal_posting_times.overall %}
                         <p><strong>Overall Recommendation:</strong> Post at hour {{ insights.optimal_posting_times.overall.hour }}:00 for maximum engagement</p>
+                    {% endif %}
+                    {% if not insights.optimal_posting_times.youtube and not insights.optimal_posting_times.overall %}
+                        <p class="text-muted">No posting time data available yet. Analytics will populate this once data is collected.</p>
                     {% endif %}
                 </div>
             </div>
@@ -75,7 +126,7 @@
     {% endif %}
 
     <!-- YouTube Analytics Details -->
-    {% if insights.youtube and not insights.youtube.error %}
+    {% if insights and insights.youtube and not insights.youtube.error %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -173,12 +224,12 @@
     {% endif %}
 
     <!-- Facebook Insights Details -->
-    {% if insights.facebook and not insights.facebook.error %}
+    {% if insights and insights.facebook and not insights.facebook.error %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5>Facebook Insights</h5>
+                    <h5><i class="bi bi-facebook text-primary"></i> Facebook Insights</h5>
                 </div>
                 <div class="card-body">
                     <p><strong>Insights Available:</strong> {{ insights.facebook.insights|length if insights.facebook.insights else 0 }} metrics</p>
@@ -201,7 +252,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <h6><i class="bi bi-clock"></i> Best Posting Times</h6>
-                            {% if insights.optimal_posting_times and insights.optimal_posting_times.overall %}
+                            {% if insights and insights.optimal_posting_times and insights.optimal_posting_times.overall %}
                             <p><strong>Recommended Time:</strong> {{ insights.optimal_posting_times.overall.hour }}:00 EDT</p>
                             {% else %}
                             <p><strong>Recommended Times for USA Students:</strong></p>
@@ -274,7 +325,7 @@
     </div>
 
     <!-- Booking & Purchase Information -->
-    {% if insights.cta %}
+    {% if insights and insights.cta %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-success">
@@ -380,4 +431,3 @@
     </div>
 </div>
 {% endblock %}
-

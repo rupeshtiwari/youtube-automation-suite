@@ -5,114 +5,283 @@
 {% block page_title %}Shorts{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="mb-2">
-                        <i class="bi bi-camera-reels"></i> Shorts Management
-                    </h1>
-                    <p class="text-muted">Manage and schedule your YouTube Shorts across all social media platforms</p>
-                </div>
-                <div>
-                    <a href="/content-preview" class="btn btn-primary">
-                        <i class="bi bi-pencil-square"></i> Preview & Schedule All
-                    </a>
-                </div>
-            </div>
+<style>
+    .shorts-page {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    /* Compact Stats Bar */
+    .stats-bar-compact {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card-compact {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    
+    .stat-card-compact:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .stat-value-compact {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary);
+        line-height: 1.2;
+        margin-bottom: 4px;
+    }
+    
+    .stat-label-compact {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Compact Auto-Pilot Card */
+    .autopilot-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .autopilot-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    
+    .autopilot-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--success);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .autopilot-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    
+    .autopilot-btn {
+        width: 100%;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    /* Compact Playlist Cards */
+    .playlist-card-compact {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .playlist-card-compact:hover {
+        box-shadow: var(--card-shadow);
+        transform: translateX(2px);
+    }
+    
+    .playlist-header-compact {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .playlist-title-compact {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+    
+    .playlist-stats-compact {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        font-size: 12px;
+    }
+    
+    .playlist-stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-secondary);
+    }
+    
+    .playlist-stat strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    
+    .playlist-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-compact {
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    /* Compact Warning */
+    .warning-compact {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-left: 3px solid var(--warning);
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+    }
+    
+    .warning-compact strong {
+        color: var(--warning);
+    }
+    
+    /* Typography improvements */
+    .shorts-page h1, .shorts-page h2, .shorts-page h3 {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+    
+    .shorts-page p {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    
+    /* Remove large spacing */
+    .shorts-page .row {
+        margin-bottom: 0;
+    }
+    
+    .shorts-page .mb-4 {
+        margin-bottom: 16px !important;
+    }
+</style>
+
+<div class="container-fluid shorts-page">
+    <!-- Compact Stats Bar -->
+    <div class="stats-bar-compact">
+        <div class="stat-card-compact">
+            <div class="stat-value-compact">{{ playlists|length }}</div>
+            <div class="stat-label-compact">Playlists</div>
+        </div>
+        <div class="stat-card-compact">
+            <div class="stat-value-compact">{{ total_videos or 0 }}</div>
+            <div class="stat-label-compact">Total Videos</div>
+        </div>
+        <div class="stat-card-compact">
+            <div class="stat-value-compact" style="color: #ff0000;">{{ total_youtube or 0 }}</div>
+            <div class="stat-label-compact">On YouTube</div>
+        </div>
+        <div class="stat-card-compact">
+            <div class="stat-value-compact" style="color: var(--success);">{{ total_other_platforms or 0 }}</div>
+            <div class="stat-label-compact">Other Channels</div>
+        </div>
+        <div class="stat-card-compact">
+            <div class="stat-value-compact" style="color: var(--warning);">{{ total_not_scheduled or 0 }}</div>
+            <div class="stat-label-compact">Not Scheduled</div>
         </div>
     </div>
 
-    <!-- Stats Bar -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card" style="background: var(--gradient-blue); border: none; color: white;">
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h3 style="color: white; font-weight: 700;">{{ playlists|length }}</h3>
-                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Shorts Playlists</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 style="color: white; font-weight: 700;">{{ playlists|sum(attribute='itemCount') }}</h3>
-                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Total Shorts Videos</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 style="color: white; font-weight: 700;">{{ weekly_schedule or '19:30' }}</h3>
-                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">Weekly Schedule Time</p>
-                        </div>
+    <!-- Compact Warning (if needed) -->
+    {% if total_not_scheduled and total_not_scheduled > 0 %}
+    <div class="warning-compact">
+        <strong>{{ total_not_scheduled }} videos</strong> not scheduled on other channels. 
+        <a href="/content-preview" class="text-decoration-none" style="color: var(--primary); font-weight: 600;">Schedule now →</a>
+    </div>
+    {% endif %}
+
+    <!-- Compact Auto-Pilot Card -->
+    <div class="autopilot-card">
+        <div class="autopilot-header">
+            <div class="autopilot-title">
+                <i class="bi bi-rocket-takeoff"></i>
+                One-Click Automation
+            </div>
+            <small style="color: var(--text-muted); font-size: 11px;">Weekly: {{ schedule_day|title }} {{ weekly_schedule }}</small>
+        </div>
+        <div class="autopilot-desc">
+            Selects 1 video per playlist → Generates posts → Schedules to LinkedIn, Facebook, Instagram
+        </div>
+        <button class="btn btn-success autopilot-btn" onclick="runAutoPilot()">
+            <i class="bi bi-rocket-takeoff"></i> Run Auto-Pilot
+        </button>
+    </div>
+
+    <!-- Compact Playlists List -->
+    <div class="playlists-list">
+        {% if playlists %}
+            {% for playlist in playlists %}
+            <div class="playlist-card-compact">
+                <div class="playlist-header-compact">
+                    <div class="playlist-title-compact">
+                        <i class="bi bi-collection-play" style="color: var(--primary);"></i>
+                        {{ playlist.playlistTitle }}
+                    </div>
+                    <div class="playlist-stats-compact">
+                        <span class="playlist-stat">
+                            <i class="bi bi-film"></i>
+                            <strong>{{ playlist.total_videos or playlist.itemCount }}</strong>
+                        </span>
+                        <span class="playlist-stat" style="color: #ff0000;">
+                            <i class="bi bi-youtube"></i>
+                            <strong>{{ playlist.youtube_count or 0 }}</strong>
+                        </span>
+                        <span class="playlist-stat" style="color: var(--success);">
+                            <i class="bi bi-share"></i>
+                            <strong>{{ playlist.other_platforms_count or 0 }}</strong>
+                        </span>
+                        {% if playlist.not_scheduled_count and playlist.not_scheduled_count > 0 %}
+                        <span class="playlist-stat" style="color: var(--warning);">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>{{ playlist.not_scheduled_count }}</strong>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="playlist-actions">
+                        <a href="/content-preview" class="btn btn-primary btn-compact">
+                            <i class="bi bi-pencil-square"></i> Schedule
+                        </a>
+                        <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-compact" style="background: #ff0000; color: white; border-color: #ff0000;">
+                            <i class="bi bi-youtube"></i>
+                        </a>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Auto-Pilot Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card" style="border-left: 4px solid var(--success);">
-                <div class="card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); border-bottom: 1px solid var(--border);">
-                    <h5 class="mb-0" style="color: var(--success); font-weight: 600;">
-                        <i class="bi bi-rocket-takeoff"></i> One-Click Weekly Shorts Automation
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p style="color: var(--text-secondary);">Automatically select one video from each Shorts playlist and schedule them for weekly posting on all social media platforms.</p>
-                    <div class="alert" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--text-primary);">
-                        <i class="bi bi-info-circle" style="color: var(--info);"></i> 
-                        <strong>How it works:</strong> Selects 1 video per playlist → Generates posts → Schedules to LinkedIn, Facebook, Instagram → Respects daily thresholds
-                    </div>
-                    <button class="btn btn-success btn-lg" onclick="runAutoPilot()" style="padding: 12px 32px; font-weight: 600;">
-                        <i class="bi bi-rocket-takeoff"></i> Run Auto-Pilot Now
-                    </button>
-                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-warning" style="padding: 12px; font-size: 13px;">
+                <i class="bi bi-exclamation-triangle"></i> No Shorts playlists found.
             </div>
-        </div>
-    </div>
-
-    <!-- Playlists -->
-    <div class="row">
-        <div class="col-12">
-            {% if playlists %}
-                {% for playlist in playlists %}
-                <div class="card mb-3" style="transition: all 0.3s ease;">
-                    <div class="card-header" style="background: var(--bg-tertiary);">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-1" style="color: var(--text-primary); font-weight: 600;">
-                                    <i class="bi bi-collection-play" style="color: var(--primary);"></i> {{ playlist.playlistTitle }}
-                                </h5>
-                                <small style="color: var(--text-secondary);">
-                                    <i class="bi bi-film"></i> {{ playlist.itemCount }} videos
-                                </small>
-                            </div>
-                            <div>
-                                <a href="/content-preview" class="btn btn-sm btn-primary" style="margin-right: 8px;">
-                                    <i class="bi bi-pencil-square"></i> Preview & Schedule
-                                </a>
-                                <a href="{{ playlist.playlistUrl }}" target="_blank" class="btn btn-sm" style="background: #ff0000; color: white; border-color: #ff0000;">
-                                    <i class="bi bi-youtube"></i> View on YouTube
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <p style="color: var(--text-secondary); margin: 0;">
-                            <i class="bi bi-calendar"></i> Published: {{ playlist.publishedAt[:10] if playlist.publishedAt else 'N/A' }}
-                            {% if playlist.channelTitle %}
-                            <span class="ms-3"><i class="bi bi-broadcast"></i> {{ playlist.channelTitle }}</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> No Shorts playlists found. Make sure you have playlists with "short" in the title.
-                </div>
-            {% endif %}
-        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -123,9 +292,7 @@ function runAutoPilot() {
     }
     
     const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running...';
+    setButtonLoading(btn, true);
     
     fetch('/api/autopilot/run', {
         method: 'POST',
@@ -136,21 +303,17 @@ function runAutoPilot() {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert('Error: ' + data.error);
+            Toast.error('Error: ' + data.error);
         } else {
-            alert(`✅ Auto-Pilot Complete!\n\n${data.message}\n\nVideos Selected: ${data.videos_selected}\nPosts Scheduled: ${data.posts_scheduled}`);
-            // Optionally refresh the page or show results
-            window.location.href = '/activity';
+            Toast.success(`Auto-Pilot Complete! ${data.videos_selected} videos selected, ${data.posts_scheduled} posts scheduled.`);
+            setTimeout(() => window.location.href = '/activity', 2000);
         }
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        setButtonLoading(btn, false);
     })
     .catch(error => {
-        alert('Error running auto-pilot: ' + error.message);
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        Toast.error('Error running auto-pilot: ' + error.message);
+        setButtonLoading(btn, false);
     });
 }
 </script>
 {% endblock %}
-

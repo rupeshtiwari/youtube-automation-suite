@@ -1,71 +1,64 @@
 # Quick Start Guide
 
-## 🚀 Running Scripts
+## 🚀 Start the App (Two Terminals)
 
-All scripts should be run with the virtual environment activated. You have two options:
-
-### Option 1: Activate Virtual Environment Manually
-
+### Terminal 1: React Frontend
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
-
-# Now run any script
-python3 scripts/fetch_facebook_config.py
-python3 scripts/get_instagram_account_id.py
-python3 scripts/load_config.py
+cd frontend
+npm run dev
 ```
+✅ Frontend: http://localhost:5173
 
-### Option 2: Use Helper Script (Easier)
-
+### Terminal 2: Flask Backend
 ```bash
-# Use the helper script (automatically activates venv)
-./scripts/run_with_venv.sh fetch_facebook_config.py
-./scripts/run_with_venv.sh get_instagram_account_id.py
-./scripts/run_with_venv.sh load_config.py
+python run.py
 ```
+✅ Backend: http://localhost:5001
 
-## 📋 Common Commands
+---
 
-### Fetch Facebook Configuration (OAuth)
+## 🔄 Restart the App
+
+### Method 1: Manual (Recommended)
+1. Press `Ctrl+C` in both terminals
+2. Start again:
+   - Terminal 1: `cd frontend && npm run dev`
+   - Terminal 2: `python run.py`
+
+### Method 2: Restart Script (Both Servers)
 ```bash
-./scripts/run_with_venv.sh fetch_facebook_config.py
+./restart_all.sh
 ```
 
-### Get Instagram Account ID
+### Method 3: Flask Only
 ```bash
-./scripts/run_with_venv.sh get_instagram_account_id.py
+python scripts/restart_server.py
 ```
 
-### Load Configuration from File
+---
+
+## 📝 Notes
+
+- **React** auto-reloads on code changes (no restart needed)
+- **Flask** needs restart after Python code changes
+- Both servers must be running for the app to work
+- Frontend proxies `/api/*` requests to Flask backend
+
+---
+
+## 🆘 Troubleshooting
+
+**Port in use?**
 ```bash
-./scripts/run_with_venv.sh load_config.py
+# Kill Flask
+lsof -ti:5001 | xargs kill -9
+
+# Kill React
+lsof -ti:5173 | xargs kill -9
 ```
 
-## ⚠️ If You Get "ModuleNotFoundError"
-
-If you see errors like `ModuleNotFoundError: No module named 'requests'`:
-
-1. **Make sure virtual environment is activated:**
-   ```bash
-   source .venv/bin/activate
-   ```
-
-2. **Or install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Or use the helper script:**
-   ```bash
-   ./scripts/run_with_venv.sh <script_name>
-   ```
-
-## ✅ Your Prompt Should Show
-
-When virtual environment is activated, you should see:
+**First time?**
+```bash
+cd frontend && npm install
+pip install -r requirements.txt
 ```
-(.venv) ➜ youtube-automation
-```
-
-If you don't see `(.venv)`, the virtual environment is not activated!
