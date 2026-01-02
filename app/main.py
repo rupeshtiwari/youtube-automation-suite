@@ -2720,7 +2720,12 @@ def api_linkedin_oauth_authorize():
         # Store redirect_uri for debugging
         session['linkedin_redirect_uri'] = redirect_uri
         
+        # Request scopes - w_member_social requires Marketing Developer Platform product
+        # If you get "invalid_scope_error", enable Marketing Developer Platform in LinkedIn app settings
         scopes = ['w_member_social', 'r_liteprofile', 'r_emailaddress']
+        
+        # If Marketing Developer Platform is not enabled, these scopes won't be available
+        # Check: https://www.linkedin.com/developers/apps/86vimp2gbw3c06/products
         
         # Use urlencode for proper URL parameter encoding
         from urllib.parse import urlencode
