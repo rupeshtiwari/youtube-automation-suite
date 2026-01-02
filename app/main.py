@@ -2740,17 +2740,29 @@ def api_facebook_oauth_authorize():
     try:
         settings = load_settings()
         api_keys = settings.get('api_keys', {})
-        # For Facebook, we need App ID (not client_id like LinkedIn)
-        # But Facebook OAuth requires App ID and App Secret
-        # However, for Page Access Token, we can use a simpler flow
         
-        # Check if we have Facebook App ID (optional - can use Graph API Explorer method)
-        # For now, redirect to a helper page that guides through Facebook token generation
-        flash('Facebook connection requires Page Access Token. Use the Facebook Token Helper or Graph API Explorer method.', 'info')
+        # Facebook OAuth flow - we'll use a simplified approach
+        # Since Facebook requires App ID/Secret for full OAuth, we'll guide users
+        # But we can also use the Graph API Explorer method which is simpler
+        
+        # For now, redirect to Facebook Graph API Explorer with instructions
+        # This is more reliable than full OAuth for Page Access Tokens
+        flash('For Facebook connection, please use the Graph API Explorer method. Click "Connect Facebook" button below for instructions.', 'info')
         return redirect(url_for('config'))
         
-        # TODO: Implement full Facebook OAuth flow if App ID/Secret are available
-        # For now, the manual token entry method is more reliable
+        # Full OAuth implementation (if App ID/Secret are configured):
+        # app_id = api_keys.get('facebook_app_id', '').strip()
+        # app_secret = api_keys.get('facebook_app_secret', '').strip()
+        # if not app_id or not app_secret:
+        #     flash('Please configure Facebook App ID and Secret first', 'error')
+        #     return redirect(url_for('config'))
+        # 
+        # state = secrets.token_urlsafe(32)
+        # session['facebook_oauth_state'] = state
+        # redirect_uri = url_for('api_facebook_oauth_callback', _external=True)
+        # scopes = ['pages_manage_posts', 'pages_read_engagement', 'pages_show_list', 'instagram_basic', 'instagram_content_publish', 'business_management']
+        # auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={','.join(scopes)}&state={state}"
+        # return redirect(auth_url)
         
     except Exception as e:
         flash(f'Error starting Facebook authorization: {str(e)}', 'error')
