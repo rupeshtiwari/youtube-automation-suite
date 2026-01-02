@@ -2716,16 +2716,24 @@ def api_linkedin_oauth_authorize():
         
         # Build OAuth URL (like Buffer does)
         redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
+        
+        # URL encode the redirect_uri
+        from urllib.parse import quote
+        redirect_uri_encoded = quote(redirect_uri, safe='')
+        
         scopes = ['w_member_social', 'r_liteprofile', 'r_emailaddress']
         
         auth_url = (
             f"https://www.linkedin.com/oauth/v2/authorization?"
             f"response_type=code&"
             f"client_id={client_id}&"
-            f"redirect_uri={redirect_uri}&"
+            f"redirect_uri={redirect_uri_encoded}&"
             f"scope={'%20'.join(scopes)}&"
             f"state={state}"
         )
+        
+        # Store redirect_uri for debugging
+        session['linkedin_redirect_uri'] = redirect_uri
         
         # Redirect to LinkedIn (just like Buffer does)
         return redirect(auth_url)
@@ -2849,6 +2857,8 @@ def api_linkedin_oauth_callback():
         
         # Exchange code for access token
         redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
+        from urllib.parse import quote
+        redirect_uri_encoded = quote(redirect_uri, safe='')
         token_url = "https://www.linkedin.com/oauth/v2/accessToken"
         token_data = {
             'grant_type': 'authorization_code',
