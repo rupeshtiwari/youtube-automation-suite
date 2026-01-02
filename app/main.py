@@ -921,8 +921,14 @@ def health():
 
 @app.route('/favicon.ico')
 def favicon():
-    """Serve favicon directly."""
-    return app.send_static_file('favicon.ico')
+    """Serve favicon directly with proper headers."""
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'favicon.ico',
+        mimetype='image/x-icon'
+    )
 
 
 @app.route('/config', methods=['GET', 'POST'])
