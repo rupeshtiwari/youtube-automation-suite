@@ -3,7 +3,7 @@ Flask web application for YouTube automation configuration and scheduling.
 Provides a web interface to configure API keys and schedule daily automation.
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g, session
 import json
 import os
 import sys
@@ -3139,38 +3139,41 @@ def api_calendar_data():
                             })
                             
                             # Get social media posts for this video
-                            social_posts = get_video_social_posts_from_db(video_id)
-                            for platform in ['linkedin', 'facebook', 'instagram']:
-                                post = social_posts.get(platform, {})
-                                schedule_date_str = post.get('schedule_date', '')
-                                
-                                if schedule_date_str:
-                                    try:
-                                        schedule_date = datetime.fromisoformat(schedule_date_str.replace('Z', '+00:00'))
-                                        if schedule_date.tzinfo is None:
-                                            schedule_date = ist.localize(schedule_date)
-                                        else:
-                                            schedule_date = schedule_date.astimezone(ist)
-                                        
-                                        calendar_events.append({
-                                            'date': schedule_date.strftime('%Y-%m-%d'),
-                                            'time': schedule_date.strftime('%H:%M:%S'),
-                                            'datetime': schedule_date.isoformat(),
-                                            'platform': platform.title(),
-                                            'video_title': title,
-                                            'video_id': video_id,
-                                            'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
-                                            'status': post.get('status', 'scheduled'),
-                                            'post_content': post.get('post_content', ''),
-                                            'playlist_name': playlist_title,
-                                            'channel_name': platform.title(),
-                                            'video_type': '',
-                                            'role': '',
-                                            'custom_tags': '',
-                                            'description': ''
-                        })
-                    except:
-                        pass
+                            try:
+                                social_posts = get_video_social_posts_from_db(video_id)
+                                for platform in ['linkedin', 'facebook', 'instagram']:
+                                    post = social_posts.get(platform, {})
+                                    schedule_date_str = post.get('schedule_date', '')
+                                    
+                                    if schedule_date_str:
+                                        try:
+                                            schedule_date = datetime.fromisoformat(schedule_date_str.replace('Z', '+00:00'))
+                                            if schedule_date.tzinfo is None:
+                                                schedule_date = ist.localize(schedule_date)
+                                            else:
+                                                schedule_date = schedule_date.astimezone(ist)
+                                            
+                                            calendar_events.append({
+                                                'date': schedule_date.strftime('%Y-%m-%d'),
+                                                'time': schedule_date.strftime('%H:%M:%S'),
+                                                'datetime': schedule_date.isoformat(),
+                                                'platform': platform.title(),
+                                                'video_title': title,
+                                                'video_id': video_id,
+                                                'youtube_url': f"https://www.youtube.com/watch?v={video_id}",
+                                                'status': post.get('status', 'scheduled'),
+                                                'post_content': post.get('post_content', ''),
+                                                'playlist_name': playlist_title,
+                                                'channel_name': platform.title(),
+                                                'video_type': '',
+                                                'role': '',
+                                                'custom_tags': '',
+                                                'description': ''
+                                            })
+                                        except:
+                                            pass
+                            except:
+                                pass
         
         # Also get social media posts from database (for any videos not in playlists)
         conn = get_db_connection()
