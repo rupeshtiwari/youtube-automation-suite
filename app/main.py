@@ -2917,7 +2917,7 @@ def api_calendar_data():
                             })
                             
                             # Get social media posts for this video
-                            social_posts = get_video_social_posts_from_db(video_id)
+social_posts = get_video_social_posts_from_db(video_id)
                             for platform in ['linkedin', 'facebook', 'instagram']:
                                 post = social_posts.get(platform, {})
                                 schedule_date_str = post.get('schedule_date', '')
