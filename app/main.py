@@ -2717,6 +2717,12 @@ def api_linkedin_oauth_authorize():
         # Build OAuth URL (like Buffer does)
         redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
         
+        # Store redirect_uri for debugging
+        session['linkedin_redirect_uri'] = redirect_uri
+        
+        # Show redirect URI in flash message for user to register in LinkedIn
+        flash(f'⚠️ Make sure this redirect URI is registered in LinkedIn app: {redirect_uri}', 'info')
+        
         # URL encode the redirect_uri
         from urllib.parse import quote
         redirect_uri_encoded = quote(redirect_uri, safe='')
