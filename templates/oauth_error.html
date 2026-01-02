@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ platform }} Connection Error{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-x-circle"></i> {{ platform }} Connection Failed
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>❌ Error:</strong> {{ error }}
+                    </div>
+                    
+                    <p><strong>Description:</strong> {{ error_description }}</p>
+                    
+                    <div class="mt-4">
+                        <a href="/config" class="btn btn-primary">
+                            <i class="bi bi-arrow-left"></i> Back to Settings
+                        </a>
+                        <button onclick="window.location.reload()" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

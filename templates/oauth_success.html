@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}LinkedIn Connected Successfully{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle"></i> LinkedIn Connected Successfully!
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <strong>✅ Your LinkedIn account has been connected!</strong>
+                    </div>
+                    
+                    <p><strong>Access Token:</strong> <code>{{ access_token }}</code></p>
+                    <p><strong>Person URN:</strong> <code>{{ person_urn }}</code></p>
+                    
+                    <p class="text-muted">
+                        Your credentials have been saved to the database and MY_CONFIG.json.
+                        You can now post content to LinkedIn!
+                    </p>
+                    
+                    <div class="mt-4">
+                        <a href="/config" class="btn btn-primary">
+                            <i class="bi bi-arrow-left"></i> Back to Settings
+                        </a>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-redirect after 5 seconds
+setTimeout(function() {
+    window.location.href = '/config';
+}, 5000);
+</script>
+{% endblock %}
+

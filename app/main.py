@@ -2688,6 +2688,163 @@ def api_save_config_section():
         }), 500
 
 
+@app.route('/api/linkedin/oauth/authorize')
+def api_linkedin_oauth_authorize():
+    """Buffer-style LinkedIn OAuth - just click 'Connect LinkedIn' and authorize."""
+    try:
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        client_id = api_keys.get('linkedin_client_id', '').strip()
+        client_secret = api_keys.get('linkedin_client_secret', '').strip()
+        
+        if not client_id or not client_secret:
+            flash('Please configure LinkedIn Client ID and Secret first in Settings → API Keys', 'error')
+            return redirect(url_for('config'))
+        
+        # Generate state for security
+        import secrets
+        state = secrets.token_urlsafe(32)
+        
+        # Store state in session
+        session['linkedin_oauth_state'] = state
+        
+        # Build OAuth URL (like Buffer does)
+        redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
+        scopes = ['w_member_social', 'r_liteprofile', 'r_emailaddress']
+        
+        auth_url = (
+            f"https://www.linkedin.com/oauth/v2/authorization?"
+            f"response_type=code&"
+            f"client_id={client_id}&"
+            f"redirect_uri={redirect_uri}&"
+            f"scope={'%20'.join(scopes)}&"
+            f"state={state}"
+        )
+        
+        # Redirect to LinkedIn (just like Buffer does)
+        return redirect(auth_url)
+    except Exception as e:
+        flash(f'Error starting LinkedIn authorization: {str(e)}', 'error')
+        return redirect(url_for('config'))
+
+
+@app.route('/api/linkedin/oauth/callback')
+def api_linkedin_oauth_callback():
+    """Handle LinkedIn OAuth callback - automatically get token and Person URN."""
+    try:
+        import requests
+        
+        # Get authorization code
+        code = request.args.get('code')
+        state = request.args.get('state')
+        error = request.args.get('error')
+        
+        if error:
+            error_desc = request.args.get('error_description', '')
+            flash(f'LinkedIn authorization failed: {error} - {error_desc}', 'error')
+            return redirect(url_for('config'))
+        
+        if not code:
+            flash('LinkedIn authorization failed: No authorization code received', 'error')
+            return redirect(url_for('config'))
+        
+        # Verify state
+        stored_state = session.get('linkedin_oauth_state')
+        if state != stored_state:
+            flash('LinkedIn authorization failed: Invalid state parameter', 'error')
+            return redirect(url_for('config'))
+        
+        # Get settings
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
+        client_id = api_keys.get('linkedin_client_id', '').strip()
+        client_secret = api_keys.get('linkedin_client_secret', '').strip()
+        
+        if not client_id or not client_secret:
+            flash('LinkedIn Client ID or Secret not configured', 'error')
+            return redirect(url_for('config'))
+        
+        # Exchange code for access token
+        redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
+        token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': redirect_uri,
+            'client_id': client_id,
+            'client_secret': client_secret
+        }
+        
+        response = requests.post(token_url, data=token_data, timeout=10)
+        response.raise_for_status()
+        
+        token_response = response.json()
+        access_token = token_response.get('access_token')
+        
+        if not access_token:
+            flash('Failed to get LinkedIn access token', 'error')
+            return redirect(url_for('config'))
+        
+        # Get Person URN automatically
+        profile_url = "https://api.linkedin.com/v2/me"
+        profile_headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        profile_response = requests.get(profile_url, headers=profile_headers, timeout=10)
+        profile_response.raise_for_status()
+        
+        profile_data = profile_response.json()
+        person_urn = profile_data.get('id')
+        
+        if not person_urn:
+            flash('Failed to get LinkedIn Person URN', 'error')
+            return redirect(url_for('config'))
+        
+        # Save everything automatically (like Buffer does)
+        api_keys['linkedin_access_token'] = access_token
+        api_keys['linkedin_person_urn'] = person_urn
+        settings['api_keys'] = api_keys
+        save_settings(settings)
+        
+        # Update MY_CONFIG.json
+        config_file = Path('MY_CONFIG.json')
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                if 'api_keys' not in config:
+                    config['api_keys'] = {}
+                config['api_keys']['linkedin_access_token'] = access_token
+                config['api_keys']['linkedin_person_urn'] = person_urn
+                with open(config_file, 'w') as f:
+                    json.dump(config, f, indent=2)
+            except:
+                pass
+        
+        # Clear state from session
+        session.pop('linkedin_oauth_state', None)
+        
+        # Success! Redirect back to config with success message
+        flash('✅ LinkedIn connected successfully! Access Token and Person URN saved automatically.', 'success')
+        return redirect(url_for('config'))
+        
+    except requests.exceptions.HTTPError as e:
+        error_msg = str(e)
+        if e.response.status_code == 400:
+            try:
+                error_data = e.response.json()
+                error_msg = error_data.get('error_description', str(e))
+            except:
+                pass
+        flash(f'LinkedIn connection failed: {error_msg}', 'error')
+        return redirect(url_for('config'))
+    except Exception as e:
+        import traceback
+        flash(f'LinkedIn connection error: {str(e)}', 'error')
+        return redirect(url_for('config'))
+
+
 @app.route('/api/config/load-from-file', methods=['POST'])
 def api_load_config_from_file():
     """Load configuration from MY_CONFIG.json file."""
