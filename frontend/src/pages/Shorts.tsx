@@ -41,7 +41,7 @@ export default function Shorts() {
       const params = new URLSearchParams()
       if (roleFilter) params.append('role', roleFilter)
       if (typeFilter) params.append('type', typeFilter)
-      const response = await api.get(`/api/shorts?${params.toString()}`)
+      const response = await api.get(`/shorts?${params.toString()}`)
       return response.data
     },
   })
