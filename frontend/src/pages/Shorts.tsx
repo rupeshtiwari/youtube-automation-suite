@@ -164,7 +164,7 @@ export default function Shorts() {
             <AlertTriangle className="w-5 h-5" />
             <span className="font-medium">
               {data.total_not_scheduled} videos not scheduled on other channels.{' '}
-              <a href="/content-preview" className="underline font-semibold">Schedule now →</a>
+              <Link to="/content-preview" className="underline font-semibold hover:text-primary">Schedule now →</Link>
             </span>
           </div>
         </div>
