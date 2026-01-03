@@ -241,7 +241,19 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 template_dir = os.path.join(project_root, 'templates')
 
 static_dir = os.path.join(os.path.dirname(__file__), 'static')
-app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
+
+# Configure Flask to serve React build if it exists
+FRONTEND_BUILD_DIR = os.path.join(project_root, 'frontend', 'dist')
+
+if os.path.exists(FRONTEND_BUILD_DIR):
+    # Serve React build as static files
+    app = Flask(__name__, 
+                static_folder=FRONTEND_BUILD_DIR,
+                static_url_path='',
+                template_folder=FRONTEND_BUILD_DIR)
+else:
+    # Fallback to old templates/static setup
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
 
 # Enable CORS for React frontend
 if CORS:
