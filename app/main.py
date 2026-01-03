@@ -2199,6 +2199,7 @@ def insights():
         app.logger.error(f"Error in insights route: {e}", exc_info=True)
         return render_template('error.html', message=f"Error loading insights: {str(e)}")
 
+@app.route('/api/insights-data')
 @app.route('/insights-data')
 def insights_data():
     """API endpoint for insights data - used by React app."""
@@ -2236,9 +2237,17 @@ def insights_data():
             'cta': cta_data
         }
         
+        # Return JSON for API endpoint
+        if request.path.startswith('/api/'):
+            return jsonify(insights_data)
+        
+        # Return template for direct access
         return render_template('insights.html', insights=insights_data)
     except Exception as e:
         import traceback
+        app.logger.error(f"Error loading insights: {e}", exc_info=True)
+        if request.path.startswith('/api/'):
+            return jsonify({'error': str(e)}), 500
         return render_template('error.html', message=f"Error loading insights: {str(e)}\n{traceback.format_exc()}")
 
 
@@ -3006,6 +3015,18 @@ def validate_platform_credentials(platform: str) -> tuple[bool, str]:
         return True, ''
     
     elif platform_lower == 'instagram':
+        # Instagram uses Facebook Page Access Token and Instagram Business Account ID
+        page_access_token = api_keys.get('facebook_page_access_token', '').strip()
+        instagram_account_id = api_keys.get('instagram_business_account_id', '').strip()
+        
+        if not page_access_token:
+            return False, 'Instagram requires Facebook Page Access Token. Please connect Facebook in Settings (Instagram uses Facebook credentials).'
+        if not instagram_account_id:
+            return False, 'Instagram Business Account ID is not configured. Please connect Instagram in Settings.'
+        
+        return True, ''
+    
+    elif platform_lower == 'instagram':
         instagram_account_id = api_keys.get('instagram_business_account_id', '').strip()
         page_access_token = api_keys.get('facebook_page_access_token', '').strip()
         
@@ -3027,14 +3048,85 @@ def api_schedule_post():
         from app.database import insert_or_update_social_post, log_activity, get_video
         import requests
         
-        data = request.json
+        data = request.json or {}
         video_id = data.get('video_id')
         platform = data.get('platform')
         post_content = data.get('post_content')
         schedule_datetime = data.get('schedule_datetime')  # Format: "2026-01-15 14:00"
         
-        if not all([video_id, platform, post_content, schedule_datetime]):
-            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        # Defensive validation with detailed error messages
+        missing_fields = []
+        if not video_id:
+            missing_fields.append('video_id')
+        if not platform:
+            missing_fields.append('platform')
+        if not post_content:
+            missing_fields.append('post_content')
+        if not schedule_datetime:
+            missing_fields.append('schedule_datetime')
+        
+        if missing_fields:
+            error_msg = f'Missing required fields: {", ".join(missing_fields)}'
+            app.logger.warning(f"Schedule post validation failed: {error_msg}")
+            return jsonify({
+                'success': False, 
+                'error': error_msg,
+                'missing_fields': missing_fields,
+                'received_data': {
+                    'has_video_id': bool(video_id),
+                    'has_platform': bool(platform),
+                    'has_post_content': bool(post_content),
+                    'has_schedule_datetime': bool(schedule_datetime),
+                    'platform_value': platform,
+                    'post_content_length': len(post_content) if post_content else 0
+                }
+            }), 400
+        
+        # Validate post_content is not just whitespace
+        if not post_content.strip():
+            return jsonify({
+                'success': False,
+                'error': 'Post content cannot be empty or only whitespace',
+                'received_data': {
+                    'post_content_length': len(post_content),
+                    'post_content_preview': post_content[:50] if post_content else None
+                }
+            }), 400
+        
+        # Validate schedule_datetime format
+        try:
+            from datetime import datetime
+            # Handle different datetime formats
+            schedule_dt = None
+            try:
+                # Try ISO format first (YYYY-MM-DDTHH:MM:SS)
+                schedule_dt = datetime.fromisoformat(schedule_datetime.replace('Z', '+00:00'))
+            except ValueError:
+                try:
+                    # Try format without seconds (YYYY-MM-DDTHH:MM)
+                    schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    # Try space-separated format (YYYY-MM-DD HH:MM:SS)
+                    try:
+                        schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        # Try space-separated without seconds
+                        schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M')
+            
+            if schedule_dt <= datetime.now():
+                return jsonify({
+                    'success': False,
+                    'error': 'Schedule date/time must be in the future',
+                    'received_datetime': schedule_datetime,
+                    'current_datetime': datetime.now().isoformat()
+                }), 400
+        except (ValueError, AttributeError) as e:
+            app.logger.error(f"DateTime parsing error: {str(e)}, received: {schedule_datetime}")
+            return jsonify({
+                'success': False,
+                'error': f'Invalid schedule_datetime format: {str(e)}. Received: {schedule_datetime}. Expected format: YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM',
+                'received_datetime': schedule_datetime
+            }), 400
         
         # Validate platform credentials BEFORE scheduling
         is_valid, error_message = validate_platform_credentials(platform)
@@ -3082,7 +3174,16 @@ def api_schedule_post():
                 else:
                     # Convert schedule_datetime to Unix timestamp for Facebook
                     from datetime import datetime
-                    schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M')
+                    # Handle both T-separated and space-separated formats
+                    try:
+                        # Try ISO format first (YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM)
+                        schedule_dt = datetime.fromisoformat(schedule_datetime.replace('Z', '+00:00').split('+')[0])
+                    except (ValueError, AttributeError):
+                        try:
+                            # Try space-separated format (YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM)
+                            schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M')
                     scheduled_publish_time = int(schedule_dt.timestamp())
                     
                     # Facebook Graph API - create scheduled post
@@ -3584,6 +3685,9 @@ def api_linkedin_oauth_authorize():
         client_secret = api_keys.get('linkedin_client_secret', '').strip()
         
         if not client_id or not client_secret:
+            # Return JSON error for API calls, or redirect for browser
+            if request.headers.get('Accept', '').startswith('application/json'):
+                return jsonify({'error': 'LinkedIn Client ID and Secret not configured', 'redirect': '/config#social-media-connections'}), 400
             flash('Please configure LinkedIn Client ID and Secret first in Settings → API Keys', 'error')
             return redirect('/config#social-media-connections')
         
@@ -3600,9 +3704,12 @@ def api_linkedin_oauth_authorize():
         # Store redirect_uri for debugging
         session['linkedin_redirect_uri'] = redirect_uri
         
-        # Request scopes - w_member_social requires Marketing Developer Platform product
+        # Request scopes - use correct LinkedIn API scopes
+        # w_member_social requires Marketing Developer Platform product
         # If you get "invalid_scope_error", enable Marketing Developer Platform in LinkedIn app settings
-        scopes = ['w_member_social', 'r_liteprofile', 'r_emailaddress']
+        # Using standard LinkedIn scopes (r_liteprofile and r_emailaddress are still valid)
+        # w_member_social is required for posting content
+        scopes = ['r_liteprofile', 'r_emailaddress', 'w_member_social']
         
         # If Marketing Developer Platform is not enabled, these scopes won't be available
         # Check: https://www.linkedin.com/developers/apps/86vimp2gbw3c06/products
@@ -3625,7 +3732,12 @@ def api_linkedin_oauth_authorize():
         session['linkedin_redirect_uri'] = redirect_uri
         
         # Redirect to LinkedIn (just like Buffer does)
-        return redirect(auth_url)
+        # Use 302 redirect explicitly and add headers to prevent caching
+        response = redirect(auth_url, code=302)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         flash(f'Error starting LinkedIn authorization: {str(e)}', 'error')
         return redirect('/config#social-media-connections')
@@ -3644,8 +3756,18 @@ def api_facebook_oauth_authorize():
         
         # For now, redirect to config page with instructions
         # This is more reliable than full OAuth for Page Access Tokens
-        flash('For Facebook connection, please use the Graph API Explorer method. See the Facebook section in Settings for instructions.', 'info')
-        return redirect('/config#social-media-connections')
+        # Use 302 redirect explicitly and ensure it works
+        flash('For Facebook/Instagram connection, please use the Graph API Explorer method. See the Facebook section in Settings for instructions.', 'info')
+        # Use absolute URL to ensure redirect works properly
+        redirect_url = url_for('config', _external=False) + '#social-media-connections'
+        response = redirect(redirect_url, code=302)
+        # Ensure no caching
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        # Add X-Redirect header for debugging
+        response.headers['X-Redirect-To'] = redirect_url
+        return response
         
         # Full OAuth implementation (if App ID/Secret are configured):
         # app_id = api_keys.get('facebook_app_id', '').strip()
@@ -4320,13 +4442,16 @@ def api_queue():
         today = date.today().isoformat()
         
         cursor.execute('SELECT COUNT(*) as count FROM social_media_posts WHERE status IN ("pending", "scheduled")')
-        queue_count = cursor.fetchone()['count']
+        queue_count_result = cursor.fetchone()
+        queue_count = queue_count_result['count'] if queue_count_result else 0
         
         cursor.execute('SELECT COUNT(*) as count FROM social_media_posts WHERE status = "scheduled"')
-        scheduled_count = cursor.fetchone()['count']
+        scheduled_count_result = cursor.fetchone()
+        scheduled_count = scheduled_count_result['count'] if scheduled_count_result else 0
         
         cursor.execute('SELECT COUNT(*) as count FROM social_media_posts WHERE status = "published" AND DATE(updated_at) = ?', (today,))
-        published_today = cursor.fetchone()['count']
+        published_today_result = cursor.fetchone()
+        published_today = published_today_result['count'] if published_today_result else 0
         
         settings = load_settings()
         automation_active = settings.get('scheduling', {}).get('enabled', False)
@@ -4740,17 +4865,21 @@ def api_status():
             status['youtube']['missing'].append('OAuth authentication')
             
         if not status['linkedin']['configured']:
-            status['linkedin']['missing'].extend(['Client ID', 'Client Secret'])
+            status['linkedin']['missing'].extend(['LinkedIn Client ID', 'LinkedIn Client Secret'])
         elif not status['linkedin']['authenticated']:
             status['linkedin']['missing'].append('OAuth connection')
+            # Make status red/error if OAuth is missing
+            if status['linkedin']['status'] == 'configured':
+                # Keep as configured but add missing OAuth
+                pass
             
         if not status['facebook']['configured']:
-            status['facebook']['missing'].extend(['Page Access Token', 'Page ID'])
+            status['facebook']['missing'].extend(['Facebook Page Access Token', 'Facebook Page ID'])
         elif not status['facebook']['authenticated']:
             status['facebook']['missing'].append('OAuth connection')
             
         if not status['instagram']['configured']:
-            status['instagram']['missing'].extend(['Business Account ID', 'Facebook Page Access Token'])
+            status['instagram']['missing'].extend(['Instagram Business Account ID', 'Facebook Page Access Token'])
         elif not status['instagram']['authenticated']:
             status['instagram']['missing'].append('OAuth connection')
         
@@ -4842,8 +4971,12 @@ def catch_all(path):
     # These routes are handled by specific Flask routes above
     flask_only_routes = ['playlists', 'docs', 'documentation', 'health', 'favicon.ico', 'robots.txt', 'config', 'oauth2callback']
     if path in flask_only_routes or path.split('/')[0] in flask_only_routes:
-        # These routes are handled by specific Flask routes above
-        return jsonify({'error': 'Route not found'}), 404
+        # These routes should be handled by Flask routes above
+        # If we reach here, the Flask route didn't catch it, so return 404
+        # But actually, Flask routes should be defined before this catch-all
+        # So this shouldn't be reached for /config
+        app.logger.warning(f"Caught Flask-only route /{path} in catch_all - Flask route should have handled it")
+        return jsonify({'error': 'Route not found', 'message': f'Flask route /{path} should have been handled by specific route'}), 404
     
     # Serve React app static files (JS, CSS, images, etc.)
     if os.path.exists(FRONTEND_BUILD_DIR):

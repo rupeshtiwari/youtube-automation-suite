@@ -68,10 +68,11 @@ export default function Sidebar() {
                     // Filter view by channel - for now just navigate to dashboard
                     // In future, this could filter the queue/content by channel
                     if (channel.id === 'all') {
+                      // Use React Router navigation for internal routes
                       window.location.href = '/';
                     } else {
-                      // Navigate to settings to manage this channel
-                      window.location.href = '/config';
+                      // Navigate to settings to manage this channel - use replace to bypass React Router
+                      window.location.replace('/config#social-media-connections');
                     }
                   }}
                   className={cn(
@@ -100,16 +101,8 @@ export default function Sidebar() {
           <div className="mt-4 space-y-0.5">
             <button
               onClick={() => {
-                // Navigate to Settings page where YouTube OAuth can be initiated
-                window.location.href = '/config';
-                setTimeout(() => {
-                  // Scroll to YouTube section if it exists
-                  const youtubeSection = document.querySelector('[data-platform="youtube"]') ||
-                    document.querySelector('input[name*="youtube"]')?.closest('.card');
-                  if (youtubeSection) {
-                    (youtubeSection as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }, 1000);
+                // Navigate to Settings page where YouTube OAuth can be initiated - use replace to bypass React Router
+                window.location.replace('/config#social-media-connections');
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect YouTube account"
@@ -119,8 +112,8 @@ export default function Sidebar() {
             </button>
             <button
               onClick={() => {
-                // Navigate to Settings and trigger LinkedIn OAuth
-                window.location.href = '/api/linkedin/oauth/authorize';
+                // Navigate to Settings and trigger LinkedIn OAuth - use replace for full page reload
+                window.location.replace('/api/linkedin/oauth/authorize');
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect LinkedIn account"
@@ -130,8 +123,8 @@ export default function Sidebar() {
             </button>
             <button
               onClick={() => {
-                // Navigate to Settings and trigger Facebook OAuth
-                window.location.href = '/api/facebook/oauth/authorize';
+                // Navigate to Settings and trigger Facebook OAuth - use replace for full page reload
+                window.location.replace('/api/facebook/oauth/authorize');
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect Facebook account (includes Instagram)"
@@ -141,8 +134,8 @@ export default function Sidebar() {
             </button>
             <button
               onClick={() => {
-                // Instagram uses Facebook OAuth, navigate to Facebook connection
-                window.location.href = '/api/facebook/oauth/authorize';
+                // Instagram uses Facebook OAuth, navigate to Facebook connection - use replace for full page reload
+                window.location.replace('/api/facebook/oauth/authorize');
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect Instagram account (via Facebook)"
@@ -196,25 +189,8 @@ export default function Sidebar() {
       <div className="border-t border-border p-4 space-y-0.5">
         <button
           onClick={() => {
-            // Navigate to settings page - tags are managed in the Targeting section
-            window.location.href = '/config';
-            // After page loads, try to scroll to targeting section
-            setTimeout(() => {
-              // Look for targeting-related inputs
-              const targetingInput = document.querySelector('input[name="target_audience"]');
-              if (targetingInput) {
-                const card = targetingInput.closest('.card') as HTMLElement;
-                if (card) {
-                  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  // Highlight briefly
-                  card.style.transition = 'box-shadow 0.3s';
-                  card.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.3)';
-                  setTimeout(() => {
-                    card.style.boxShadow = '';
-                  }, 2000);
-                }
-              }
-            }, 1000);
+            // Navigate to config page with hash anchor - use replace to bypass React Router
+            window.location.replace('/config#targeting-settings');
           }}
           className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
           title="Manage video tags, categories, and role levels (in Targeting section)"
@@ -223,25 +199,8 @@ export default function Sidebar() {
         </button>
         <button
           onClick={() => {
-            // Navigate to settings page - channels are your connected social media accounts
-            window.location.href = '/config';
-            // After page loads, try to scroll to social media connections section
-            setTimeout(() => {
-              // Look for LinkedIn connection button or social media section
-              const linkedinButton = document.querySelector('a[href*="linkedin/oauth"]');
-              if (linkedinButton) {
-                const card = linkedinButton.closest('.card') as HTMLElement;
-                if (card) {
-                  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  // Highlight briefly
-                  card.style.transition = 'box-shadow 0.3s';
-                  card.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.3)';
-                  setTimeout(() => {
-                    card.style.boxShadow = '';
-                  }, 2000);
-                }
-              }
-            }, 1000);
+            // Navigate to config page with hash anchor - use replace to bypass React Router
+            window.location.replace('/config#social-media-connections');
           }}
           className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
           title="Manage connected social media channels (LinkedIn, Facebook, Instagram)"

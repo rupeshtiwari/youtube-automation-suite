@@ -130,7 +130,14 @@ export default function Shorts() {
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             <p className="text-orange-800 dark:text-orange-200">
               <strong>{totalNotScheduled} videos</strong> not scheduled on other channels.{' '}
-              <a href="/content-preview" className="text-primary hover:underline font-semibold">
+              <a 
+                href="/content-preview" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  window.location.href = '/content-preview'
+                }}
+                className="text-primary hover:underline font-semibold"
+              >
                 Schedule now →
               </a>
             </p>
@@ -224,7 +231,11 @@ export default function Shorts() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <a
                     href="/content-preview"
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      window.location.href = '/content-preview'
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium cursor-pointer"
                   >
                     Schedule
                   </a>

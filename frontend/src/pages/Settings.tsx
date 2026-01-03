@@ -39,13 +39,36 @@ export default function Settings() {
   const handleConnectClick = (platform: string) => {
     if (platform === 'youtube') {
       // YouTube uses OAuth flow - redirect to config page
-      window.location.href = '/config#social-media-connections'
+      // Use window.location.replace to ensure full page reload (bypasses React Router)
+      window.location.replace('/config#social-media-connections')
     } else if (platform === 'linkedin') {
-      // LinkedIn OAuth
-      window.location.href = '/api/linkedin/oauth/authorize'
+      // Check if LinkedIn is configured first
+      const linkedinStatus = statusData?.linkedin
+      if (!linkedinStatus?.configured) {
+        // Not configured - redirect to config page
+        alert('⚠️ LinkedIn Client ID and Secret must be configured first!\n\nPlease go to Settings → API Keys and enter your LinkedIn credentials.')
+        window.location.replace('/config#social-media-connections')
+        return
+      }
+      // LinkedIn OAuth - use full page navigation to ensure redirect works
+      // This will redirect to LinkedIn OAuth page, then back to callback
+      window.location.replace('/api/linkedin/oauth/authorize')
     } else if (platform === 'facebook' || platform === 'instagram') {
-      // Facebook/Instagram OAuth
-      window.location.href = '/api/facebook/oauth/authorize'
+      // Facebook/Instagram OAuth - use replace to ensure redirect is followed
+      // The endpoint redirects to /config with instructions
+      // Use replace to bypass React Router and ensure full page reload
+      // If redirect doesn't work, fallback to direct navigation after short delay
+      const redirectUrl = '/api/facebook/oauth/authorize'
+      window.location.replace(redirectUrl)
+      
+      // Fallback: if redirect doesn't happen within 2 seconds, go directly to config
+      setTimeout(() => {
+        // Check if we're still on the authorize page (redirect didn't work)
+        if (window.location.pathname === '/api/facebook/oauth/authorize') {
+          console.warn('Redirect did not work, navigating directly to config page')
+          window.location.replace('/config#social-media-connections')
+        }
+      }, 2000)
     }
   }
 
@@ -153,13 +176,13 @@ export default function Settings() {
               For detailed configuration, API keys, and advanced settings
             </p>
           </div>
-          <a
-            href="/config"
+          <button
+            onClick={() => window.location.replace('/config')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <ExternalLink className="w-4 h-4" />
             Open Full Settings
-          </a>
+          </button>
         </div>
       </div>
 
@@ -183,7 +206,7 @@ export default function Settings() {
                       ? 'bg-green-100 dark:bg-green-900/30' 
                       : isConfigured 
                       ? 'bg-yellow-100 dark:bg-yellow-900/30'
-                      : 'bg-gray-100 dark:bg-gray-900/30'
+                      : 'bg-red-100 dark:bg-red-900/30'
                   }`}>
                     {getPlatformIcon(platform.id)}
                   </div>
@@ -196,9 +219,19 @@ export default function Settings() {
                       {platform.description}
                     </p>
                     {status?.missing && status.missing.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Missing:</span>{' '}
-                        {status.missing.join(', ')}
+                      <div className="flex items-start gap-2 mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-red-800 dark:text-red-200 mb-1">Missing Configuration:</p>
+                          <ul className="text-xs text-red-700 dark:text-red-300 space-y-1">
+                            {status.missing.map((item, idx) => (
+                              <li key={idx} className="flex items-center gap-1">
+                                <XCircle className="w-3 h-3" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -228,9 +261,9 @@ export default function Settings() {
       <div className="bg-card border border-border rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-4">Additional Settings</h2>
         <div className="space-y-3">
-          <a
-            href="/config"
-            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+          <button
+            onClick={() => window.location.replace('/config')}
+            className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>
               <h3 className="font-medium">API Keys & Configuration</h3>
@@ -239,10 +272,10 @@ export default function Settings() {
               </p>
             </div>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
-          <a
-            href="/config#targeting-settings"
-            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+          </button>
+          <button
+            onClick={() => window.location.replace('/config#targeting-settings')}
+            className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>
               <h3 className="font-medium">Targeting & Tags</h3>
@@ -251,10 +284,10 @@ export default function Settings() {
               </p>
             </div>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
-          <a
-            href="/config#scheduling"
-            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+          </button>
+          <button
+            onClick={() => window.location.replace('/config#scheduling')}
+            className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>
               <h3 className="font-medium">Scheduling Settings</h3>
@@ -263,7 +296,7 @@ export default function Settings() {
               </p>
             </div>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
+          </button>
         </div>
       </div>
     </div>

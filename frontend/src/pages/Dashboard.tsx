@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
-import StatusBanner from '@/components/StatusBanner'
-import { 
-  Plus, 
-  List, 
-  Calendar, 
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/api';
+import StatusBanner from '@/components/StatusBanner';
+import {
+  Plus,
+  List,
+  Calendar,
   CheckCircle2,
   Clock,
   Send,
@@ -15,53 +15,58 @@ import {
   Instagram,
   Edit,
   Calendar as CalendarIcon
-} from 'lucide-react'
+} from 'lucide-react';
 
 interface QueueItem {
-  id: number
-  video_id: string
-  video_title: string
-  platform: string
-  post_content: string
-  schedule_date: string
-  status: 'pending' | 'scheduled' | 'published' | 'error'
-  playlist_name?: string
+  id: number;
+  video_id: string;
+  video_title: string;
+  platform: string;
+  post_content: string;
+  schedule_date: string;
+  status: 'pending' | 'scheduled' | 'published' | 'error';
+  playlist_name?: string;
 }
 
 interface QueueData {
-  queue: QueueItem[]
-  scheduled: QueueItem[]
-  published: QueueItem[]
-  drafts: QueueItem[]
+  queue: QueueItem[];
+  scheduled: QueueItem[];
+  published: QueueItem[];
+  drafts: QueueItem[];
 }
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'queue' | 'drafts' | 'sent'>('queue')
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
-  const [selectedChannel, setSelectedChannel] = useState<string>('all')
-  const [editingItem, setEditingItem] = useState<number | null>(null)
-  const [scheduleDate, setScheduleDate] = useState<string>('')
-  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<'queue' | 'drafts' | 'sent'>('queue');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [selectedChannel, setSelectedChannel] = useState<string>('all');
+  const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<QueueData>({
+  const { data, isLoading, error } = useQuery<QueueData>({
     queryKey: ['queue', activeTab],
     queryFn: async () => {
-      const response = await api.get('/queue')
-      return response.data
+      try {
+        const response = await api.get('/queue');
+        return response.data;
+      } catch (err: any) {
+        console.error('Error fetching queue data:', err);
+        throw err;
+      }
     },
-  })
+  });
 
   const scheduleMutation = useMutation({
-    mutationFn: async ({ postId, scheduleDate, item }: { postId: number, scheduleDate: string, item: QueueItem }) => {
+    mutationFn: async ({ postId, scheduleDate, item }: { postId: number, scheduleDate: string, item: QueueItem; }) => {
       // Format date for API (YYYY-MM-DD HH:MM)
-      const formattedDate = new Date(scheduleDate).toISOString().slice(0, 16).replace('T', ' ')
-      
+      const formattedDate = new Date(scheduleDate).toISOString().slice(0, 16).replace('T', ' ');
+
       // If post already exists (has id), update it; otherwise create new schedule
       if (item.status === 'scheduled' || item.status === 'pending') {
         const response = await api.put(`/queue/${postId}`, {
           schedule_date: formattedDate,
-        })
-        return response.data
+        });
+        return response.data;
       } else {
         // Create new scheduled post
         const response = await api.post('/schedule-post', {
@@ -69,82 +74,82 @@ export default function Dashboard() {
           platform: item.platform,
           post_content: item.post_content,
           schedule_datetime: formattedDate,
-        })
-        return response.data
+        });
+        return response.data;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue'] })
-      setEditingItem(null)
-      setScheduleDate('')
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      setEditingItem(null);
+      setScheduleDate('');
     },
-  })
+  });
 
   const publishNowMutation = useMutation({
     mutationFn: async (postId: number) => {
-      const response = await api.post(`/queue/${postId}/publish`)
-      return response.data
+      const response = await api.post(`/queue/${postId}/publish`);
+      return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue'] })
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
-  })
+  });
 
   const handleSchedule = (item: QueueItem) => {
-    setEditingItem(item.id)
+    setEditingItem(item.id);
     // Set default schedule date to tomorrow at 7:30 PM
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(19, 30, 0, 0)
-    setScheduleDate(tomorrow.toISOString().slice(0, 16))
-  }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(19, 30, 0, 0);
+    setScheduleDate(tomorrow.toISOString().slice(0, 16));
+  };
 
   const handleEdit = (item: QueueItem) => {
-    setEditingItem(item.id)
+    setEditingItem(item.id);
     if (item.schedule_date) {
-      setScheduleDate(new Date(item.schedule_date).toISOString().slice(0, 16))
+      setScheduleDate(new Date(item.schedule_date).toISOString().slice(0, 16));
     } else {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      tomorrow.setHours(19, 30, 0, 0)
-      setScheduleDate(tomorrow.toISOString().slice(0, 16))
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(19, 30, 0, 0);
+      setScheduleDate(tomorrow.toISOString().slice(0, 16));
     }
-  }
+  };
 
   const handleSaveSchedule = (item: QueueItem) => {
     if (!scheduleDate) {
-      alert('Please select a date and time')
-      return
+      alert('Please select a date and time');
+      return;
     }
-    scheduleMutation.mutate({ postId: item.id, scheduleDate, item })
-  }
+    scheduleMutation.mutate({ postId: item.id, scheduleDate, item });
+  };
 
   const handlePublishNow = (item: QueueItem) => {
     if (confirm(`Publish this post to ${item.platform} now?`)) {
-      publishNowMutation.mutate(item.id)
+      publishNowMutation.mutate(item.id);
     }
-  }
+  };
 
   const handleCancelEdit = () => {
-    setEditingItem(null)
-    setScheduleDate('')
-  }
+    setEditingItem(null);
+    setScheduleDate('');
+  };
 
   const getPlatformIcon = (platform: string) => {
-    const iconClass = "w-4 h-4"
+    const iconClass = "w-4 h-4";
     switch (platform.toLowerCase()) {
       case 'youtube':
-        return <Youtube className={iconClass} />
+        return <Youtube className={iconClass} />;
       case 'linkedin':
-        return <Linkedin className={iconClass} />
+        return <Linkedin className={iconClass} />;
       case 'facebook':
-        return <Facebook className={iconClass} />
+        return <Facebook className={iconClass} />;
       case 'instagram':
-        return <Instagram className={iconClass} />
+        return <Instagram className={iconClass} />;
       default:
-        return <Send className={iconClass} />
+        return <Send className={iconClass} />;
     }
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -154,74 +159,102 @@ export default function Dashboard() {
             <CheckCircle2 className="w-3 h-3" />
             Published
           </span>
-        )
+        );
       case 'scheduled':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
             <Clock className="w-3 h-3" />
             Scheduled
           </span>
-        )
+        );
       case 'pending':
         return (
           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full">
             Pending
           </span>
-        )
+        );
       case 'error':
         return (
           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
             Error
           </span>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getItemsForTab = () => {
-    if (!data) return []
+    if (!data) return [];
     switch (activeTab) {
       case 'queue':
-        return data.queue || []
+        return data.queue || [];
       case 'drafts':
-        return data.drafts || []
+        return data.drafts || [];
       case 'sent':
-        return data.published || []
+        return data.published || [];
       default:
-        return []
+        return [];
     }
-  }
+  };
 
-  const items = getItemsForTab()
-  const filteredItems = selectedChannel === 'all' 
-    ? items 
-    : items.filter(item => item.platform.toLowerCase() === selectedChannel.toLowerCase())
+  const items = getItemsForTab();
+  const filteredItems = selectedChannel === 'all'
+    ? items
+    : items.filter(item => item.platform.toLowerCase() === selectedChannel.toLowerCase());
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    )
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-12 px-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md">
+          <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+            Error Loading Queue
+          </h3>
+          <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+            {(error as any)?.response?.data?.error || (error as any)?.message || 'Failed to load queue data. Please try refreshing the page.'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">No data available</div>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Status Banner - Shows what's not configured */}
       <StatusBanner />
-      
+
       {/* Top Navigation Tabs */}
       <div className="border-b border-border bg-card">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setActiveTab('queue')}
-              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${
-                activeTab === 'queue'
+              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'queue'
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               Queue
               {data?.queue && data.queue.length > 0 && (
@@ -235,11 +268,10 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('drafts')}
-              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${
-                activeTab === 'drafts'
+              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'drafts'
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               Drafts
               {data?.drafts && data.drafts.length > 0 && (
@@ -253,11 +285,10 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('sent')}
-              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${
-                activeTab === 'sent'
+              className={`relative flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'sent'
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               Sent
               {data?.published && data.published.length > 0 && (
@@ -276,21 +307,19 @@ export default function Dashboard() {
             <div className="flex items-center gap-0.5 border border-border rounded-lg p-0.5 bg-muted/50">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'list'
+                className={`p-1.5 rounded transition-colors ${viewMode === 'list'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 <List className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'calendar'
+                className={`p-1.5 rounded transition-colors ${viewMode === 'calendar'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Calendar className="w-4 h-4" />
               </button>
@@ -453,5 +482,5 @@ export default function Dashboard() {
         )}
       </div>
     </div>
-  )
+  );
 }

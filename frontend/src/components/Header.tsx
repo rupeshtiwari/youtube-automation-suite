@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/content-preview': 'Preview & Schedule',
   '/insights': 'Analytics',
   '/activity': 'Activity',
+  '/settings': 'Settings',
   '/config': 'Settings',
 }
 
@@ -17,25 +18,9 @@ export default function Header() {
   const title = pageTitles[location.pathname] || 'Dashboard'
 
   const handleNewPost = () => {
-    // Try to open the quick compose modal (available globally in base.html)
-    if (typeof (window as any).openQuickCompose === 'function') {
-      (window as any).openQuickCompose()
-    } else {
-      // If function not available yet, wait a bit and try again
-      setTimeout(() => {
-        if (typeof (window as any).openQuickCompose === 'function') {
-          (window as any).openQuickCompose()
-        } else {
-          // Fallback: navigate to dashboard where modal definitely exists
-          window.location.href = '/'
-          setTimeout(() => {
-            if (typeof (window as any).openQuickCompose === 'function') {
-              (window as any).openQuickCompose()
-            }
-          }, 500)
-        }
-      }, 100)
-    }
+    // Navigate to content preview page where user can create new posts
+    // Use React Router navigation for internal routes
+    window.location.href = '/content-preview'
   }
 
   const handleHelp = () => {
