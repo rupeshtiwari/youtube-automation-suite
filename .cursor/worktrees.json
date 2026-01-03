@@ -1,0 +1,5 @@
+image.pngthis is still {
+  "setup-worktree": [
+    "npm install"
+  ]
+}
