@@ -245,12 +245,13 @@ static_dir = os.path.join(os.path.dirname(__file__), 'static')
 # Configure Flask to serve React build if it exists
 FRONTEND_BUILD_DIR = os.path.join(project_root, 'frontend', 'dist')
 
+# Always use templates/ directory for templates, but serve React build as static if it exists
 if os.path.exists(FRONTEND_BUILD_DIR):
-    # Serve React build as static files
+    # Serve React build as static files, but use templates/ for Flask templates
     app = Flask(__name__, 
                 static_folder=FRONTEND_BUILD_DIR,
                 static_url_path='',
-                template_folder=FRONTEND_BUILD_DIR)
+                template_folder=template_dir)  # Always use templates/ for templates
 else:
     # Fallback to old templates/static setup
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
@@ -259,7 +260,7 @@ else:
 if CORS:
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+            "origins": ["http://localhost:5001", "http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -286,13 +287,66 @@ def after_request(response):
     return response
 
 # Initialize database on app startup (ensures settings table exists)
-init_database()
+try:
+    init_database()
+except Exception as e:
+    print(f"Warning: Error initializing database: {e}")
+    # App will still run, but database features may not work
 
 
 @app.before_request
 def before_request():
     """Add config warnings to all requests."""
-    g.config_warnings = validate_config()
+    try:
+        g.config_warnings = validate_config()
+    except Exception as e:
+        app.logger.error(f"Error in before_request: {e}", exc_info=True)
+        g.config_warnings = []  # Default to empty list on error
+
+# Global error handlers to prevent crashes
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors gracefully."""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found', 'path': request.path}), 404
+    # For non-API routes, try to serve React app
+    if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+        return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+    return jsonify({'error': 'Not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors gracefully - prevent app crashes."""
+    app.logger.error(f"Internal server error: {error}", exc_info=True)
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'Internal server error',
+            'message': 'An error occurred. Please try again later.'
+        }), 500
+    # For non-API routes, try to serve React app or error page
+    try:
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        return render_template('dashboard.html', settings=load_settings())
+    except:
+        return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Catch all unhandled exceptions to prevent app crashes."""
+    app.logger.error(f"Unhandled exception: {e}", exc_info=True)
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'An error occurred',
+            'message': str(e) if app.debug else 'An error occurred. Please try again later.'
+        }), 500
+    # For non-API routes, try to serve React app
+    try:
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        return render_template('dashboard.html', settings=load_settings())
+    except:
+        return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
 
 # Settings file - support NAS/Docker deployment
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(__file__))
@@ -939,29 +993,49 @@ def schedule_daily_job():
 @app.route('/')
 def index():
     """Serve React app index.html for all frontend routes."""
-    if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
-        return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
-    # Fallback to old template if React build doesn't exist
-    settings = load_settings()
-    return render_template('dashboard.html', settings=settings)
+    try:
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to old template if React build doesn't exist
+        settings = load_settings()
+        return render_template('dashboard.html', settings=settings)
+    except Exception as e:
+        app.logger.error(f"Error in index route: {e}", exc_info=True)
+        # Return a simple error page instead of crashing
+        try:
+            return render_template('dashboard.html', settings={})
+        except:
+            return f"<html><body><h1>Error loading page</h1><p>{str(e)}</p></body></html>", 500
 
 
 @app.route('/docs')
 @app.route('/documentation')
 def documentation():
     """Documentation page."""
-    return render_template('documentation.html')
+    try:
+        return render_template('documentation.html')
+    except Exception as e:
+        app.logger.error(f"Error loading documentation: {e}", exc_info=True)
+        return f"<html><body><h1>Documentation</h1><p>Error loading documentation: {str(e)}</p></body></html>", 500
 
 
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring."""
-    from app.database import DB_PATH
-    return jsonify({
-        'status': 'healthy',
-        'database_exists': os.path.exists(DB_PATH),
-        'timestamp': datetime.now(IST).isoformat()
-    })
+    try:
+        from app.database import DB_PATH
+        return jsonify({
+            'status': 'healthy',
+            'database_exists': os.path.exists(DB_PATH),
+            'timestamp': datetime.now(IST).isoformat()
+        })
+    except Exception as e:
+        app.logger.error(f"Error in health check: {e}", exc_info=True)
+        return jsonify({
+            'status': 'degraded',
+            'error': str(e),
+            'timestamp': datetime.now(IST).isoformat()
+        }), 500
 
 
 @app.route('/favicon.ico')
@@ -990,114 +1064,91 @@ def service_worker():
 
 @app.route('/config', methods=['GET', 'POST'])
 def config():
-    """Configuration page."""
-    if request.method == 'POST':
+    """Config page - serve Flask template (has complex form handling)."""
+    try:
         settings = load_settings()
         
-        # Update API keys
-        settings['api_keys'] = {
-            'linkedin_client_id': request.form.get('linkedin_client_id', ''),
-            'linkedin_client_secret': request.form.get('linkedin_client_secret', ''),
-            'linkedin_access_token': request.form.get('linkedin_access_token', ''),
-            'linkedin_person_urn': request.form.get('linkedin_person_urn', ''),
-            'facebook_page_access_token': request.form.get('facebook_page_access_token', ''),
-            'facebook_page_id': request.form.get('facebook_page_id', ''),
-            'instagram_business_account_id': request.form.get('instagram_business_account_id', ''),
-            'ayrshare_api_key': request.form.get('ayrshare_api_key', ''),
+        if request.method == 'POST':
+            # Handle form submission
+            section = request.form.get('section', '')
+            if section == 'api_keys':
+                # Update API keys
+                settings['api_keys'] = {
+                    'linkedin_client_id': request.form.get('linkedin_client_id', ''),
+                    'linkedin_client_secret': request.form.get('linkedin_client_secret', ''),
+                    'linkedin_access_token': request.form.get('linkedin_access_token', ''),
+                    'linkedin_person_urn': request.form.get('linkedin_person_urn', ''),
+                    'facebook_page_access_token': request.form.get('facebook_page_access_token', ''),
+                    'facebook_page_id': request.form.get('facebook_page_id', ''),
+                    'instagram_business_account_id': request.form.get('instagram_business_account_id', ''),
+                    'ayrshare_api_key': request.form.get('ayrshare_api_key', '')
+                }
+                save_settings(settings)
+                flash('Settings saved successfully!', 'success')
+                return redirect('/config#social-media-connections')
+        
+        # GET request - show config page
+        # Check YouTube API status
+        youtube_status = {
+            'configured': False,
+            'client_secret_exists': False,
+            'channel_name': None,
+            'channel_id': None,
+            'error': None
         }
         
-        # Update scheduling settings
-        settings['scheduling'] = {
-            'enabled': request.form.get('scheduling_enabled') == 'on',
-            'videos_per_day': int(request.form.get('videos_per_day', 1)),
-            'youtube_schedule_time': request.form.get('youtube_schedule_time', '23:00'),
-            'social_media_schedule_time': request.form.get('social_media_schedule_time', '19:30'),
-            'schedule_day': request.form.get('schedule_day', 'wednesday'),
-            'playlist_id': request.form.get('playlist_id', ''),
-            'export_type': request.form.get('export_type', 'shorts'),
-            'use_database': request.form.get('use_database') == 'on',
-            'auto_post_social': request.form.get('auto_post_social') == 'on',
-            'social_platforms': request.form.getlist('social_platforms'),
-            'upload_method': request.form.get('upload_method', 'native'),
-        }
+        try:
+            client_secret_path = os.path.join(os.path.dirname(__file__), '..', 'client_secret.json')
+            client_secret_path = os.path.abspath(client_secret_path)
+            youtube_status['client_secret_exists'] = os.path.exists(client_secret_path)
+            
+            if youtube_status['client_secret_exists']:
+                # Try to get YouTube service to verify connection
+                try:
+                    youtube = get_youtube_service()
+                    if youtube:
+                        channel_id = get_my_channel_id_helper(youtube)
+                        if channel_id:
+                            youtube_status['channel_id'] = channel_id
+                            youtube_status['configured'] = True
+                            # Get channel name
+                            try:
+                                channel_response = youtube.channels().list(part="snippet", id=channel_id).execute()
+                                if channel_response.get("items"):
+                                    youtube_status['channel_name'] = channel_response["items"][0].get("snippet", {}).get("title", "")
+                            except:
+                                pass
+                except Exception as e:
+                    youtube_status['error'] = str(e)
+        except Exception as e:
+            youtube_status['error'] = str(e)
         
-        # Update thresholds
-        settings['thresholds'] = {
-            'linkedin_daily_limit': int(request.form.get('linkedin_daily_limit', 25)),
-            'facebook_daily_limit': int(request.form.get('facebook_daily_limit', 25)),
-            'instagram_daily_limit': int(request.form.get('instagram_daily_limit', 25)),
-            'youtube_daily_limit': int(request.form.get('youtube_daily_limit', 10)),
-        }
+        # Calculate configuration completeness
+        api_keys = settings.get('api_keys', {})
+        config_warnings = validate_config()
+        config_complete = len([w for w in config_warnings if w.get('severity') == 'error']) == 0
         
-        # Update targeting
-        settings['targeting'] = {
-            'target_audience': request.form.get('target_audience', 'usa_students'),
-            'interview_types': request.form.getlist('interview_types'),
-            'role_levels': request.form.getlist('role_levels'),
-            'timezone': 'America/New_York',  # USA Eastern Time
-            'optimal_times': ['14:00', '17:00', '21:00']  # 2 PM, 5 PM, 9 PM EDT
-        }
-        
-        save_settings(settings)
-        schedule_daily_job()
-        
-        flash('Settings saved successfully!', 'success')
-        return redirect(url_for('config'))
-    
-    settings = load_settings()
-    
-    # Check YouTube API status
-    youtube_status = {
-        'configured': False,
-        'client_secret_exists': False,
-        'channel_name': None,
-        'channel_id': None,
-        'error': None
-    }
-    
-    try:
-        client_secret_path = os.path.join(os.path.dirname(__file__), '..', 'client_secret.json')
-        client_secret_path = os.path.abspath(client_secret_path)
-        youtube_status['client_secret_exists'] = os.path.exists(client_secret_path)
-        
-        if youtube_status['client_secret_exists']:
-            # Try to get YouTube service to verify connection
-            try:
-                youtube = views.get_youtube_service()
-                if youtube:
-                    channel_id = get_my_channel_id_helper(youtube)
-                    if channel_id:
-                        youtube_status['channel_id'] = channel_id
-                        youtube_status['configured'] = True
-                        # Get channel name
-                        try:
-                            channel_response = youtube.channels().list(part="snippet", id=channel_id).execute()
-                            if channel_response.get("items"):
-                                youtube_status['channel_name'] = channel_response["items"][0].get("snippet", {}).get("title", "")
-                        except:
-                            pass
-            except Exception as e:
-                youtube_status['error'] = str(e)
+        return render_template('config.html', settings=settings, youtube_status=youtube_status, config_complete=config_complete, config_warnings=config_warnings)
     except Exception as e:
-        youtube_status['error'] = str(e)
-    
-    # Calculate configuration completeness
-    api_keys = settings.get('api_keys', {})
-    config_complete = (
-        youtube_status.get('client_secret_exists', False) and
-        bool(api_keys.get('linkedin_client_id')) and
-        bool(api_keys.get('linkedin_client_secret')) and
-        bool(api_keys.get('linkedin_person_urn')) and
-        bool(api_keys.get('facebook_page_access_token')) and
-        bool(api_keys.get('facebook_page_id')) and
-        bool(api_keys.get('instagram_business_account_id'))
-    )
-    
-    return render_template('config.html', settings=settings, youtube_status=youtube_status, config_complete=config_complete)
+        app.logger.error(f"Error in config route: {e}", exc_info=True)
+        return render_template('error.html', message=f"Error loading Config page: {str(e)}")
+
+@app.route('/settings')
+def settings():
+    """Settings page - serve React app."""
+    try:
+        # Serve React app - it will fetch data from /api/status endpoint
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to Flask template if React build doesn't exist
+        return render_template('config.html', settings=load_settings())
+    except Exception as e:
+        app.logger.error(f"Error in settings route: {e}", exc_info=True)
+        return render_template('error.html', message=f"Error loading Settings page: {str(e)}")
 
 
-@app.route('/api/status')
-def api_status():
+@app.route('/api/automation-status')
+def api_automation_status():
     """API endpoint for automation status."""
     settings = load_settings()
     job = SCHEDULER.get_job('daily_automation')
@@ -1540,37 +1591,162 @@ def api_shorts():
 
 @app.route('/shorts')
 def shorts():
-    """Legacy route - serves React app."""
-    return render_template('react_app.html')
+    """Shorts page - serve React app (React will fetch data from /api/shorts)."""
+    try:
+        # Serve React app - it will fetch data from /api/shorts endpoint
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to Flask template if React build doesn't exist
+        return render_template('shorts.html', playlists=[], total_videos=0, total_youtube=0, total_other_platforms=0, total_not_scheduled=0, weekly_schedule='23:00', schedule_day='wednesday')
+    except Exception as e:
+        app.logger.error(f"Error in shorts route: {e}", exc_info=True)
+        return render_template('error.html', message=f"Error loading Shorts page: {str(e)}")
 
 
 @app.route('/sessions')
 @cached(timeout=60)  # Cache for 1 minute (sessions change less frequently)
 def sessions():
     """Sessions management page - load and create shorts scripts from coaching sessions."""
+    try:
+        import os
+        from pathlib import Path
+        
+        sessions_dir = Path('data/sessions')
+        sessions_list = []
+        
+        if sessions_dir.exists():
+            for file_path in sessions_dir.glob('*.txt'):
+                try:
+                    file_size = file_path.stat().st_size
+                    sessions_list.append({
+                        'filename': file_path.name,
+                        'size': file_size,
+                        'size_kb': round(file_size / 1024, 2),
+                        'modified': datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+                    })
+                except Exception as e:
+                    print(f"Error reading {file_path}: {e}")
+        
+        # Sort by modified date (newest first)
+        sessions_list.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return render_template('sessions.html', sessions=sessions_list)
+    except Exception as e:
+        app.logger.error(f"Error in sessions route: {e}", exc_info=True)
+        # Return empty sessions list on error instead of crashing
+        return render_template('sessions.html', sessions=[])
+
+
+@app.route('/api/sessions')
+def api_get_sessions():
+    """Get list of all session files with metadata."""
     import os
     from pathlib import Path
     
     sessions_dir = Path('data/sessions')
     sessions_list = []
     
-    if sessions_dir.exists():
-        for file_path in sessions_dir.glob('*.txt'):
+    if not sessions_dir.exists():
+        return jsonify({
+            'sessions': [],
+            'statistics': {
+                'total': 0,
+                'upcoming': 0,
+                'completed': 0,
+                'by_role': {},
+                'by_type': {}
+            },
+            'upcoming': [],
+            'recent': [],
+            'source': 'data/sessions'
+        })
+    
+    # Get all .txt files
+    for file_path in sessions_dir.glob('*.txt'):
+        try:
+            file_stat = file_path.stat()
+            file_size = file_stat.st_size
+            modified_time = datetime.fromtimestamp(file_stat.st_mtime)
+            
+            # Try to parse filename for metadata (format: YYYY-MM-DD_clientname_role_type.txt)
+            filename = file_path.stem
+            parts = filename.split('_')
+            
+            session_data = {
+                'filename': file_path.name,
+                'size': file_size,
+                'modified': modified_time.strftime('%Y-%m-%d %H:%M'),
+                'date': modified_time.strftime('%Y-%m-%d'),
+                'status': 'completed',  # Default to completed for existing files
+                'has_content': True
+            }
+            
+            # Try to extract metadata from filename
+            if len(parts) >= 2:
+                try:
+                    # Check if first part is a date
+                    datetime.strptime(parts[0], '%Y-%m-%d')
+                    session_data['date'] = parts[0]
+                    if len(parts) >= 2:
+                        session_data['client_name'] = parts[1].replace('-', ' ').title()
+                    if len(parts) >= 3:
+                        session_data['role'] = parts[2]
+                    if len(parts) >= 4:
+                        session_data['type'] = parts[3]
+                except ValueError:
+                    # Not a date format, treat as client name
+                    session_data['client_name'] = parts[0].replace('-', ' ').title()
+                    if len(parts) >= 2:
+                        session_data['role'] = parts[1]
+                    if len(parts) >= 3:
+                        session_data['type'] = parts[2]
+            
+            # Read first 200 chars as preview
             try:
-                file_size = file_path.stat().st_size
-                sessions_list.append({
-                    'filename': file_path.name,
-                    'size': file_size,
-                    'size_kb': round(file_size / 1024, 2),
-                    'modified': datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
-                })
-            except Exception as e:
-                print(f"Error reading {file_path}: {e}")
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    preview = f.read(200)
+                    session_data['preview'] = preview
+            except:
+                pass
+            
+            sessions_list.append(session_data)
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
     
     # Sort by modified date (newest first)
-    sessions_list.sort(key=lambda x: x['modified'], reverse=True)
+    sessions_list.sort(key=lambda x: x.get('modified', ''), reverse=True)
     
-    return render_template('sessions.html', sessions=sessions_list)
+    # Calculate statistics
+    total = len(sessions_list)
+    upcoming = len([s for s in sessions_list if s.get('status') == 'upcoming'])
+    completed = len([s for s in sessions_list if s.get('status') == 'completed'])
+    
+    # Count by role and type
+    by_role = {}
+    by_type = {}
+    for session in sessions_list:
+        role = session.get('role', 'unknown')
+        by_role[role] = by_role.get(role, 0) + 1
+        session_type = session.get('type', 'unknown')
+        by_type[session_type] = by_type.get(session_type, 0) + 1
+    
+    # Get recent (last 10) and upcoming
+    recent = sessions_list[:10]
+    upcoming_list = [s for s in sessions_list if s.get('status') == 'upcoming']
+    
+    return jsonify({
+        'sessions': sessions_list,
+        'statistics': {
+            'total': total,
+            'upcoming': upcoming,
+            'completed': completed,
+            'by_role': by_role,
+            'by_type': by_type
+        },
+        'upcoming': upcoming_list,
+        'recent': recent,
+        'source': str(sessions_dir)
+    })
 
 
 @app.route('/api/sessions/submit', methods=['POST'])
@@ -1689,6 +1865,80 @@ def api_get_session(filename):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sessions/<filename>/metadata', methods=['GET', 'POST', 'PUT'])
+def api_session_metadata(filename):
+    """Get or update session metadata."""
+    from app.database import get_db_connection
+    
+    if request.method == 'GET':
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM sessions_metadata WHERE filename = ?', (filename,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return jsonify({
+                'success': True,
+                'metadata': dict(row)
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'metadata': {
+                    'filename': filename,
+                    'role': None,
+                    'session_type': None,
+                    'client_name': None,
+                    'session_date': None,
+                    'meet_recording_url': None,
+                    'gemini_transcript_url': None,
+                    'chatgpt_notes': None,
+                    'email_thread_id': None,
+                    'additional_notes': None,
+                    'tags': None
+                }
+            })
+    
+    elif request.method in ['POST', 'PUT']:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO sessions_metadata (
+                filename, role, session_type, client_name, session_date,
+                meet_recording_url, meet_recording_drive_id,
+                gemini_transcript_url, gemini_transcript_drive_id,
+                chatgpt_notes, email_thread_id, email_subject,
+                additional_notes, tags, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (
+            filename,
+            data.get('role'),
+            data.get('session_type'),
+            data.get('client_name'),
+            data.get('session_date'),
+            data.get('meet_recording_url'),
+            data.get('meet_recording_drive_id'),
+            data.get('gemini_transcript_url'),
+            data.get('gemini_transcript_drive_id'),
+            data.get('chatgpt_notes'),
+            data.get('email_thread_id'),
+            data.get('email_subject'),
+            data.get('additional_notes'),
+            data.get('tags')
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Metadata saved successfully'
+        })
 
 
 @app.route('/api/sessions/<filename>/generate-shorts', methods=['POST'])
@@ -1938,7 +2188,20 @@ def extract_mistakes(content: str) -> list:
 
 @app.route('/insights')
 def insights():
-    """Rich insights dashboard showing analytics from all platforms."""
+    """Insights page - serve React app (React will fetch data from /insights API)."""
+    try:
+        # Serve React app - it will fetch data from Flask APIs
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to Flask template if React build doesn't exist
+        return render_template('insights.html', insights={})
+    except Exception as e:
+        app.logger.error(f"Error in insights route: {e}", exc_info=True)
+        return render_template('error.html', message=f"Error loading insights: {str(e)}")
+
+@app.route('/insights-data')
+def insights_data():
+    """API endpoint for insights data - used by React app."""
     try:
         # Get YouTube Analytics if available
         youtube_analytics = get_youtube_analytics()
@@ -1949,14 +2212,26 @@ def insights():
         # Get LinkedIn Analytics if available
         linkedin_analytics = get_linkedin_analytics()
         
+        # Get YouTube video statistics (from Data API)
+        youtube_video_stats = get_youtube_video_statistics()
+        
+        # Get Facebook post statistics
+        facebook_post_stats = get_facebook_post_statistics()
+        
+        # Get LinkedIn post statistics
+        linkedin_post_stats = get_linkedin_post_statistics()
+        
         # Combine all insights - ensure all keys exist and add CTA data
         settings = load_settings()
         cta_data = settings.get('cta', {})
         
         insights_data = {
             'youtube': youtube_analytics or {'error': 'Not configured'},
+            'youtube_videos': youtube_video_stats or {},
             'facebook': facebook_insights or {'error': 'Not configured'},
+            'facebook_posts': facebook_post_stats or {},
             'linkedin': linkedin_analytics or {'error': 'Not configured'},
+            'linkedin_posts': linkedin_post_stats or {},
             'optimal_posting_times': calculate_optimal_posting_times(youtube_analytics, facebook_insights, linkedin_analytics) or {},
             'cta': cta_data
         }
@@ -2219,12 +2494,17 @@ def calculate_optimal_posting_times(youtube_data, facebook_data, linkedin_data):
 @app.route('/activity')
 def activity():
     """Activity log page showing all automation activities."""
-    from app.database import get_activity_logs
-    
-    # Get activity logs (last 200 by default)
-    logs = get_activity_logs(limit=200)
-    
-    return render_template('activity.html', logs=logs)
+    try:
+        from app.database import get_activity_logs
+        
+        # Get activity logs (last 200 by default)
+        logs = get_activity_logs(limit=200)
+        
+        return render_template('activity.html', logs=logs)
+    except Exception as e:
+        app.logger.error(f"Error in activity route: {e}", exc_info=True)
+        # Return empty logs on error instead of crashing
+        return render_template('activity.html', logs=[])
 
 
 @app.route('/api/activity/<int:activity_id>')
@@ -2532,29 +2812,16 @@ def api_autopilot_run():
 
 @app.route('/content-preview')
 def content_preview():
-    """Content preview and scheduling page - shows all videos with social media posts."""
-    youtube = get_youtube_service()
-    if not youtube:
-        return render_template('error.html', 
-                             message="YouTube API not configured. Please set up client_secret.json")
-    
+    """Content preview page - serve React app (React will fetch data from /api/content-preview/videos)."""
     try:
-        channel_id = get_my_channel_id_helper(youtube)
-        if not channel_id:
-            return render_template('error.html', 
-                                 message="Could not find your YouTube channel. Please check authentication.")
-        
-        # Get all playlists
-        playlists_data = fetch_all_playlists_from_youtube(youtube, channel_id)
-        
-        # Filter to Shorts playlists (or all if needed)
-        shorts_playlists = [pl for pl in playlists_data if "short" in pl.get("playlistTitle", "").lower()]
-        
-        return render_template('content_preview.html', 
-                             playlists=shorts_playlists if shorts_playlists else playlists_data)
+        # Serve React app - it will fetch data from /api/content-preview/videos endpoint
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to Flask template if React build doesn't exist
+        return render_template('content_preview.html', playlists=[])
     except Exception as e:
-        import traceback
-        return render_template('error.html', message=f"Error loading content preview: {str(e)}\n{traceback.format_exc()}")
+        app.logger.error(f"Error in content_preview route: {e}", exc_info=True)
+        return render_template('error.html', message=f"Error loading content preview: {str(e)}")
 
 
 @app.route('/api/content-preview/videos')
@@ -3111,8 +3378,16 @@ def api_search_videos():
 
 @app.route('/calendar')
 def calendar():
-    """Display calendar view of scheduled posts."""
-    return render_template('calendar.html')
+    """Calendar page - serve React app (React will fetch data from /api/calendar-data)."""
+    try:
+        # Serve React app - it will fetch data from /api/calendar-data endpoint
+        if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+        # Fallback to Flask template if React build doesn't exist
+        return render_template('calendar.html')
+    except Exception as e:
+        app.logger.error(f"Error in calendar route: {e}", exc_info=True)
+        return f"<html><body><h1>Error loading calendar</h1><p>{str(e)}</p></body></html>", 500
 
 
 @app.route('/content')
@@ -3310,7 +3585,7 @@ def api_linkedin_oauth_authorize():
         
         if not client_id or not client_secret:
             flash('Please configure LinkedIn Client ID and Secret first in Settings → API Keys', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Generate state for security
         import secrets
@@ -3353,7 +3628,7 @@ def api_linkedin_oauth_authorize():
         return redirect(auth_url)
     except Exception as e:
         flash(f'Error starting LinkedIn authorization: {str(e)}', 'error')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
 
 
 @app.route('/api/facebook/oauth/authorize')
@@ -3363,21 +3638,21 @@ def api_facebook_oauth_authorize():
         settings = load_settings()
         api_keys = settings.get('api_keys', {})
         
-        # Facebook OAuth flow - we'll use a simplified approach
+        # Facebook OAuth flow - redirect to config page with instructions
         # Since Facebook requires App ID/Secret for full OAuth, we'll guide users
         # But we can also use the Graph API Explorer method which is simpler
         
-        # For now, redirect to Facebook Graph API Explorer with instructions
+        # For now, redirect to config page with instructions
         # This is more reliable than full OAuth for Page Access Tokens
-        flash('For Facebook connection, please use the Graph API Explorer method. Click "Connect Facebook" button below for instructions.', 'info')
-        return redirect(url_for('config'))
+        flash('For Facebook connection, please use the Graph API Explorer method. See the Facebook section in Settings for instructions.', 'info')
+        return redirect('/config#social-media-connections')
         
         # Full OAuth implementation (if App ID/Secret are configured):
         # app_id = api_keys.get('facebook_app_id', '').strip()
         # app_secret = api_keys.get('facebook_app_secret', '').strip()
         # if not app_id or not app_secret:
         #     flash('Please configure Facebook App ID and Secret first', 'error')
-        #     return redirect(url_for('config'))
+        #     return redirect('/config#social-media-connections')
         # 
         # state = secrets.token_urlsafe(32)
         # session['facebook_oauth_state'] = state
@@ -3388,7 +3663,7 @@ def api_facebook_oauth_authorize():
         
     except Exception as e:
         flash(f'Error starting Facebook authorization: {str(e)}', 'error')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
 
 
 @app.route('/api/facebook/oauth/callback')
@@ -3405,17 +3680,17 @@ def api_facebook_oauth_callback():
         if error:
             error_desc = request.args.get('error_description', '')
             flash(f'Facebook authorization failed: {error} - {error_desc}', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         if not code:
             flash('Facebook authorization failed: No authorization code received', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Verify state
         stored_state = session.get('facebook_oauth_state')
         if state != stored_state:
             flash('Facebook authorization failed: Invalid state parameter', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Get settings
         settings = load_settings()
@@ -3426,11 +3701,11 @@ def api_facebook_oauth_callback():
         # This is a simplified flow - full implementation would require App ID/Secret
         
         flash('Facebook OAuth callback received. Full implementation requires App ID/Secret.', 'info')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
         
     except Exception as e:
         flash(f'Facebook connection error: {str(e)}', 'error')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
 
 
 @app.route('/api/linkedin/oauth/callback')
@@ -3447,17 +3722,17 @@ def api_linkedin_oauth_callback():
         if error:
             error_desc = request.args.get('error_description', '')
             flash(f'LinkedIn authorization failed: {error} - {error_desc}', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         if not code:
             flash('LinkedIn authorization failed: No authorization code received', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Verify state
         stored_state = session.get('linkedin_oauth_state')
         if state != stored_state:
             flash('LinkedIn authorization failed: Invalid state parameter', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Get settings
         settings = load_settings()
@@ -3467,7 +3742,7 @@ def api_linkedin_oauth_callback():
         
         if not client_id or not client_secret:
             flash('LinkedIn Client ID or Secret not configured', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Exchange code for access token
         redirect_uri = url_for('api_linkedin_oauth_callback', _external=True)
@@ -3490,7 +3765,7 @@ def api_linkedin_oauth_callback():
         
         if not access_token:
             flash('Failed to get LinkedIn access token', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Get Person URN automatically
         profile_url = "https://api.linkedin.com/v2/me"
@@ -3506,7 +3781,7 @@ def api_linkedin_oauth_callback():
         
         if not person_urn:
             flash('Failed to get LinkedIn Person URN', 'error')
-            return redirect(url_for('config'))
+            return redirect('/config#social-media-connections')
         
         # Save everything automatically (like Buffer does)
         api_keys['linkedin_access_token'] = access_token
@@ -3534,7 +3809,7 @@ def api_linkedin_oauth_callback():
         
         # Success! Redirect back to config with success message
         flash('✅ LinkedIn connected successfully! Access Token and Person URN saved automatically.', 'success')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
         
     except requests.exceptions.HTTPError as e:
         error_msg = str(e)
@@ -3545,11 +3820,11 @@ def api_linkedin_oauth_callback():
             except:
                 pass
         flash(f'LinkedIn connection failed: {error_msg}', 'error')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
     except Exception as e:
         import traceback
         flash(f'LinkedIn connection error: {str(e)}', 'error')
-        return redirect(url_for('config'))
+        return redirect('/config#social-media-connections')
 
 
 @app.route('/api/config/load-from-file', methods=['POST'])
@@ -3705,7 +3980,7 @@ def api_upload_client_secret():
 @app.route('/api/calendar-data')
 def api_calendar_data():
     """API endpoint for calendar data - fetches YouTube scheduled videos from all playlists and social media posts."""
-    from app.database import get_db_connection, get_video_social_posts_from_db
+    from app.database import get_db_connection
     from datetime import datetime
     import pytz
     
@@ -3890,7 +4165,14 @@ def api_calendar_data():
         })
     except Exception as e:
         import traceback
-        return jsonify({'error': str(e), 'traceback': traceback.format_exc(), 'events': []}), 500
+        app.logger.error(f"Error in api_calendar_data: {e}", exc_info=True)
+        # Return empty events instead of error to prevent calendar from breaking
+        return jsonify({
+            'events': [],
+            'optimal_times': {},
+            'recommendations': [],
+            'error': str(e) if app.debug else 'Error loading calendar data'
+        }), 500
 
 
 def get_optimal_posting_times_from_analytics():
@@ -4314,22 +4596,76 @@ def api_queue_publish_item(post_id):
         }), 500
 
 
-@app.route('/api/queue/<int:post_id>', methods=['DELETE'])
-def api_queue_delete(post_id):
-    """Delete a queue item."""
-    try:
-        from app.database import get_db_connection
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('DELETE FROM social_media_posts WHERE id = ?', (post_id,))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Post deleted'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+@app.route('/api/queue/<int:post_id>', methods=['DELETE', 'PUT'])
+def api_queue_update_or_delete(post_id):
+    """Update or delete a queue item."""
+    if request.method == 'DELETE':
+        try:
+            from app.database import get_db_connection
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('DELETE FROM social_media_posts WHERE id = ?', (post_id,))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Post deleted'})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    elif request.method == 'PUT':
+        """Update schedule date for an existing post."""
+        try:
+            from app.database import get_db_connection, log_activity
+            
+            data = request.json
+            schedule_datetime = data.get('schedule_date')
+            
+            if not schedule_datetime:
+                return jsonify({'success': False, 'error': 'Schedule date is required'}), 400
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Get existing post
+            cursor.execute('''
+                SELECT video_id, platform, post_content, status
+                FROM social_media_posts
+                WHERE id = ?
+            ''', (post_id,))
+            
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return jsonify({'success': False, 'error': 'Post not found'}), 404
+            
+            post = dict(row)
+            
+            # Update schedule date
+            cursor.execute('''
+                UPDATE social_media_posts
+                SET schedule_date = ?, status = 'scheduled', updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (schedule_datetime, post_id))
+            
+            conn.commit()
+            conn.close()
+            
+            # Log activity
+            log_activity(
+                'update_schedule',
+                platform=post['platform'],
+                video_id=post['video_id'],
+                status='success',
+                message=f'Schedule updated to {schedule_datetime}',
+                details={'post_id': post_id, 'new_schedule': schedule_datetime}
+            )
+            
+            return jsonify({'success': True, 'message': 'Schedule updated'})
+        except Exception as e:
+            import traceback
+            return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 @app.route('/api/linkedin/disconnect', methods=['POST'])
@@ -4370,28 +4706,28 @@ def api_status():
             'youtube': {
                 'configured': os.path.exists('client_secret.json'),
                 'authenticated': os.path.exists('token.json'),
-                'redirect_uri': 'http://youtube-automation.local/oauth2callback',
+                'redirect_uri': 'http://localhost:5001/oauth2callback',  # Google OAuth requires localhost, not .local
                 'status': 'ready' if os.path.exists('client_secret.json') and os.path.exists('token.json') else 'needs_setup',
                 'missing': []
             },
             'linkedin': {
                 'configured': bool(api_keys.get('linkedin_client_id') and api_keys.get('linkedin_client_secret')),
                 'authenticated': bool(api_keys.get('linkedin_access_token')),
-                'redirect_uri': 'http://youtube-automation.local:5001/api/linkedin/oauth/callback',
+                'redirect_uri': 'http://localhost:5001/api/linkedin/oauth/callback',  # Use localhost for local dev
                 'status': 'ready' if api_keys.get('linkedin_access_token') else ('configured' if api_keys.get('linkedin_client_id') else 'needs_setup'),
                 'missing': []
             },
             'facebook': {
                 'configured': bool(api_keys.get('facebook_page_access_token') and api_keys.get('facebook_page_id')),
                 'authenticated': bool(api_keys.get('facebook_page_access_token')),
-                'redirect_uri': 'http://youtube-automation.local:5001/api/facebook/oauth/callback',
+                'redirect_uri': 'http://localhost:5001/api/facebook/oauth/callback',  # Use localhost for local dev
                 'status': 'ready' if api_keys.get('facebook_page_access_token') else 'needs_setup',
                 'missing': []
             },
             'instagram': {
                 'configured': bool(api_keys.get('instagram_business_account_id')),
                 'authenticated': bool(api_keys.get('facebook_page_access_token')),
-                'redirect_uri': 'http://youtube-automation.local:5001/api/facebook/oauth/callback',
+                'redirect_uri': 'http://localhost:5001/api/facebook/oauth/callback',  # Use localhost for local dev
                 'status': 'ready' if (api_keys.get('instagram_business_account_id') and api_keys.get('facebook_page_access_token')) else 'needs_setup',
                 'missing': []
             }
@@ -4414,20 +4750,25 @@ def api_status():
             status['facebook']['missing'].append('OAuth connection')
             
         if not status['instagram']['configured']:
-            status['instagram']['missing'].append('Business Account ID')
+            status['instagram']['missing'].extend(['Business Account ID', 'Facebook Page Access Token'])
         elif not status['instagram']['authenticated']:
-            status['instagram']['missing'].append('Facebook connection (required)')
+            status['instagram']['missing'].append('OAuth connection')
         
         # Calculate overall status
         ready_count = sum(1 for s in status.values() if s.get('status') == 'ready')
         total_count = len(status)
-        status['overall'] = {
-            'ready': ready_count,
-            'total': total_count,
-            'percentage': int((ready_count / total_count * 100)) if total_count > 0 else 0
-        }
         
-        return jsonify(status)
+        # Return in format expected by React frontend
+        return jsonify({
+            'platforms': status,
+            'overall': {
+                'ready': ready_count,
+                'total': total_count,
+                'percentage': int((ready_count / total_count * 100)) if total_count > 0 else 0
+            },
+            'database_exists': os.path.exists('automation.db'),
+            'settings_loaded': bool(settings)
+        })
     except Exception as e:
         app.logger.error(f"Error getting status: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -4489,22 +4830,36 @@ def test_connection():
 # Catch-all route for React Router (must be last, after all API routes)
 @app.route('/<path:path>')
 def catch_all(path):
-    """Serve React app for all non-API routes (React Router handles routing)."""
+    """
+    Catch-all route for React Router client-side routing.
+    Serves React app for all non-API, non-Flask-template routes.
+    """
     # Don't interfere with API routes
     if path.startswith('api/'):
         return jsonify({'error': 'API route not found'}), 404
     
+    # Exclude specific Flask-only routes that need server-side rendering
+    # These routes are handled by specific Flask routes above
+    flask_only_routes = ['playlists', 'docs', 'documentation', 'health', 'favicon.ico', 'robots.txt', 'config', 'oauth2callback']
+    if path in flask_only_routes or path.split('/')[0] in flask_only_routes:
+        # These routes are handled by specific Flask routes above
+        return jsonify({'error': 'Route not found'}), 404
+    
     # Serve React app static files (JS, CSS, images, etc.)
     if os.path.exists(FRONTEND_BUILD_DIR):
-        file_path = os.path.join(FRONTEND_BUILD_DIR, path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return send_from_directory(FRONTEND_BUILD_DIR, path)
-        # For React Router - serve index.html for all routes
-        if os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+        # Check if it's a static file request (has file extension and not a route)
+        if '.' in path and not path.endswith('/'):
+            file_path = os.path.join(FRONTEND_BUILD_DIR, path)
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                return send_from_directory(FRONTEND_BUILD_DIR, path)
+        
+        # For React Router client-side routes - serve index.html
+        index_path = os.path.join(FRONTEND_BUILD_DIR, 'index.html')
+        if os.path.exists(index_path):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
     
-    # Fallback
-    return jsonify({'error': 'Not found'}), 404
+    # Fallback - return 404
+    return jsonify({'error': 'Not found', 'path': path}), 404
 
 
 # Shutdown scheduler on app exit

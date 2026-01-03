@@ -258,7 +258,12 @@
     `;
 
         fetch('/api/content-preview/videos')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.error) {
                     console.error('API Error:', data.error);
@@ -269,11 +274,22 @@
                     container.innerHTML = `<div class="alert alert-danger">
                         <strong>Error:</strong> ${data.error}
                         ${data.traceback ? `<details><summary>Technical Details</summary><pre>${data.traceback}</pre></details>` : ''}
+                        <p class="mt-2"><small>Make sure YouTube API is configured in Settings.</small></p>
                     </div>`;
                     return;
                 }
 
-                allVideos = data.videos || [];
+                // Handle both formats: {videos: [...]} or just array
+                allVideos = data.videos || data || [];
+
+                if (!Array.isArray(allVideos)) {
+                    console.error('Unexpected data format:', data);
+                    Toast.error('Unexpected response format from API');
+                    container.innerHTML = `<div class="alert alert-danger">
+                        <strong>Error:</strong> Unexpected response format. Check console for details.
+                    </div>`;
+                    return;
+                }
 
                 if (allVideos.length === 0) {
                     container.innerHTML = `
@@ -281,17 +297,22 @@
                         <i class="bi bi-inbox"></i>
                         <h4>No videos found</h4>
                         <p>No videos available for preview and scheduling.</p>
+                        <p class="mt-2"><small>Make sure you have Shorts playlists on your YouTube channel.</small></p>
                     </div>
                 `;
                     return;
                 }
 
+                console.log(`Loaded ${allVideos.length} videos`);
                 renderVideos(allVideos);
             })
             .catch(error => {
                 console.error('Error loading videos:', error);
                 Toast.error('Error loading videos: ' + error.message);
-                container.innerHTML = `<div class="alert alert-danger">Error loading videos: ${error.message}</div>`;
+                container.innerHTML = `<div class="alert alert-danger">
+                    <strong>Error loading videos:</strong> ${error.message}
+                    <p class="mt-2"><small>Check browser console for more details. Make sure the server is running and YouTube API is configured.</small></p>
+                </div>`;
             });
     }
 
@@ -408,17 +429,31 @@
                                       placeholder="Enter post content for ${platformNames[platform]}...">${escapeHtml(post.post_content || '')}</textarea>
                             
                             <div class="schedule-controls">
-                                <div style="flex: 1;">
-                                    <label class="form-label">Schedule Date & Time</label>
-                                    <input type="datetime-local" 
-                                           class="datetime-input" 
-                                           id="datetime-${video.video_id}-${platform}"
-                                           value="${post.schedule_date ? post.schedule_date.replace(' ', 'T').substring(0, 16) : ''}">
-                                </div>
-                                <button class="btn-schedule" 
-                                        onclick="schedulePost('${video.video_id}', '${platform}')">
-                                    <i class="bi bi-calendar-check"></i> Schedule
-                                </button>
+                                ${platform === 'linkedin' ? `
+                                    <div class="alert alert-info mb-2">
+                                        <i class="bi bi-info-circle"></i> LinkedIn doesn't support scheduled posts. Use "Publish Now" to post immediately.
+                                    </div>
+                                    <button class="btn-schedule btn-success" 
+                                            onclick="publishPostNow('${video.video_id}', '${platform}')">
+                                        <i class="bi bi-send"></i> Publish Now
+                                    </button>
+                                ` : `
+                                    <div style="flex: 1;">
+                                        <label class="form-label">Schedule Date & Time</label>
+                                        <input type="datetime-local" 
+                                               class="datetime-input" 
+                                               id="datetime-${video.video_id}-${platform}"
+                                               value="${post.schedule_date ? post.schedule_date.replace(' ', 'T').substring(0, 16) : ''}">
+                                    </div>
+                                    <button class="btn-schedule" 
+                                            onclick="schedulePost('${video.video_id}', '${platform}')">
+                                        <i class="bi bi-calendar-check"></i> Schedule
+                                    </button>
+                                    <button class="btn-schedule btn-success ms-2" 
+                                            onclick="publishPostNow('${video.video_id}', '${platform}')">
+                                        <i class="bi bi-send"></i> Publish Now
+                                    </button>
+                                `}
                             </div>
                         </div>
                     `;
@@ -459,6 +494,16 @@
             return;
         }
 
+        // LinkedIn doesn't support scheduling - must publish immediately
+        if (platform.toLowerCase() === 'linkedin') {
+            if (!confirm('LinkedIn doesn\'t support scheduled posts. This will publish immediately. Continue?')) {
+                return;
+            }
+            // Use publish-now endpoint instead
+            publishPostNow(videoId, platform);
+            return;
+        }
+
         if (!datetime) {
             Toast.error('Please select a date and time');
             return;
@@ -488,14 +533,57 @@
                 
                 if (data.error) {
                     Toast.error(data.error);
-                } else {
+                } else if (data.success) {
                     Toast.success(`Post scheduled successfully for ${platform}!`);
                     loadAllVideos(); // Refresh to show updated status
+                } else {
+                    Toast.error(data.error || 'Failed to schedule post');
                 }
             })
             .catch(error => {
                 if (button) setButtonLoading(button, false);
                 Toast.error('Error scheduling post: ' + error.message);
+            });
+    }
+    
+    function publishPostNow(videoId, platform) {
+        const content = document.getElementById(`content-${videoId}-${platform}`).value;
+        const button = document.querySelector(`[onclick*="schedulePost('${videoId}', '${platform}')"]`);
+
+        if (!content.trim()) {
+            Toast.error('Please enter post content');
+            return;
+        }
+
+        if (button) setButtonLoading(button, true);
+
+        fetch('/api/queue/publish-now', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                platforms: [platform],
+                content: content,
+                video_id: videoId
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (button) setButtonLoading(button, false);
+                
+                if (data.error) {
+                    Toast.error(data.error);
+                } else if (data.success) {
+                    Toast.success(`Post published successfully on ${platform}!`);
+                    loadAllVideos(); // Refresh to show updated status
+                } else {
+                    Toast.error(data.error || 'Failed to publish post');
+                }
+            })
+            .catch(error => {
+                if (button) setButtonLoading(button, false);
+                Toast.error('Error publishing post: ' + error.message);
             });
     }
 

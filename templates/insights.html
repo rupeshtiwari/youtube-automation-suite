@@ -229,10 +229,215 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="bi bi-facebook text-primary"></i> Facebook Insights</h5>
+                    <h5><i class="bi bi-facebook text-primary"></i> Facebook Insights (Last 30 Days)</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Insights Available:</strong> {{ insights.facebook.insights|length if insights.facebook.insights else 0 }} metrics</p>
+                    {% if insights.facebook.summary %}
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.facebook.summary.total_impressions) }}</h3>
+                                    <p class="mb-0">Total Impressions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.facebook.summary.total_reach) }}</h3>
+                                    <p class="mb-0">Total Reach</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.facebook.summary.total_engaged_users) }}</h3>
+                                    <p class="mb-0">Engaged Users</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.facebook.summary.current_fans) }}</h3>
+                                    <p class="mb-0">Current Fans</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if insights.facebook_posts and insights.facebook_posts.summary %}
+                    <h6 class="mt-4">📊 Post Performance Summary</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Total Posts Analyzed:</strong> {{ insights.facebook_posts.total }}</p>
+                            <p><strong>Average Impressions per Post:</strong> {{ "{:,.0f}".format(insights.facebook_posts.summary.avg_impressions) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Post Impressions:</strong> {{ "{:,}".format(insights.facebook_posts.summary.total_impressions) }}</p>
+                            <p><strong>Total Post Reach:</strong> {{ "{:,}".format(insights.facebook_posts.summary.total_reach) }}</p>
+                            <p><strong>Total Engaged Users:</strong> {{ "{:,}".format(insights.facebook_posts.summary.total_engaged) }}</p>
+                            <p><strong>Total Clicks:</strong> {{ "{:,}".format(insights.facebook_posts.summary.total_clicks) }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if insights.facebook_posts.posts %}
+                    <h6 class="mt-3">🔥 Top Performing Posts</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Post ID</th>
+                                    <th>Impressions</th>
+                                    <th>Reach</th>
+                                    <th>Engaged Users</th>
+                                    <th>Clicks</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for post in insights.facebook_posts.posts[:10] %}
+                                <tr>
+                                    <td><small>{{ post.post_id[:20] }}...</small></td>
+                                    <td>{{ "{:,}".format(post.impressions) }}</td>
+                                    <td>{{ "{:,}".format(post.reach) }}</td>
+                                    <td>{{ "{:,}".format(post.engaged_users) }}</td>
+                                    <td>{{ "{:,}".format(post.clicks) }}</td>
+                                    <td><small>{{ post.created_at[:10] if post.created_at else 'N/A' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- YouTube Video Statistics -->
+    {% if insights and insights.youtube_videos and not insights.youtube_videos.error %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-youtube text-danger"></i> YouTube Video Performance</h5>
+                </div>
+                <div class="card-body">
+                    {% if insights.youtube_videos.summary %}
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.youtube_videos.summary.total_views) }}</h3>
+                                    <p class="mb-0">Total Views</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.youtube_videos.summary.total_likes) }}</h3>
+                                    <p class="mb-0">Total Likes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,}".format(insights.youtube_videos.summary.total_comments) }}</h3>
+                                    <p class="mb-0">Total Comments</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark">
+                                <div class="card-body text-center">
+                                    <h3>{{ "{:,.0f}".format(insights.youtube_videos.summary.avg_views) }}</h3>
+                                    <p class="mb-0">Avg Views/Video</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if insights.youtube_videos.summary.top_video %}
+                    <div class="alert alert-success">
+                        <h6>🏆 Top Performing Video</h6>
+                        <p><strong>{{ insights.youtube_videos.summary.top_video.title }}</strong></p>
+                        <p>
+                            <span class="badge bg-danger">{{ "{:,}".format(insights.youtube_videos.summary.top_video.views) }} views</span>
+                            <span class="badge bg-success">{{ "{:,}".format(insights.youtube_videos.summary.top_video.likes) }} likes</span>
+                            <span class="badge bg-info">{{ "{:,}".format(insights.youtube_videos.summary.top_video.comments) }} comments</span>
+                        </p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if insights.youtube_videos.videos %}
+                    <h6 class="mt-3">📊 Top Videos</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Thumbnail</th>
+                                    <th>Title</th>
+                                    <th>Views</th>
+                                    <th>Likes</th>
+                                    <th>Comments</th>
+                                    <th>Published</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for video in insights.youtube_videos.videos[:20] %}
+                                <tr>
+                                    <td>
+                                        {% if video.thumbnail %}
+                                        <img src="{{ video.thumbnail }}" alt="Thumbnail" style="width: 60px; height: 45px; object-fit: cover;">
+                                        {% else %}
+                                        <span class="text-muted">No thumbnail</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="https://youtube.com/watch?v={{ video.video_id }}" target="_blank">
+                                            {{ video.title[:50] }}{% if video.title|length > 50 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td>{{ "{:,}".format(video.views) }}</td>
+                                    <td>{{ "{:,}".format(video.likes) }}</td>
+                                    <td>{{ "{:,}".format(video.comments) }}</td>
+                                    <td><small>{{ video.published_at[:10] if video.published_at else 'N/A' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- LinkedIn Post Statistics -->
+    {% if insights and insights.linkedin_posts and not insights.linkedin_posts.error %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-linkedin" style="color: #0077b5;"></i> LinkedIn Post Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Posts:</strong> {{ insights.linkedin_posts.total }}</p>
+                    {% if insights.linkedin_posts.note %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> {{ insights.linkedin_posts.note }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -83,10 +83,22 @@ def compress_response(response: Response) -> Response:
     if response.content_length and response.content_length < 500:
         return response
     
-    # Compress response
-    response.data = gzip.compress(response.data)
-    response.headers['Content-Encoding'] = 'gzip'
-    response.headers['Content-Length'] = len(response.data)
+    # Skip compression for passthrough responses (file downloads, streaming, etc.)
+    try:
+        # Check if response is in direct passthrough mode
+        if hasattr(response, 'direct_passthrough') and response.direct_passthrough:
+            return response
+        
+        # Try to get data - will raise RuntimeError if in passthrough mode
+        data = response.get_data()
+        
+        # Compress response
+        response.data = gzip.compress(data)
+        response.headers['Content-Encoding'] = 'gzip'
+        response.headers['Content-Length'] = len(response.data)
+    except (RuntimeError, AttributeError):
+        # If we can't compress (passthrough mode), just return as-is
+        return response
     
     return response
 

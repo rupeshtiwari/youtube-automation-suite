@@ -481,12 +481,50 @@ function escapeHtml(text) {
 }
 
 function openQuickCompose() {
-    const modal = new bootstrap.Modal(document.getElementById('quickComposeModal'));
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    document.getElementById('compose-date').value = tomorrow.toISOString().split('T')[0];
-    document.getElementById('compose-time').value = '19:30';
-    modal.show();
+    try {
+        const modalElement = document.getElementById('quickComposeModal');
+        if (!modalElement) {
+            console.error('Modal element not found');
+            alert('Modal not found. Please refresh the page.');
+            return;
+        }
+        
+        // Check if Bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            alert('Bootstrap is not loaded. Please refresh the page.');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const dateInput = document.getElementById('compose-date');
+        const timeInput = document.getElementById('compose-time');
+        
+        if (dateInput) {
+            dateInput.value = tomorrow.toISOString().split('T')[0];
+        }
+        if (timeInput) {
+            timeInput.value = '19:30';
+        }
+        
+        // Clear previous content
+        const contentInput = document.getElementById('compose-content');
+        if (contentInput) {
+            contentInput.value = '';
+        }
+        const videoUrlInput = document.getElementById('compose-video-url');
+        if (videoUrlInput) {
+            videoUrlInput.value = '';
+        }
+        
+        modal.show();
+    } catch (error) {
+        console.error('Error opening quick compose modal:', error);
+        alert('Error opening compose modal: ' + error.message);
+    }
 }
 
 function saveQuickPost() {

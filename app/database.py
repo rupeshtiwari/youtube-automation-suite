@@ -178,6 +178,54 @@ def init_database():
         )
     ''')
     
+    # Sessions metadata table - stores session files with linked resources
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sessions_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT UNIQUE NOT NULL,
+            role TEXT,
+            session_type TEXT,
+            client_name TEXT,
+            session_date TEXT,
+            meet_recording_url TEXT,
+            meet_recording_drive_id TEXT,
+            gemini_transcript_url TEXT,
+            gemini_transcript_drive_id TEXT,
+            chatgpt_notes TEXT,
+            email_thread_id TEXT,
+            email_subject TEXT,
+            additional_notes TEXT,
+            tags TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Session content generation table - tracks AI-generated content from sessions
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS session_content (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_filename TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            platform TEXT,
+            status TEXT DEFAULT 'draft',
+            scheduled_date TEXT,
+            published_date TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_filename) REFERENCES sessions_metadata(filename)
+        )
+    ''')
+    
+    # Add indexes for sessions
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_filename ON sessions_metadata(filename)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_role ON sessions_metadata(role)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_type ON sessions_metadata(session_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions_metadata(session_date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_content_filename ON session_content(session_filename)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_content_type ON session_content(content_type)')
+    
     # Create indexes for better performance
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_playlist_id ON videos(playlist_id)')

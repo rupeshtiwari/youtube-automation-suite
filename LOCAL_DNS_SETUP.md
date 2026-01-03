@@ -86,21 +86,23 @@ But DNS Server is better for network-wide resolution.
 
 ## 🔧 Google OAuth Configuration
 
-**Use `.local` domain in Google Cloud Console:**
+**⚠️ IMPORTANT: Google OAuth does NOT accept `.local` domains!**
+
+**Use `localhost` in Google Cloud Console for local development:**
 
 **Authorized JavaScript origins:**
 ```
-http://youtube-automation.local
-http://youtube-automation.local:5001
+http://localhost:5001
+http://127.0.0.1:5001
 ```
 
 **Authorized redirect URIs:**
 ```
-http://youtube-automation.local/oauth2callback
-http://youtube-automation.local:5001/oauth2callback
+http://localhost:5001/oauth2callback
+http://127.0.0.1:5001/oauth2callback
 ```
 
-**Note:** Google OAuth works with `.local` domains for local development!
+**Note:** Google OAuth requires `localhost` or `127.0.0.1` for local development. `.local` domains are NOT supported by Google's OAuth system.
 
 ---
 

@@ -195,16 +195,158 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="sessionModalTitle">Session Content</h5>
+                <h5 class="modal-title" id="sessionModalTitle">Session Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="sessionContent" style="max-height: 70vh; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px;"></div>
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-tabs mb-3" id="sessionTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="content-tab" data-bs-toggle="tab" data-bs-target="#content-pane" type="button" role="tab">
+                            <i class="bi bi-file-text"></i> Content
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="attachments-tab" data-bs-toggle="tab" data-bs-target="#attachments-pane" type="button" role="tab">
+                            <i class="bi bi-paperclip"></i> Attachments
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="metadata-tab" data-bs-toggle="tab" data-bs-target="#metadata-pane" type="button" role="tab">
+                            <i class="bi bi-gear"></i> Edit Metadata
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="generated-tab" data-bs-toggle="tab" data-bs-target="#generated-pane" type="button" role="tab">
+                            <i class="bi bi-magic"></i> Generated Content
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="sessionTabContent">
+                    <!-- Content Tab -->
+                    <div class="tab-pane fade show active" id="content-pane" role="tabpanel">
+                        <div id="sessionContent" style="max-height: 60vh; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; background: #f8f9fa; padding: 15px; border-radius: 5px;"></div>
+                    </div>
+                    
+                    <!-- Attachments Tab -->
+                    <div class="tab-pane fade" id="attachments-pane" role="tabpanel">
+                        <div id="sessionAttachments">
+                            <div class="mb-3">
+                                <h6><i class="bi bi-camera-video"></i> Google Meet Recording</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="meetRecordingUrl" placeholder="Google Drive URL or File ID">
+                                    <button class="btn btn-outline-primary" onclick="saveAttachment('meet_recording')">
+                                        <i class="bi bi-save"></i> Save
+                                    </button>
+                                </div>
+                                <div id="meetRecordingDisplay" class="mb-3"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6><i class="bi bi-file-earmark-text"></i> Gemini Transcript</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="geminiTranscriptUrl" placeholder="Google Drive URL or File ID">
+                                    <button class="btn btn-outline-primary" onclick="saveAttachment('gemini_transcript')">
+                                        <i class="bi bi-save"></i> Save
+                                    </button>
+                                </div>
+                                <div id="geminiTranscriptDisplay" class="mb-3"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6><i class="bi bi-envelope"></i> Email Thread</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="emailThreadId" placeholder="Email Thread ID or Subject">
+                                    <button class="btn btn-outline-primary" onclick="saveAttachment('email_thread')">
+                                        <i class="bi bi-save"></i> Save
+                                    </button>
+                                </div>
+                                <div id="emailThreadDisplay" class="mb-3"></div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> <strong>Tip:</strong> You can also use the "Edit Metadata" tab to paste ChatGPT notes and link all resources.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Metadata Tab -->
+                    <div class="tab-pane fade" id="metadata-pane" role="tabpanel">
+                        <form id="sessionMetadataForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Client Name</label>
+                                    <input type="text" class="form-control" id="metadataClientName" placeholder="Client name">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Session Date</label>
+                                    <input type="date" class="form-control" id="metadataSessionDate">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Role</label>
+                                    <input type="text" class="form-control" id="metadataRole" placeholder="e.g., Engineering Manager">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Session Type</label>
+                                    <select class="form-select" id="metadataSessionType">
+                                        <option value="">Select type...</option>
+                                        <option value="System Design">System Design</option>
+                                        <option value="Behavioral">Behavioral</option>
+                                        <option value="Leadership">Leadership</option>
+                                        <option value="Career Coaching">Career Coaching</option>
+                                        <option value="Resume Review">Resume Review</option>
+                                        <option value="Salary Negotiation">Salary Negotiation</option>
+                                        <option value="Coding">Coding</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ChatGPT Notes</label>
+                                <textarea class="form-control" id="metadataChatGPTNotes" rows="8" placeholder="Paste your ChatGPT notes here..."></textarea>
+                                <small class="text-muted">Paste any notes, summaries, or insights from ChatGPT about this session</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Additional Notes</label>
+                                <textarea class="form-control" id="metadataAdditionalNotes" rows="4" placeholder="Any additional notes or observations..."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tags (comma-separated)</label>
+                                <input type="text" class="form-control" id="metadataTags" placeholder="e.g., faang, system-design, leadership">
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="saveSessionMetadata()">
+                                <i class="bi bi-save"></i> Save Metadata
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Generated Content Tab -->
+                    <div class="tab-pane fade" id="generated-pane" role="tabpanel">
+                        <div id="generatedContentList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                                <p class="mt-2">No generated content yet. Use the buttons below to create content.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info" onclick="openInNewPage()">
+                    <i class="bi bi-box-arrow-up-right"></i> Open in New Page
+                </button>
                 <button type="button" class="btn btn-success" id="generateFromViewBtn">
-                    <i class="bi bi-magic"></i> Generate Shorts Scripts
+                    <i class="bi bi-magic"></i> Generate Shorts
+                </button>
+                <button type="button" class="btn btn-primary" onclick="generateArticle()">
+                    <i class="bi bi-file-earmark-text"></i> Generate Article
+                </button>
+                <button type="button" class="btn btn-warning" onclick="generateBlog()">
+                    <i class="bi bi-journal-text"></i> Generate Blog
                 </button>
             </div>
         </div>
@@ -263,6 +405,7 @@
         document.getElementById('sessionModalTitle').textContent = filename;
         document.getElementById('sessionContent').textContent = 'Loading...';
         
+        // Load session content
         fetch(`/api/sessions/${filename}`)
             .then(response => response.json())
             .then(data => {
@@ -277,7 +420,153 @@
                 document.getElementById('sessionContent').textContent = 'Error loading session: ' + error;
             });
         
+        // Load session metadata
+        loadSessionMetadata(filename);
+        
         modal.show();
+    }
+    
+    // Load session metadata
+    function loadSessionMetadata(filename) {
+        fetch(`/api/sessions/${filename}/metadata`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.metadata) {
+                    const meta = data.metadata;
+                    
+                    // Populate metadata form
+                    document.getElementById('metadataClientName').value = meta.client_name || '';
+                    document.getElementById('metadataSessionDate').value = meta.session_date || '';
+                    document.getElementById('metadataRole').value = meta.role || '';
+                    document.getElementById('metadataSessionType').value = meta.session_type || '';
+                    document.getElementById('metadataChatGPTNotes').value = meta.chatgpt_notes || '';
+                    document.getElementById('metadataAdditionalNotes').value = meta.additional_notes || '';
+                    document.getElementById('metadataTags').value = meta.tags || '';
+                    
+                    // Populate attachments
+                    document.getElementById('meetRecordingUrl').value = meta.meet_recording_url || '';
+                    document.getElementById('geminiTranscriptUrl').value = meta.gemini_transcript_url || '';
+                    document.getElementById('emailThreadId').value = meta.email_thread_id || '';
+                    
+                    // Display attachments
+                    if (meta.meet_recording_url) {
+                        document.getElementById('meetRecordingDisplay').innerHTML = 
+                            `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Recording linked: <a href="${meta.meet_recording_url}" target="_blank">View Recording</a></div>`;
+                    }
+                    if (meta.gemini_transcript_url) {
+                        document.getElementById('geminiTranscriptDisplay').innerHTML = 
+                            `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Transcript linked: <a href="${meta.gemini_transcript_url}" target="_blank">View Transcript</a></div>`;
+                    }
+                    if (meta.email_thread_id) {
+                        document.getElementById('emailThreadDisplay').innerHTML = 
+                            `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Email linked: ${meta.email_subject || meta.email_thread_id}</div>`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading metadata:', error);
+            });
+    }
+    
+    // Save attachment
+    function saveAttachment(type) {
+        const filename = currentFilename;
+        let url = '';
+        let driveId = '';
+        
+        if (type === 'meet_recording') {
+            url = document.getElementById('meetRecordingUrl').value;
+        } else if (type === 'gemini_transcript') {
+            url = document.getElementById('geminiTranscriptUrl').value;
+        } else if (type === 'email_thread') {
+            url = document.getElementById('emailThreadId').value;
+        }
+        
+        if (!url) {
+            Toast.error('Please enter a URL or ID');
+            return;
+        }
+        
+        // Extract Drive ID from URL if it's a Google Drive link
+        const driveIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveIdMatch) {
+            driveId = driveIdMatch[1];
+        }
+        
+        const metadata = {};
+        if (type === 'meet_recording') {
+            metadata.meet_recording_url = url;
+            metadata.meet_recording_drive_id = driveId;
+        } else if (type === 'gemini_transcript') {
+            metadata.gemini_transcript_url = url;
+            metadata.gemini_transcript_drive_id = driveId;
+        } else if (type === 'email_thread') {
+            metadata.email_thread_id = url;
+        }
+        
+        fetch(`/api/sessions/${filename}/metadata`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Toast.success('Attachment saved successfully');
+                loadSessionMetadata(filename);
+            } else {
+                Toast.error(data.error || 'Failed to save attachment');
+            }
+        })
+        .catch(error => {
+            Toast.error('Error: ' + error.message);
+        });
+    }
+    
+    // Save session metadata
+    function saveSessionMetadata() {
+        const filename = currentFilename;
+        const metadata = {
+            client_name: document.getElementById('metadataClientName').value,
+            session_date: document.getElementById('metadataSessionDate').value,
+            role: document.getElementById('metadataRole').value,
+            session_type: document.getElementById('metadataSessionType').value,
+            chatgpt_notes: document.getElementById('metadataChatGPTNotes').value,
+            additional_notes: document.getElementById('metadataAdditionalNotes').value,
+            tags: document.getElementById('metadataTags').value
+        };
+        
+        fetch(`/api/sessions/${filename}/metadata`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Toast.success('Metadata saved successfully');
+            } else {
+                Toast.error(data.error || 'Failed to save metadata');
+            }
+        })
+        .catch(error => {
+            Toast.error('Error: ' + error.message);
+        });
+    }
+    
+    // Open session in new page
+    function openInNewPage() {
+        window.open(`/sessions/view/${currentFilename}`, '_blank');
+    }
+    
+    // Generate article from session
+    function generateArticle() {
+        Toast.info('Article generation coming soon! This will create a full article from the session content.');
+    }
+    
+    // Generate blog from session
+    function generateBlog() {
+        Toast.info('Blog generation coming soon! This will create a blog post from the session content.');
     }
 
     // Generate shorts scripts

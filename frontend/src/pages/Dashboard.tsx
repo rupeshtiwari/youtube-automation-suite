@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import StatusBanner from '@/components/StatusBanner'
 import { 
@@ -12,9 +12,10 @@ import {
   Youtube,
   Linkedin,
   Facebook,
-  Instagram
+  Instagram,
+  Edit,
+  Calendar as CalendarIcon
 } from 'lucide-react'
-// Link removed - not used in this component
 
 interface QueueItem {
   id: number
@@ -38,6 +39,9 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'queue' | 'drafts' | 'sent'>('queue')
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [selectedChannel, setSelectedChannel] = useState<string>('all')
+  const [editingItem, setEditingItem] = useState<number | null>(null)
+  const [scheduleDate, setScheduleDate] = useState<string>('')
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery<QueueData>({
     queryKey: ['queue', activeTab],
@@ -46,6 +50,85 @@ export default function Dashboard() {
       return response.data
     },
   })
+
+  const scheduleMutation = useMutation({
+    mutationFn: async ({ postId, scheduleDate, item }: { postId: number, scheduleDate: string, item: QueueItem }) => {
+      // Format date for API (YYYY-MM-DD HH:MM)
+      const formattedDate = new Date(scheduleDate).toISOString().slice(0, 16).replace('T', ' ')
+      
+      // If post already exists (has id), update it; otherwise create new schedule
+      if (item.status === 'scheduled' || item.status === 'pending') {
+        const response = await api.put(`/queue/${postId}`, {
+          schedule_date: formattedDate,
+        })
+        return response.data
+      } else {
+        // Create new scheduled post
+        const response = await api.post('/schedule-post', {
+          video_id: item.video_id,
+          platform: item.platform,
+          post_content: item.post_content,
+          schedule_datetime: formattedDate,
+        })
+        return response.data
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] })
+      setEditingItem(null)
+      setScheduleDate('')
+    },
+  })
+
+  const publishNowMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      const response = await api.post(`/queue/${postId}/publish`)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] })
+    },
+  })
+
+  const handleSchedule = (item: QueueItem) => {
+    setEditingItem(item.id)
+    // Set default schedule date to tomorrow at 7:30 PM
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(19, 30, 0, 0)
+    setScheduleDate(tomorrow.toISOString().slice(0, 16))
+  }
+
+  const handleEdit = (item: QueueItem) => {
+    setEditingItem(item.id)
+    if (item.schedule_date) {
+      setScheduleDate(new Date(item.schedule_date).toISOString().slice(0, 16))
+    } else {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(19, 30, 0, 0)
+      setScheduleDate(tomorrow.toISOString().slice(0, 16))
+    }
+  }
+
+  const handleSaveSchedule = (item: QueueItem) => {
+    if (!scheduleDate) {
+      alert('Please select a date and time')
+      return
+    }
+    scheduleMutation.mutate({ postId: item.id, scheduleDate, item })
+  }
+
+  const handlePublishNow = (item: QueueItem) => {
+    if (confirm(`Publish this post to ${item.platform} now?`)) {
+      publishNowMutation.mutate(item.id)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingItem(null)
+    setScheduleDate('')
+  }
 
   const getPlatformIcon = (platform: string) => {
     const iconClass = "w-4 h-4"
@@ -297,15 +380,69 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {item.status === 'scheduled' && (
-                        <button className="px-3 py-1.5 text-xs border border-border rounded-md hover:bg-accent transition-colors">
-                          Edit
-                        </button>
-                      )}
-                      {item.status === 'pending' && (
-                        <button className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                          Schedule
-                        </button>
+                      {editingItem === item.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="datetime-local"
+                            value={scheduleDate}
+                            onChange={(e) => setScheduleDate(e.target.value)}
+                            className="px-2 py-1 text-xs border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                          <button
+                            onClick={() => handleSaveSchedule(item)}
+                            disabled={scheduleMutation.isPending}
+                            className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          >
+                            {scheduleMutation.isPending ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1.5 text-xs border border-border rounded-md hover:bg-accent transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {item.status === 'scheduled' && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="px-3 py-1.5 text-xs border border-border rounded-md hover:bg-accent transition-colors flex items-center gap-1"
+                              >
+                                <Edit className="w-3 h-3" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handlePublishNow(item)}
+                                disabled={publishNowMutation.isPending}
+                                className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                              >
+                                <Send className="w-3 h-3" />
+                                Publish Now
+                              </button>
+                            </>
+                          )}
+                          {item.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleSchedule(item)}
+                                className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1"
+                              >
+                                <CalendarIcon className="w-3 h-3" />
+                                Schedule
+                              </button>
+                              <button
+                                onClick={() => handlePublishNow(item)}
+                                disabled={publishNowMutation.isPending}
+                                className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                              >
+                                <Send className="w-3 h-3" />
+                                Publish Now
+                              </button>
+                            </>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

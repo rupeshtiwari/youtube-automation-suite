@@ -1,17 +1,23 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Video, Youtube, Share2, AlertTriangle, Rocket, Filter, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { 
+  Video, 
+  Youtube, 
+  Share2, 
+  AlertTriangle,
+  Rocket,
+  PlayCircle
+} from 'lucide-react'
 
 interface Playlist {
   playlistId: string
   playlistTitle: string
+  playlistUrl: string
+  itemCount: number
   total_videos: number
   youtube_count: number
   other_platforms_count: number
   not_scheduled_count: number
-  playlistUrl: string
   role?: string
   type?: string
   role_label?: string
@@ -26,47 +32,38 @@ interface ShortsData {
   total_not_scheduled: number
   weekly_schedule: string
   schedule_day: string
-  available_roles?: string[]
-  available_types?: string[]
-  roles?: Record<string, string>
-  types?: Record<string, string>
+  available_roles: string[]
+  available_types: string[]
+  roles: Record<string, string>
+  types: Record<string, string>
 }
 
 export default function Shorts() {
-  const [roleFilter, setRoleFilter] = useState<string>('')
-  const [typeFilter, setTypeFilter] = useState<string>('')
-
-  const { data, isLoading } = useQuery<ShortsData>({
-    queryKey: ['shorts', roleFilter, typeFilter],
+  const { data, isLoading, error } = useQuery<ShortsData>({
+    queryKey: ['shorts'],
     queryFn: async () => {
-      const params = new URLSearchParams()
-      if (roleFilter) params.append('role', roleFilter)
-      if (typeFilter) params.append('type', typeFilter)
-      const response = await api.get(`/shorts?${params.toString()}`)
+      const response = await api.get('/shorts')
       return response.data
     },
   })
 
-  const handleAutoPilot = async () => {
+  const runAutoPilot = async () => {
     if (!confirm('Run Auto-Pilot? This will automatically select one video from each playlist and schedule them to all platforms.')) {
       return
     }
     
     try {
       const response = await api.post('/autopilot/run')
-      alert(`Success! ${response.data.videos_selected} videos selected, ${response.data.posts_scheduled} posts scheduled.`)
-      window.location.href = '/activity'
+      if (response.data.success) {
+        alert(`Auto-Pilot Complete! ${response.data.videos_selected} videos selected, ${response.data.posts_scheduled} posts scheduled.`)
+        window.location.href = '/activity'
+      } else {
+        alert('Error: ' + response.data.error)
+      }
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || error.message))
+      alert('Error running auto-pilot: ' + (error.response?.data?.error || error.message))
     }
   }
-
-  const clearFilters = () => {
-    setRoleFilter('')
-    setTypeFilter('')
-  }
-
-  const hasActiveFilters = roleFilter || typeFilter
 
   if (isLoading) {
     return (
@@ -76,175 +73,158 @@ export default function Shorts() {
     )
   }
 
-  if (!data) return null
+  if (error || !data) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">
+            Error loading shorts: {error ? (error as any).message : 'No data available'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const playlists = data.playlists || []
+  const totalVideos = data.total_videos || 0
+  const totalYoutube = data.total_youtube || 0
+  const totalOtherPlatforms = data.total_other_platforms || 0
+  const totalNotScheduled = data.total_not_scheduled || 0
 
   return (
-    <div className="space-y-6">
-      {/* Filters */}
-      <div className="bg-card border border-border rounded-lg p-4">
-        <div className="flex items-center gap-4 flex-wrap">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold mb-2">Shorts</h1>
+        <p className="text-muted-foreground">Manage and schedule your YouTube Shorts</p>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-primary">{playlists.length}</div>
+          <div className="text-sm text-muted-foreground uppercase tracking-wide">Playlists</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-primary">{totalVideos}</div>
+          <div className="text-sm text-muted-foreground uppercase tracking-wide">Total Videos</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-red-600">{totalYoutube}</div>
+          <div className="text-sm text-muted-foreground uppercase tracking-wide">On YouTube</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-green-600">{totalOtherPlatforms}</div>
+          <div className="text-sm text-muted-foreground uppercase tracking-wide">Other Channels</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-orange-600">{totalNotScheduled}</div>
+          <div className="text-sm text-muted-foreground uppercase tracking-wide">Not Scheduled</div>
+        </div>
+      </div>
+
+      {/* Warning Banner */}
+      {totalNotScheduled > 0 && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filters:</span>
-          </div>
-          
-          {/* Role Filter */}
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">All Roles</option>
-            {data.available_roles?.map((role) => (
-              <option key={role} value={role}>
-                {data.roles?.[role] || role}
-              </option>
-            ))}
-          </select>
-
-          {/* Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">All Types</option>
-            {data.available_types?.map((type) => (
-              <option key={type} value={type}>
-                {data.types?.[type] || type}
-              </option>
-            ))}
-          </select>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-            >
-              <X className="w-3 h-3" />
-              Clear
-            </button>
-          )}
-
-          {hasActiveFilters && (
-            <span className="text-xs text-muted-foreground ml-auto">
-              Showing {data.playlists?.length || 0} playlist{data.playlists?.length !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{data.playlists?.length || 0}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Playlists</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold">{data.total_videos || 0}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Total Videos</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-red-600">{data.total_youtube || 0}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">On YouTube</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">{data.total_other_platforms || 0}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Other Channels</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{data.total_not_scheduled || 0}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Not Scheduled</div>
-        </div>
-      </div>
-
-      {/* Warning */}
-      {data.total_not_scheduled > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-            <AlertTriangle className="w-5 h-5" />
-            <span className="font-medium">
-              {data.total_not_scheduled} videos not scheduled on other channels.{' '}
-              <Link to="/content-preview" className="underline font-semibold hover:text-primary">Schedule now →</Link>
-            </span>
+            <AlertTriangle className="w-5 h-5 text-orange-600" />
+            <p className="text-orange-800 dark:text-orange-200">
+              <strong>{totalNotScheduled} videos</strong> not scheduled on other channels.{' '}
+              <a href="/content-preview" className="text-primary hover:underline font-semibold">
+                Schedule now →
+              </a>
+            </p>
           </div>
         </div>
       )}
 
       {/* Auto-Pilot Card */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-semibold">
-            <Rocket className="w-5 h-5" />
-            One-Click Automation
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-5 h-5 text-green-600" />
+            <h2 className="text-lg font-semibold text-green-900 dark:text-green-100">One-Click Automation</h2>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Weekly: {data.schedule_day} {data.weekly_schedule}
-          </span>
+          <div className="text-sm text-green-700 dark:text-green-300">
+            Weekly: {data.schedule_day ? data.schedule_day.charAt(0).toUpperCase() + data.schedule_day.slice(1) : 'Wednesday'} {data.weekly_schedule || '23:00'}
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-3">
+        <p className="text-sm text-green-800 dark:text-green-200 mb-4">
           Selects 1 video per playlist → Generates posts → Schedules to LinkedIn, Facebook, Instagram
         </p>
         <button
-          onClick={handleAutoPilot}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          onClick={runAutoPilot}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
           <Rocket className="w-4 h-4" />
           Run Auto-Pilot
         </button>
       </div>
 
-      {/* Playlists - Now at top after filters */}
-      <div className="space-y-2">
-        {data.playlists && data.playlists.length > 0 ? (
-          data.playlists.map((playlist) => (
+      {/* Playlists List */}
+      {playlists.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-12 text-center">
+          <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">No Shorts Playlists Found</h3>
+          <p className="text-muted-foreground">
+            No playlists with "short" in the name were found in your YouTube channel.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {playlists.map((playlist) => (
             <div
               key={playlist.playlistId}
-              className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-all"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <Video className="w-5 h-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-sm">{playlist.playlistTitle}</h3>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <PlayCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                    <h3 className="font-semibold text-lg truncate">{playlist.playlistTitle}</h3>
+                  </div>
+                  
+                  {playlist.role_label && (
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {playlist.role_label && (
-                        <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                        <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
                           {playlist.role_label}
                         </span>
                       )}
                       {playlist.type_label && (
-                        <span className="px-2 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                        <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
                           {playlist.type_label}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Video className="w-3 h-3" />
-                        <strong className="text-foreground">{playlist.total_videos}</strong>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Video className="w-4 h-4" />
+                      <strong>{playlist.total_videos || playlist.itemCount}</strong> videos
+                    </span>
+                    <span className="flex items-center gap-1 text-red-600">
+                      <Youtube className="w-4 h-4" />
+                      <strong>{playlist.youtube_count || 0}</strong> on YouTube
+                    </span>
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Share2 className="w-4 h-4" />
+                      <strong>{playlist.other_platforms_count || 0}</strong> other channels
+                    </span>
+                    {playlist.not_scheduled_count > 0 && (
+                      <span className="flex items-center gap-1 text-orange-600">
+                        <AlertTriangle className="w-4 h-4" />
+                        <strong>{playlist.not_scheduled_count}</strong> not scheduled
                       </span>
-                      <span className="flex items-center gap-1 text-red-600">
-                        <Youtube className="w-3 h-3" />
-                        <strong>{playlist.youtube_count}</strong>
-                      </span>
-                      <span className="flex items-center gap-1 text-green-600">
-                        <Share2 className="w-3 h-3" />
-                        <strong>{playlist.other_platforms_count}</strong>
-                      </span>
-                      {playlist.not_scheduled_count > 0 && (
-                        <span className="flex items-center gap-1 text-yellow-600">
-                          <AlertTriangle className="w-3 h-3" />
-                          <strong>{playlist.not_scheduled_count}</strong>
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <a
                     href="/content-preview"
-                    className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-md hover:bg-primary/90 transition-colors"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
                   >
                     Schedule
                   </a>
@@ -252,24 +232,16 @@ export default function Shorts() {
                     href={playlist.playlistUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition-colors"
+                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
-                    <Youtube className="w-3 h-3 inline" />
+                    <Youtube className="w-4 h-4" />
                   </a>
                 </div>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="bg-card border border-border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">
-              {hasActiveFilters 
-                ? 'No playlists match the selected filters.' 
-                : 'No Shorts playlists found.'}
-            </p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

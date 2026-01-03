@@ -65,12 +65,13 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 export default function Sessions() {
-  const { data, isLoading } = useQuery<SessionsData>({
+  const { data, isLoading, error } = useQuery<SessionsData>({
     queryKey: ['sessions'],
     queryFn: async () => {
       const response = await api.get('/sessions')
       return response.data
     },
+    retry: 1,
   })
 
   const formatDate = (dateStr?: string) => {
@@ -103,12 +104,27 @@ export default function Sessions() {
     )
   }
 
-  if (!data) {
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">
+            Error loading sessions: {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data || !data.sessions) {
     return (
       <div className="p-6">
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <p className="text-yellow-800 dark:text-yellow-200">
             Sessions folder not found. Please check the path configuration.
+          </p>
+          <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+            Expected folder: <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">data/sessions</code>
           </p>
         </div>
       </div>

@@ -50,3 +50,5 @@ Thumbs.db
 *.log
 
 MY_CONFIG.json
+client_secret*.json
+*.apps.googleusercontent.com.json
