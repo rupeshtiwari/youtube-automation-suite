@@ -3,7 +3,7 @@ Flask web application for YouTube automation configuration and scheduling.
 Provides a web interface to configure API keys and schedule daily automation.
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g, session, get_flashed_messages
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response, g, session, get_flashed_messages, send_from_directory
 try:
     from flask_cors import CORS
 except ImportError:
