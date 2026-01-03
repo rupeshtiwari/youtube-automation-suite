@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { Plus, Star, HelpCircle, Gift, User } from 'lucide-react'
+import { Plus, Star, HelpCircle, Gift } from 'lucide-react'
 
 const pageTitles: Record<string, string> = {
   '/': 'Queue',
@@ -17,26 +17,25 @@ export default function Header() {
   const title = pageTitles[location.pathname] || 'Dashboard'
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 sticky top-0 z-10">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      
-      {/* Right side actions - Buffer style */}
-      <div className="flex items-center gap-3">
-        <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium">
-          <Plus className="w-4 h-4" />
-          New
-        </button>
-        <button className="p-2 hover:bg-accent rounded-md transition-colors">
-          <Star className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <button className="p-2 hover:bg-accent rounded-md transition-colors">
-          <HelpCircle className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <button className="p-2 hover:bg-accent rounded-md transition-colors">
-          <Gift className="w-5 h-5 text-muted-foreground" />
-        </button>
-        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-          <User className="w-4 h-4 text-primary" />
+    <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm sticky top-0 z-50">
+      <div className="h-full flex items-center justify-between px-6">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        
+        {/* Right side actions - Buffer style */}
+        <div className="flex items-center gap-2">
+          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+            <Star className="w-4 h-4" />
+          </button>
+          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+            <HelpCircle className="w-4 h-4" />
+          </button>
+          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+            <Gift className="w-4 h-4" />
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New</span>
+          </button>
         </div>
       </div>
     </header>
