@@ -5,10 +5,7 @@ import {
   Calendar, 
   Clock, 
   User, 
-  Tag,
   CheckCircle2,
-  AlertCircle,
-  TrendingUp,
   BarChart3,
   Eye
 } from 'lucide-react'

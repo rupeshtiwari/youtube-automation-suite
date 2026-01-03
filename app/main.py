@@ -4398,6 +4398,27 @@ def test_connection():
     return jsonify({'success': False, 'message': 'Unknown platform'})
 
 
+# Catch-all route for React Router (must be last, after all API routes)
+@app.route('/<path:path>')
+def catch_all(path):
+    """Serve React app for all non-API routes (React Router handles routing)."""
+    # Don't interfere with API routes
+    if path.startswith('api/'):
+        return jsonify({'error': 'API route not found'}), 404
+    
+    # Serve React app static files (JS, CSS, images, etc.)
+    if os.path.exists(FRONTEND_BUILD_DIR):
+        file_path = os.path.join(FRONTEND_BUILD_DIR, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(FRONTEND_BUILD_DIR, path)
+        # For React Router - serve index.html for all routes
+        if os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+            return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+    
+    # Fallback
+    return jsonify({'error': 'Not found'}), 404
+
+
 # Shutdown scheduler on app exit
 atexit.register(lambda: SCHEDULER.shutdown())
 

@@ -1,64 +1,49 @@
-# Quick Start Guide
+# Quick Start - Single Server Setup
 
-## 🚀 Start the App (Two Terminals)
+## ✅ Simple Deployment (One Server, One Port)
 
-### Terminal 1: React Frontend
+The app now runs as **a single Flask server** on port 5001. Much simpler!
+
+## Run the App
+
+### Step 1: Build React Frontend
 ```bash
 cd frontend
-npm run dev
+npm install
+npm run build
+cd ..
 ```
-✅ Frontend: http://localhost:5173
 
-### Terminal 2: Flask Backend
+### Step 2: Start Flask Server
 ```bash
-python run.py
+python3 run.py
 ```
-✅ Backend: http://localhost:5001
 
----
-
-## 🔄 Restart the App
-
-### Method 1: Manual (Recommended)
-1. Press `Ctrl+C` in both terminals
-2. Start again:
-   - Terminal 1: `cd frontend && npm run dev`
-   - Terminal 2: `python run.py`
-
-### Method 2: Restart Script (Both Servers)
+Or use the convenience script:
 ```bash
-./restart_all.sh
+./build_and_run.sh
 ```
 
-### Method 3: Flask Only
-```bash
-python scripts/restart_server.py
-```
+### Step 3: Access the App
+Open browser: `http://localhost:5001`
 
----
+That's it! One server, one port, simple deployment.
 
-## 📝 Notes
+## Architecture
 
-- **React** auto-reloads on code changes (no restart needed)
-- **Flask** needs restart after Python code changes
-- Both servers must be running for the app to work
-- Frontend proxies `/api/*` requests to Flask backend
+- **Port**: 5001 (single port for everything)
+- **Frontend**: React app (built) served as static files from Flask
+- **Backend**: Flask API at `/api/*` routes
+- **Routing**: React Router handles frontend routes, Flask serves `index.html` for all non-API routes
 
----
+## Deployment to NAS
 
-## 🆘 Troubleshooting
+1. Copy project to NAS
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   cd frontend && npm install && npm run build && cd ..
+   ```
+3. Run: `python3 run.py`
 
-**Port in use?**
-```bash
-# Kill Flask
-lsof -ti:5001 | xargs kill -9
-
-# Kill React
-lsof -ti:5173 | xargs kill -9
-```
-
-**First time?**
-```bash
-cd frontend && npm install
-pip install -r requirements.txt
-```
+See `DEPLOY_NAS.md` for detailed NAS deployment guide.
