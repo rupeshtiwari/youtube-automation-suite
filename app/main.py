@@ -1157,10 +1157,9 @@ def get_youtube_service():
                     return None
                 flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
                 # Use port 5001 to match the Flask app port for OAuth redirect URI
-                # Allow redirect URI to be configured via environment variable for long-term deployment
-                redirect_uri_base = os.getenv('OAUTH_REDIRECT_BASE', f'http://localhost:{5001}')
-                # run_local_server will use standard oauth2callback path
-                creds = flow.run_local_server(port=5001, open_browser=True, redirect_uri_trailing_slash=False)
+                # For domain-based setup: Configure domain in /etc/hosts for local, DNS for NAS
+                # See OAUTH_LONG_TERM_SETUP.md for details
+                creds = flow.run_local_server(port=5001, open_browser=True)
             
             with open(TOKEN_FILE, "w", encoding="utf-8") as f:
                 f.write(creds.to_json())
