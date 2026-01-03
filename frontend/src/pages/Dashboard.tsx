@@ -14,6 +14,7 @@ import {
   Facebook,
   Instagram
 } from 'lucide-react'
+// Link removed - not used in this component
 
 interface QueueItem {
   id: number

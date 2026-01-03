@@ -926,7 +926,10 @@ def schedule_daily_job():
 
 @app.route('/')
 def index():
-    """Dashboard home page."""
+    """Serve React app index.html for all frontend routes."""
+    if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
+        return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
+    # Fallback to old template if React build doesn't exist
     settings = load_settings()
     return render_template('dashboard.html', settings=settings)
 

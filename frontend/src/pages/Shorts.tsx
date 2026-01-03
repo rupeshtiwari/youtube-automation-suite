@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Video, Youtube, Share2, AlertTriangle, Rocket, Filter, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 interface Playlist {
   playlistId: string
