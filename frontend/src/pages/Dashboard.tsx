@@ -125,6 +125,9 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Status Banner - Shows what's not configured */}
+      <StatusBanner />
+      
       {/* Top Navigation Tabs */}
       <div className="border-b border-border bg-card">
         <div className="flex items-center justify-between px-6 py-3">
