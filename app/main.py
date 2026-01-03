@@ -2240,6 +2240,7 @@ def api_autopilot_run():
     """Run auto-pilot mode: select one video from each playlist and schedule on all channels."""
     try:
         from app.session_parser import SessionParser
+from app.facebook_instagram_api import FacebookInstagramAPI
 from app.database import (
             log_activity, get_scheduled_count_today,
             insert_or_update_social_post, get_video, get_video_social_posts_from_db
@@ -2732,9 +2733,10 @@ def validate_platform_credentials(platform: str) -> tuple[bool, str]:
 
 @app.route('/api/schedule-post', methods=['POST'])
 def api_schedule_post():
-    """Schedule a post manually with custom date/time."""
+    """Schedule a post manually with custom date/time. Actually creates the post on the platform."""
     try:
-        from app.database import insert_or_update_social_post, log_activity
+        from app.database import insert_or_update_social_post, log_activity, get_video
+        import requests
         
         data = request.json
         video_id = data.get('video_id')
@@ -2743,7 +2745,7 @@ def api_schedule_post():
         schedule_datetime = data.get('schedule_datetime')  # Format: "2026-01-15 14:00"
         
         if not all([video_id, platform, post_content, schedule_datetime]):
-            return jsonify({'error': 'Missing required fields'}), 400
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
         
         # Validate platform credentials BEFORE scheduling
         is_valid, error_message = validate_platform_credentials(platform)
@@ -2767,42 +2769,163 @@ def api_schedule_post():
                 'error': error_message
             }), 400
         
-        # Save to database
-        insert_or_update_social_post(video_id, platform, {
-            'post_content': post_content,
-            'schedule_date': schedule_datetime,
-            'status': 'scheduled'
-        })
+        # Get API credentials
+        settings = load_settings()
+        api_keys = settings.get('api_keys', {})
         
-        # Log activity as success
-        log_activity(
-            'schedule_post',
-            platform=platform,
-            video_id=video_id,
-            status='success',
-            message=f'Manually scheduled for {schedule_datetime}',
-            details={'schedule_date': schedule_datetime, 'manual': True}
-        )
+        # Get video URL
+        db_video = get_video(video_id)
+        video_url = db_video.get('youtube_url', f"https://youtube.com/watch?v={video_id}") if db_video else f"https://youtube.com/watch?v={video_id}"
         
-        return jsonify({
-            'success': True,
-            'message': f'Post scheduled for {platform} on {schedule_datetime}'
-        })
+        # Actually create the post on the platform
+        success = False
+        error_msg = None
+        post_id = None
+        
+        try:
+            if platform.lower() == 'facebook':
+                # Schedule Facebook post
+                page_id = api_keys.get('facebook_page_id')
+                page_access_token = api_keys.get('facebook_page_access_token')
+                
+                if not page_id or not page_access_token:
+                    error_msg = "Facebook Page ID and Access Token are required"
+                else:
+                    # Convert schedule_datetime to Unix timestamp for Facebook
+                    from datetime import datetime
+                    schedule_dt = datetime.strptime(schedule_datetime, '%Y-%m-%d %H:%M')
+                    scheduled_publish_time = int(schedule_dt.timestamp())
+                    
+                    # Facebook Graph API - create scheduled post
+                    params = {
+                        "access_token": page_access_token,
+                        "message": post_content,
+                        "link": video_url,
+                        "scheduled_publish_time": scheduled_publish_time,
+                        "published": False  # Schedule it
+                    }
+                    
+                    response = requests.post(
+                        f"https://graph.facebook.com/v18.0/{page_id}/feed",
+                        params=params,
+                        timeout=30
+                    )
+                    
+                    response_data = response.json()
+                    
+                    if response.status_code == 200 and 'id' in response_data:
+                        post_id = response_data['id']
+                        success = True
+                    else:
+                        error_data = response_data.get('error', {})
+                        error_msg = f"Facebook API error ({error_data.get('code', 'unknown')}): {error_data.get('message', 'Unknown error')}"
+            
+            elif platform.lower() == 'instagram':
+                # Instagram doesn't support scheduling via API
+                # Posts must be published immediately
+                # However, we can save it and publish immediately, or tell user to use Facebook Business Suite
+                instagram_business_account_id = api_keys.get('instagram_business_account_id')
+                page_access_token = api_keys.get('facebook_page_access_token')
+                
+                if not instagram_business_account_id or not page_access_token:
+                    error_msg = "Instagram Business Account ID and Facebook Page Access Token are required"
+                else:
+                    # Instagram requires native video upload, not link sharing
+                    # For now, return an error explaining this
+                    error_msg = "Instagram Reels require native video upload. Link sharing is not supported. Please use Facebook Business Suite to schedule Instagram posts, or enable native video upload in settings."
+            
+            elif platform.lower() == 'linkedin':
+                # LinkedIn doesn't support scheduled posts via API
+                # Posts must be published immediately
+                error_msg = "LinkedIn API doesn't support scheduled posts. Posts must be published immediately. Please use 'Publish Now' instead."
+            
+            else:
+                error_msg = f"Unsupported platform: {platform}"
+        
+        except requests.exceptions.Timeout:
+            error_msg = f"{platform} API request timed out"
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error: {str(e)}"
+        except Exception as e:
+            import traceback
+            error_msg = f"Error creating post: {str(e)}"
+            app.logger.error(f"Error in api_schedule_post for {platform}: {e}\n{traceback.format_exc()}")
+        
+        # Only save to database and return success if API call succeeded
+        if success:
+            # Save to database
+            insert_or_update_social_post(video_id, platform, {
+                'post_content': post_content,
+                'schedule_date': schedule_datetime,
+                'status': 'scheduled',
+                'platform_post_id': post_id
+            })
+            
+            # Log activity as success
+            log_activity(
+                'schedule_post',
+                platform=platform,
+                video_id=video_id,
+                status='success',
+                message=f'Successfully scheduled on {platform} for {schedule_datetime}',
+                details={
+                    'schedule_date': schedule_datetime,
+                    'manual': True,
+                    'platform_post_id': post_id
+                }
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': f'Post successfully scheduled on {platform} for {schedule_datetime}',
+                'post_id': post_id
+            })
+        else:
+            # Log as error
+            log_activity(
+                'schedule_post',
+                platform=platform,
+                video_id=video_id,
+                status='error',
+                message=f'Failed to schedule on {platform}: {error_msg}',
+                details={
+                    'schedule_date': schedule_datetime,
+                    'manual': True,
+                    'error': error_msg
+                }
+            )
+            
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), 400
+        
     except Exception as e:
         import traceback
         from app.database import log_activity
         
+        error_details = {
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'schedule_date': data.get('schedule_datetime') if 'data' in locals() else None,
+            'manual': True
+        }
+        
         # Log exception
         log_activity(
             'schedule_post',
-            platform=data.get('platform', 'unknown'),
-            video_id=data.get('video_id', ''),
+            platform=data.get('platform', 'unknown') if 'data' in locals() else 'unknown',
+            video_id=data.get('video_id', '') if 'data' in locals() else '',
             status='error',
             message=f'Exception: {str(e)}',
-            details={'error': str(e), 'traceback': traceback.format_exc()}
+            details=error_details
         )
         
-        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+        return jsonify({
+            'success': False,
+            'error': f'Unexpected error: {str(e)}',
+            'details': error_details
+        }), 500
 
 
 @app.route('/api/playlist/<playlist_id>/videos')
