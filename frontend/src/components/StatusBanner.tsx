@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Settings } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface PlatformStatus {
