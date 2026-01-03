@@ -2239,7 +2239,8 @@ def api_activity_details(activity_id):
 def api_autopilot_run():
     """Run auto-pilot mode: select one video from each playlist and schedule on all channels."""
     try:
-        from app.database import (
+        from app.session_parser import SessionParser
+from app.database import (
             log_activity, get_scheduled_count_today,
             insert_or_update_social_post, get_video, get_video_social_posts_from_db
         )
