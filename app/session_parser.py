@@ -87,7 +87,7 @@ class SessionParser:
             return {}
     
     def scan_sessions(self) -> List[Dict]:
-        """Scan sessions folder and return list of sessions"""
+        """Scan sessions folder recursively and return list of sessions"""
         sessions = []
         
         if not os.path.exists(self.sessions_path):
@@ -96,32 +96,47 @@ class SessionParser:
         # Check for metadata file first
         metadata = self.load_metadata_file()
         
-        # Scan all files
-        for item in os.listdir(self.sessions_path):
-            item_path = os.path.join(self.sessions_path, item)
+        # Scan all files recursively
+        for root, dirs, files in os.walk(self.sessions_path):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
             
-            if os.path.isfile(item_path) and not item.startswith('.'):
-                # Skip metadata file
-                if item == 'sessions.json':
+            for filename in files:
+                if filename.startswith('.') or filename == 'sessions.json':
                     continue
                 
-                metadata_from_filename = self.parse_filename(item)
+                item_path = os.path.join(root, filename)
+                relative_path = os.path.relpath(item_path, self.sessions_path)
+                
+                # Only process text-based files (txt, md) and common document formats
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in ['.txt', '.md', '.docx', '.pdf', '.pages']:
+                    # Skip binary files like images, videos, etc. unless explicitly needed
+                    if ext not in ['.png', '.jpg', '.jpeg', '.mp4', '.mp3']:
+                        continue
+                
+                metadata_from_filename = self.parse_filename(filename)
                 file_info = self.get_file_info(item_path)
                 
                 session = {
                     **metadata_from_filename,
                     **file_info,
                     'filepath': item_path,
-                    'relative_path': item
+                    'relative_path': relative_path,
+                    'folder': os.path.basename(root) if root != self.sessions_path else ''
                 }
                 
-                # Try to read first few lines for preview
-                try:
-                    with open(item_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        preview = f.read(500)
-                        session['preview'] = preview
-                        session['has_content'] = len(preview.strip()) > 0
-                except:
+                # Try to read first few lines for preview (only for text files)
+                if ext in ['.txt', '.md']:
+                    try:
+                        with open(item_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            preview = f.read(500)
+                            session['preview'] = preview
+                            session['has_content'] = len(preview.strip()) > 0
+                    except:
+                        session['preview'] = ''
+                        session['has_content'] = False
+                else:
                     session['preview'] = ''
                     session['has_content'] = False
                 
