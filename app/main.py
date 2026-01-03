@@ -1432,41 +1432,48 @@ def api_shorts():
                 playlist["role_label"] = ROLES.get(playlist_role, playlist_role.title() if playlist_role else '')
                 playlist["type_label"] = TYPES.get(playlist_type, playlist_type.replace('_', ' ').title() if playlist_type else '')
                 
-                # Get videos in this playlist
-                try:
-                    videos = fetch_playlist_videos_from_youtube(youtube, playlist_id, channel_id)
-                    playlist["videos"] = videos
-                    playlist["total_videos"] = len(videos) if videos else 0
-                    
-                    # Count videos on YouTube (published or scheduled)
-                    youtube_count = 0
-                    if videos:
-                        youtube_count = sum(1 for v in videos if v.get('privacyStatus') == 'public' or v.get('isScheduled', False))
-                    playlist["youtube_count"] = youtube_count
-                    
-                    # Count videos scheduled on other platforms
-                    other_platforms_count = 0
-                    if videos:
-                        for video in videos:
-                            video_id = video.get('videoId', '')
-                            if video_id:
-                                cursor.execute('''
-                                    SELECT COUNT(DISTINCT platform) as platform_count
-                                    FROM social_media_posts
-                                    WHERE video_id = ? AND status IN ('scheduled', 'published')
-                                ''', (video_id,))
-                                result = cursor.fetchone()
-                                if result and result[0] > 0:
-                                    other_platforms_count += 1
-                except Exception as e:
-                    app.logger.error(f"Error fetching videos for playlist {playlist_id}: {e}")
-                    playlist["videos"] = []
-                    playlist["total_videos"] = playlist.get('itemCount', 0)
-                    playlist["youtube_count"] = 0
-                    other_platforms_count = 0
+                # OPTIMIZATION: Don't fetch videos - use itemCount and database queries instead
+                # Fetching videos for each playlist is VERY slow (10-30 seconds per playlist)
+                item_count = playlist.get('itemCount', 0)
+                playlist["total_videos"] = item_count
+                playlist["videos"] = []  # Don't include videos in response - too much data
                 
-                playlist["other_platforms_count"] = other_platforms_count
-                playlist["not_scheduled_count"] = playlist["total_videos"] - other_platforms_count
+                # Get counts from database efficiently
+                try:
+                    # Count videos in database for this playlist
+                    cursor.execute('''
+                        SELECT 
+                            COUNT(*) as total,
+                            SUM(CASE WHEN privacy_status = 'public' OR youtube_published_date IS NOT NULL THEN 1 ELSE 0 END) as youtube_count,
+                            COUNT(DISTINCT CASE WHEN smp.id IS NOT NULL THEN v.video_id END) as other_platforms_count
+                        FROM videos v
+                        LEFT JOIN social_media_posts smp ON v.video_id = smp.video_id 
+                            AND smp.status IN ('scheduled', 'published')
+                            AND smp.platform != 'youtube'
+                        WHERE v.playlist_id = ?
+                    ''', (playlist_id,))
+                    count_row = cursor.fetchone()
+                    
+                    if count_row and count_row[0] > 0:
+                        db_total = count_row[0] or 0
+                        youtube_count = count_row[1] or 0
+                        other_platforms_count = count_row[2] or 0
+                        
+                        # Use database counts if available
+                        playlist["total_videos"] = db_total if db_total > 0 else item_count
+                        playlist["youtube_count"] = youtube_count
+                        playlist["other_platforms_count"] = other_platforms_count
+                        playlist["not_scheduled_count"] = db_total - other_platforms_count
+                    else:
+                        # No database data - use itemCount as estimate
+                        playlist["youtube_count"] = item_count  # Assume all are on YouTube
+                        playlist["other_platforms_count"] = 0
+                        playlist["not_scheduled_count"] = item_count
+                except Exception as e:
+                    app.logger.error(f"Error getting counts for playlist {playlist_id}: {e}")
+                    playlist["youtube_count"] = item_count
+                    playlist["other_platforms_count"] = 0
+                    playlist["not_scheduled_count"] = item_count
             
             # Apply filters
             if role_filter:
