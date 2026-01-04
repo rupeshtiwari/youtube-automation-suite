@@ -129,7 +129,7 @@ export default function Sidebar() {
               href="/facebook-token-helper"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => {
+              onClick={() => {
                 // Open helper in new tab, navigate current tab to config
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
@@ -145,7 +145,7 @@ export default function Sidebar() {
               href="/facebook-token-helper"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => {
+              onClick={() => {
                 // Open helper in new tab, navigate current tab to config
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
