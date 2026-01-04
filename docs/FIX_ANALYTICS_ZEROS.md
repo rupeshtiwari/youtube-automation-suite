@@ -40,14 +40,14 @@ Open http://127.0.0.1:5001/insights and you'll see:
 
 Once enabled, Analytics will show:
 
-| Metric | What You'll See |
-|--------|----------------|
-| Total Views (30 days) | Real numbers from YouTube |
-| Watch Time | Minutes watched |
-| Demographics | Age groups: 13-17, 18-24, 25-34, 35-44, 45-54, 55-64, 65+ |
-| Gender | Male, Female, Not Specified |
-| Top Countries | Your top 5 viewer countries |
-| **Optimal Times** | Best 3 hours to post based on viewer activity |
+| Metric                | What You'll See                                           |
+| --------------------- | --------------------------------------------------------- |
+| Total Views (30 days) | Real numbers from YouTube                                 |
+| Watch Time            | Minutes watched                                           |
+| Demographics          | Age groups: 13-17, 18-24, 25-34, 35-44, 45-54, 55-64, 65+ |
+| Gender                | Male, Female, Not Specified                               |
+| Top Countries         | Your top 5 viewer countries                               |
+| **Optimal Times**     | Best 3 hours to post based on viewer activity             |
 
 ## Viewer Demographics Example
 After enabling, you'll see WHO watches your videos:
