@@ -101,11 +101,6 @@ export default function Sidebar() {
           <div className="mt-4 space-y-0.5">
             <a
               href="/config#social-media-connections"
-              onClick={(e) => {
-                // Force full page navigation, bypass React Router
-                e.preventDefault();
-                window.location.href = '/config#social-media-connections';
-              }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect YouTube account"
             >
@@ -114,11 +109,6 @@ export default function Sidebar() {
             </a>
             <a
               href="/api/linkedin/oauth/authorize"
-              onClick={(e) => {
-                // Force full page navigation, bypass React Router
-                e.preventDefault();
-                window.location.href = '/api/linkedin/oauth/authorize';
-              }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect LinkedIn account"
             >
@@ -127,11 +117,10 @@ export default function Sidebar() {
             </a>
             <a
               href="/facebook-token-helper"
-              onClick={(e) => {
-                e.preventDefault();
-                // Open Facebook token helper in new tab
-                window.open('/facebook-token-helper', '_blank');
-                // Navigate to config page
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                // Also navigate to config page after opening helper
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
                 }, 500);
@@ -144,11 +133,10 @@ export default function Sidebar() {
             </a>
             <a
               href="/facebook-token-helper"
-              onClick={(e) => {
-                e.preventDefault();
-                // Instagram uses Facebook OAuth, open helper page
-                window.open('/facebook-token-helper', '_blank');
-                // Navigate to config page
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                // Also navigate to config page after opening helper
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
                 }, 500);
