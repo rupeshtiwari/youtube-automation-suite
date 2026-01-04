@@ -9,7 +9,8 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
 
 interface PlatformStatus {
@@ -54,21 +55,14 @@ export default function Settings() {
       // This will redirect to LinkedIn OAuth page, then back to callback
       window.location.replace('/api/linkedin/oauth/authorize')
     } else if (platform === 'facebook' || platform === 'instagram') {
-      // Facebook/Instagram OAuth - use replace to ensure redirect is followed
-      // The endpoint redirects to /config with instructions
-      // Use replace to bypass React Router and ensure full page reload
-      // If redirect doesn't work, fallback to direct navigation after short delay
-      const redirectUrl = '/api/facebook/oauth/authorize'
-      window.location.replace(redirectUrl)
-      
-      // Fallback: if redirect doesn't happen within 2 seconds, go directly to config
+      // Facebook/Instagram - open helper page in new tab and navigate to config
+      // The helper page provides step-by-step instructions for getting tokens
+      const helperUrl = '/facebook-token-helper'
+      window.open(helperUrl, '_blank')
+      // Navigate to config page where user can enter the tokens
       setTimeout(() => {
-        // Check if we're still on the authorize page (redirect didn't work)
-        if (window.location.pathname === '/api/facebook/oauth/authorize') {
-          console.warn('Redirect did not work, navigating directly to config page')
-          window.location.replace('/config#social-media-connections')
-        }
-      }, 2000)
+        window.location.href = '/config#social-media-connections'
+      }, 500)
     }
   }
 
@@ -246,9 +240,14 @@ export default function Settings() {
                     </button>
                   )}
                   {isConnected && (
-                    <span className="text-sm text-muted-foreground">
-                      Connected
-                    </span>
+                    <button
+                      onClick={() => handleConnectClick(platform.id)}
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-sm font-medium flex items-center gap-2"
+                      title="Reconnect to refresh tokens (useful if tokens expired)"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Reconnect
+                    </button>
                   )}
                 </div>
               </div>

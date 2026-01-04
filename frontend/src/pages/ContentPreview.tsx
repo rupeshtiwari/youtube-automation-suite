@@ -312,14 +312,26 @@ export default function ContentPreview() {
         setScheduleError(`⚠️ Partial success. Scheduled: ${successful.map(r => r.platform).join(', ')}. Failed: ${failedPlatforms}. Check Settings.`)
         refetch() // Refresh to show what was scheduled
       } else {
-        // All failed
-        const errorDetails = failed.map(r => `${r.platform}: ${r.error}`).join('; ')
-        setScheduleError(`❌ Failed to schedule: ${errorDetails}. Check platform credentials in Settings.`)
+        // All failed - check for token expiration
+        const hasTokenError = failed.some(r => r.error?.includes('TOKEN_EXPIRED') || r.error?.includes('TOKEN_INVALID') || r.error?.includes('token expired'))
+        if (hasTokenError) {
+          const tokenErrorPlatforms = failed.filter(r => r.error?.includes('TOKEN_EXPIRED') || r.error?.includes('TOKEN_INVALID') || r.error?.includes('token expired'))
+          const platformNames = tokenErrorPlatforms.map(r => r.platform).join(', ')
+          setScheduleError(`🔐 ${platformNames.charAt(0).toUpperCase() + platformNames.slice(1)} access token has expired. Please reconnect in Settings.`)
+        } else {
+          const errorDetails = failed.map(r => `${r.platform}: ${r.error}`).join('; ')
+          setScheduleError(`❌ Failed to schedule: ${errorDetails}. Check platform credentials in Settings.`)
+        }
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || err.message || 'Unknown error occurred'
-      const errorDetails = err.response?.data?.missing_fields ? `Missing: ${err.response.data.missing_fields.join(', ')}. ` : ''
-      setScheduleError(`❌ Error: ${errorDetails}${errorMsg}. Please check your settings and try again.`)
+      const hasTokenError = errorMsg.includes('TOKEN_EXPIRED') || errorMsg.includes('TOKEN_INVALID') || errorMsg.includes('token expired')
+      if (hasTokenError) {
+        setScheduleError(`🔐 Access token has expired. Please reconnect Facebook in Settings.`)
+      } else {
+        const errorDetails = err.response?.data?.missing_fields ? `Missing: ${err.response.data.missing_fields.join(', ')}. ` : ''
+        setScheduleError(`❌ Error: ${errorDetails}${errorMsg}. Please check your settings and try again.`)
+      }
     } finally {
       setIsScheduling(false)
     }
@@ -917,7 +929,17 @@ export default function ContentPreview() {
               <div className="mx-6 mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-800 dark:text-red-200 flex-1">{scheduleError}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 dark:text-red-200">{scheduleError}</p>
+                    {(scheduleError.includes('token expired') || scheduleError.includes('TOKEN_EXPIRED') || scheduleError.includes('TOKEN_INVALID')) && (
+                      <a
+                        href="/config#social-media-connections"
+                        className="mt-2 inline-block text-sm font-medium text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100 underline"
+                      >
+                        Go to Settings to reconnect →
+                      </a>
+                    )}
+                  </div>
                   <button
                     onClick={() => setScheduleError(null)}
                     className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"

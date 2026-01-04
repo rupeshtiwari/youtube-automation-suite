@@ -100,9 +100,12 @@ export default function Sidebar() {
           {/* Connect New Channels */}
           <div className="mt-4 space-y-0.5">
             <button
-              onClick={() => {
-                // Navigate to Settings page where YouTube OAuth can be initiated - use replace to bypass React Router
-                window.location.replace('/config#social-media-connections');
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Force navigation to config page - use assign for better compatibility
+                const url = window.location.origin + '/config#social-media-connections';
+                window.location.assign(url);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect YouTube account"
@@ -111,9 +114,12 @@ export default function Sidebar() {
               <span className="truncate">Connect YouTube</span>
             </button>
             <button
-              onClick={() => {
-                // Navigate to Settings and trigger LinkedIn OAuth - use replace for full page reload
-                window.location.replace('/api/linkedin/oauth/authorize');
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Force navigation to LinkedIn OAuth - use assign for better compatibility
+                const url = window.location.origin + '/api/linkedin/oauth/authorize';
+                window.location.assign(url);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect LinkedIn account"
@@ -122,9 +128,17 @@ export default function Sidebar() {
               <span className="truncate">Connect LinkedIn</span>
             </button>
             <button
-              onClick={() => {
-                // Navigate to Settings and trigger Facebook OAuth - use replace for full page reload
-                window.location.replace('/api/facebook/oauth/authorize');
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Open Facebook token helper in new tab
+                const helperUrl = window.location.origin + '/facebook-token-helper';
+                window.open(helperUrl, '_blank');
+                // Navigate to config page
+                const configUrl = window.location.origin + '/config#social-media-connections';
+                setTimeout(() => {
+                  window.location.assign(configUrl);
+                }, 500);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect Facebook account (includes Instagram)"
@@ -133,9 +147,17 @@ export default function Sidebar() {
               <span className="truncate">Connect Facebook</span>
             </button>
             <button
-              onClick={() => {
-                // Instagram uses Facebook OAuth, navigate to Facebook connection - use replace for full page reload
-                window.location.replace('/api/facebook/oauth/authorize');
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Instagram uses Facebook OAuth, open helper page
+                const helperUrl = window.location.origin + '/facebook-token-helper';
+                window.open(helperUrl, '_blank');
+                // Navigate to config page
+                const configUrl = window.location.origin + '/config#social-media-connections';
+                setTimeout(() => {
+                  window.location.assign(configUrl);
+                }, 500);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect Instagram account (via Facebook)"

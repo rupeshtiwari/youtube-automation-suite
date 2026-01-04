@@ -387,7 +387,7 @@ export default function Dashboard() {
                           {getPlatformIcon(item.platform)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm mb-1 truncate">{item.video_title}</h3>
+                          <h3 className="font-semibold text-sm mb-1 truncate">{item.video_title || item.video_id || 'Untitled'}</h3>
                           {item.playlist_name && (
                             <p className="text-xs text-muted-foreground truncate">{item.playlist_name}</p>
                           )}

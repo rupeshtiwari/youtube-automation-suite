@@ -24,6 +24,7 @@ import atexit
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import init_database
+from app.facebook_token_helper import facebook_helper_bp
 from app.validators import (
     validate_required_fields, sanitize_input, validate_integer,
     validate_string_length, validate_platform, validate_post_status,
@@ -256,6 +257,9 @@ else:
     # Fallback to old templates/static setup
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
 
+# Register blueprints
+app.register_blueprint(facebook_helper_bp)
+
 # Enable CORS for React frontend
 if CORS:
     CORS(app, resources={
@@ -327,7 +331,7 @@ def internal_error(error):
     try:
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
-        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except:
         return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
 
@@ -344,7 +348,7 @@ def handle_exception(e):
     try:
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
-        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except:
         return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
 
@@ -3208,7 +3212,19 @@ def api_schedule_post():
                         success = True
                     else:
                         error_data = response_data.get('error', {})
-                        error_msg = f"Facebook API error ({error_data.get('code', 'unknown')}): {error_data.get('message', 'Unknown error')}"
+                        error_code = error_data.get('code', 'unknown')
+                        error_message = error_data.get('message', 'Unknown error')
+                        
+                        # Check for token expiration (error code 190)
+                        if error_code == 190:
+                            if 'expired' in error_message.lower() or error_data.get('error_subcode') == 463:
+                                error_msg = "TOKEN_EXPIRED: Facebook access token has expired. Please reconnect Facebook in Settings."
+                            elif error_data.get('error_subcode') == 467:
+                                error_msg = "TOKEN_INVALID: Facebook access token is invalid. Please reconnect Facebook in Settings."
+                            else:
+                                error_msg = f"TOKEN_ERROR: Facebook access token issue. Please reconnect Facebook in Settings. ({error_message})"
+                        else:
+                            error_msg = f"Facebook API error ({error_code}): {error_message}"
             
             elif platform.lower() == 'instagram':
                 # Instagram doesn't support scheduling via API
@@ -3745,43 +3761,16 @@ def api_linkedin_oauth_authorize():
 
 @app.route('/api/facebook/oauth/authorize')
 def api_facebook_oauth_authorize():
-    """Buffer-style Facebook OAuth - just click 'Connect Facebook' and authorize."""
+    """Buffer-style Facebook OAuth - opens helper page with instructions."""
     try:
-        settings = load_settings()
-        api_keys = settings.get('api_keys', {})
-        
-        # Facebook OAuth flow - redirect to config page with instructions
-        # Since Facebook requires App ID/Secret for full OAuth, we'll guide users
-        # But we can also use the Graph API Explorer method which is simpler
-        
-        # For now, redirect to config page with instructions
-        # This is more reliable than full OAuth for Page Access Tokens
-        # Use 302 redirect explicitly and ensure it works
-        flash('For Facebook/Instagram connection, please use the Graph API Explorer method. See the Facebook section in Settings for instructions.', 'info')
-        # Use absolute URL to ensure redirect works properly
-        redirect_url = url_for('config', _external=False) + '#social-media-connections'
-        response = redirect(redirect_url, code=302)
-        # Ensure no caching
+        # Redirect directly to the helper page
+        # The helper page will guide users through getting a Facebook Page Access Token
+        helper_url = url_for('facebook_helper.facebook_token_helper', _external=False)
+        response = redirect(helper_url, code=302)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
-        # Add X-Redirect header for debugging
-        response.headers['X-Redirect-To'] = redirect_url
         return response
-        
-        # Full OAuth implementation (if App ID/Secret are configured):
-        # app_id = api_keys.get('facebook_app_id', '').strip()
-        # app_secret = api_keys.get('facebook_app_secret', '').strip()
-        # if not app_id or not app_secret:
-        #     flash('Please configure Facebook App ID and Secret first', 'error')
-        #     return redirect('/config#social-media-connections')
-        # 
-        # state = secrets.token_urlsafe(32)
-        # session['facebook_oauth_state'] = state
-        # redirect_uri = url_for('api_facebook_oauth_callback', _external=True)
-        # scopes = ['pages_manage_posts', 'pages_read_engagement', 'pages_show_list', 'instagram_basic', 'instagram_content_publish', 'business_management']
-        # auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={','.join(scopes)}&state={state}"
-        # return redirect(auth_url)
         
     except Exception as e:
         flash(f'Error starting Facebook authorization: {str(e)}', 'error')
@@ -4956,6 +4945,24 @@ def test_connection():
     return jsonify({'success': False, 'message': 'Unknown platform'})
 
 
+# Explicit route for assets to ensure they're served correctly
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    """Serve static assets from frontend build."""
+    if os.path.exists(FRONTEND_BUILD_DIR):
+        assets_dir = os.path.join(FRONTEND_BUILD_DIR, 'assets')
+        file_path = os.path.join(assets_dir, filename)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(assets_dir, filename)
+    return jsonify({'error': 'Asset not found'}), 404
+
+# Explicit route for Facebook token helper (must be before catch-all)
+@app.route('/facebook-token-helper')
+def facebook_token_helper_route():
+    """Serve Facebook token helper page directly."""
+    from app.facebook_token_helper import facebook_token_helper
+    return facebook_token_helper()
+
 # Catch-all route for React Router (must be last, after all API routes)
 @app.route('/<path:path>')
 def catch_all(path):
@@ -4969,7 +4976,7 @@ def catch_all(path):
     
     # Exclude specific Flask-only routes that need server-side rendering
     # These routes are handled by specific Flask routes above
-    flask_only_routes = ['playlists', 'docs', 'documentation', 'health', 'favicon.ico', 'robots.txt', 'config', 'oauth2callback']
+    flask_only_routes = ['playlists', 'docs', 'documentation', 'health', 'favicon.ico', 'robots.txt', 'config', 'oauth2callback', 'facebook-token-helper']
     if path in flask_only_routes or path.split('/')[0] in flask_only_routes:
         # These routes should be handled by Flask routes above
         # If we reach here, the Flask route didn't catch it, so return 404

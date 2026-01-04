@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { AlertTriangle, ExternalLink, Settings } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 interface PlatformStatus {
   configured: boolean
@@ -12,10 +11,16 @@ interface PlatformStatus {
 }
 
 interface StatusData {
-  youtube: PlatformStatus
-  linkedin: PlatformStatus
-  facebook: PlatformStatus
-  instagram: PlatformStatus
+  platforms?: {
+    youtube?: PlatformStatus
+    linkedin?: PlatformStatus
+    facebook?: PlatformStatus
+    instagram?: PlatformStatus
+  }
+  youtube?: PlatformStatus
+  linkedin?: PlatformStatus
+  facebook?: PlatformStatus
+  instagram?: PlatformStatus
   overall: {
     ready: number
     total: number
@@ -37,22 +42,28 @@ export default function StatusBanner() {
     return null
   }
 
-  const { overall, youtube, linkedin, facebook, instagram } = data
+  // Handle both response formats: with platforms object or direct properties
+  const platforms = data.platforms || {}
+  const youtube = platforms.youtube || data.youtube
+  const linkedin = platforms.linkedin || data.linkedin
+  const facebook = platforms.facebook || data.facebook
+  const instagram = platforms.instagram || data.instagram
+  const { overall } = data
 
   // Don't show if everything is ready
   if (overall.percentage === 100) {
     return null
   }
 
-  const platforms = [
+  const platformList = [
     { name: 'YouTube', status: youtube, icon: '🎥' },
     { name: 'LinkedIn', status: linkedin, icon: '💼' },
     { name: 'Facebook', status: facebook, icon: '📘' },
     { name: 'Instagram', status: instagram, icon: '📷' },
-  ]
+  ].filter(p => p.status) // Only include platforms that have status data
 
-  const needsSetup = platforms.filter(p => p.status.status === 'needs_setup')
-  const needsAuth = platforms.filter(p => p.status.status === 'configured')
+  const needsSetup = platformList.filter(p => p.status?.status === 'needs_setup')
+  const needsAuth = platformList.filter(p => p.status?.status === 'configured')
 
   return (
     <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
@@ -76,23 +87,25 @@ export default function StatusBanner() {
                         <span className="font-medium">
                           {platform.icon} {platform.name}
                         </span>
-                        <Link
-                          to="/config"
+                        <a
+                          href="/config#social-media-connections"
                           className="text-primary hover:underline flex items-center gap-1 text-xs"
                         >
                           Configure <ExternalLink className="w-3 h-3" />
-                        </Link>
+                        </a>
                       </div>
-                      {platform.status.missing.length > 0 && (
+                      {platform.status?.missing && platform.status.missing.length > 0 && (
                         <ul className="mt-1 ml-4 list-disc text-yellow-700 dark:text-yellow-300">
                           {platform.status.missing.map((item, idx) => (
                             <li key={idx} className="text-xs">{item}</li>
                           ))}
                         </ul>
                       )}
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Redirect URI: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{platform.status.redirect_uri}</code>
-                      </div>
+                      {platform.status?.redirect_uri && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Redirect URI: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{platform.status.redirect_uri}</code>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -110,12 +123,12 @@ export default function StatusBanner() {
                       <span>
                         {platform.icon} {platform.name} - Click "Connect" to authenticate
                       </span>
-                      <Link
-                        to="/config"
+                      <a
+                        href="/config#social-media-connections"
                         className="text-primary hover:underline flex items-center gap-1 text-xs"
                       >
                         Connect <ExternalLink className="w-3 h-3" />
-                      </Link>
+                      </a>
                     </div>
                   ))}
                 </div>
@@ -123,13 +136,13 @@ export default function StatusBanner() {
             )}
 
             <div className="mt-3 pt-3 border-t border-yellow-200 dark:border-yellow-800">
-              <Link
-                to="/config"
+              <a
+                href="/config#social-media-connections"
                 className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm font-medium transition-colors"
               >
                 <Settings className="w-4 h-4" />
                 Go to Settings
-              </Link>
+              </a>
             </div>
           </div>
         </div>

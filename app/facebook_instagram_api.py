@@ -80,6 +80,15 @@ class FacebookInstagramAPI:
             error_code = error.get('code', '')
             error_subcode = error.get('error_subcode', '')
             
+            # Check for token expiration (error code 190)
+            if error_code == 190:
+                if 'expired' in error_message.lower() or error_subcode == 463:
+                    return False, "TOKEN_EXPIRED: Facebook access token has expired. Please reconnect Facebook in Settings.", None
+                elif error_subcode == 467:
+                    return False, "TOKEN_INVALID: Facebook access token is invalid. Please reconnect Facebook in Settings.", None
+                else:
+                    return False, f"TOKEN_ERROR: Facebook access token issue. Please reconnect Facebook in Settings. ({error_message})", None
+            
             return False, f"Facebook API error ({error_code}): {error_message}", None
             
         except requests.exceptions.Timeout:
