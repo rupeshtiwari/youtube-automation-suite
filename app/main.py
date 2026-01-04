@@ -2698,39 +2698,107 @@ def insights():
 def insights_data():
     """API endpoint for insights data - used by React app."""
     try:
-        # Get YouTube Analytics if available
-        youtube_analytics = get_youtube_analytics()
+        # Get YouTube Analytics if available (with error handling)
+        try:
+            youtube_analytics = get_youtube_analytics()
+        except Exception as e:
+            app.logger.error(f"Error getting YouTube analytics: {e}")
+            youtube_analytics = {"error": f"YouTube Analytics error: {str(e)}"}
 
-        # Get Facebook Insights if available
-        facebook_insights = get_facebook_insights()
+        # Get Facebook Insights if available (with error handling)
+        try:
+            facebook_insights = get_facebook_insights()
+        except Exception as e:
+            app.logger.error(f"Error getting Facebook insights: {e}")
+            facebook_insights = {"error": f"Facebook Insights error: {str(e)}"}
 
-        # Get LinkedIn Analytics if available
-        linkedin_analytics = get_linkedin_analytics()
+        # Get LinkedIn Analytics if available (with error handling)
+        try:
+            linkedin_analytics = get_linkedin_analytics()
+        except Exception as e:
+            app.logger.error(f"Error getting LinkedIn analytics: {e}")
+            linkedin_analytics = {"error": f"LinkedIn Analytics error: {str(e)}"}
 
-        # Get YouTube video statistics (from Data API)
-        youtube_video_stats = get_youtube_video_statistics()
+        # Get YouTube video statistics from database
+        from app.database import get_db_connection
 
-        # Get Facebook post statistics
-        facebook_post_stats = get_facebook_post_statistics()
+        youtube_video_stats = {"total": 0, "total_views": 0, "total_likes": 0}
+        facebook_post_stats = {"count": 0}
+        linkedin_post_stats = {"count": 0}
 
-        # Get LinkedIn post statistics
-        linkedin_post_stats = get_linkedin_post_statistics()
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-        # Combine all insights - ensure all keys exist and add CTA data
+            # Count total videos and stats
+            cursor.execute(
+                """
+                SELECT 
+                    COUNT(*) as total,
+                    COALESCE(SUM(CAST(view_count AS INTEGER)), 0) as total_views,
+                    COALESCE(SUM(CAST(like_count AS INTEGER)), 0) as total_likes
+                FROM videos 
+                WHERE privacy_status = 'public'
+            """
+            )
+            row = cursor.fetchone()
+            if row:
+                youtube_video_stats = {
+                    "total": row["total"] or 0,
+                    "total_views": row["total_views"] or 0,
+                    "total_likes": row["total_likes"] or 0,
+                }
+
+            # Count Facebook posts
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM social_media_posts WHERE platform = 'facebook'"
+            )
+            row = cursor.fetchone()
+            if row:
+                facebook_post_stats = {"count": row["count"] or 0}
+
+            # Count LinkedIn posts
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM social_media_posts WHERE platform = 'linkedin'"
+            )
+            row = cursor.fetchone()
+            if row:
+                linkedin_post_stats = {"count": row["count"] or 0}
+
+            conn.close()
+        except Exception as e:
+            app.logger.error(f"Database error in insights: {e}")
+            # Stats already have default values
+
+        # Combine all insights
         settings = load_settings()
         cta_data = settings.get("cta", {})
 
-        insights_data = {
-            "youtube": youtube_analytics or {"error": "Not configured"},
-            "youtube_videos": youtube_video_stats or {},
-            "facebook": facebook_insights or {"error": "Not configured"},
-            "facebook_posts": facebook_post_stats or {},
-            "linkedin": linkedin_analytics or {"error": "Not configured"},
-            "linkedin_posts": linkedin_post_stats or {},
-            "optimal_posting_times": calculate_optimal_posting_times(
+        # Calculate optimal posting times with error handling
+        try:
+            optimal_times = calculate_optimal_posting_times(
                 youtube_analytics, facebook_insights, linkedin_analytics
             )
-            or {},
+        except Exception as e:
+            app.logger.error(f"Error calculating optimal posting times: {e}")
+            optimal_times = {}
+
+        insights_data = {
+            "youtube": (
+                youtube_analytics if youtube_analytics else {"error": "Not configured"}
+            ),
+            "youtube_videos": youtube_video_stats,
+            "facebook": (
+                facebook_insights if facebook_insights else {"error": "Not configured"}
+            ),
+            "facebook_posts": facebook_post_stats,
+            "linkedin": (
+                linkedin_analytics
+                if linkedin_analytics
+                else {"error": "Not configured"}
+            ),
+            "linkedin_posts": linkedin_post_stats,
+            "optimal_posting_times": optimal_times,
             "cta": cta_data,
         }
 
@@ -4975,15 +5043,16 @@ def api_upload_client_secret():
 
 @app.route("/api/calendar-data")
 def api_calendar_data():
-    """API endpoint for calendar data - fetches YouTube scheduled videos from all playlists and social media posts."""
+    """API endpoint for calendar data - shows only SHORTS from playlists with 'shorts' in name, with cross-platform status."""
     from app.database import get_db_connection
     from datetime import datetime
     import pytz
 
     try:
         calendar_events = []
+        video_platforms = {}  # Track which platforms each video is on
 
-        # Fetch YouTube scheduled videos from all playlists
+        # Fetch YouTube shorts from playlists with 'shorts' in name
         youtube = get_youtube_service()
         if youtube:
             channel_id = get_my_channel_id_helper(youtube)
@@ -4991,7 +5060,14 @@ def api_calendar_data():
                 playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
                 ist = pytz.timezone("Asia/Kolkata")
 
-                for playlist in playlists:
+                # Filter playlists to only those with "shorts" in the name (case-insensitive)
+                shorts_playlists = [
+                    p
+                    for p in playlists
+                    if "shorts" in p.get("playlistTitle", "").lower()
+                ]
+
+                for playlist in shorts_playlists:
                     playlist_id = playlist.get("playlistId", "")
                     playlist_title = playlist.get("playlistTitle", "")
 
@@ -5005,6 +5081,24 @@ def api_calendar_data():
                         publish_at = video.get("publishAt", "")
                         published_at = video.get("publishedAt", "")
                         is_scheduled = video.get("isScheduled", False)
+                        privacy_status = video.get("privacyStatus", "public")
+
+                        # Skip private videos (only show public and unlisted/scheduled)
+                        if privacy_status == "private":
+                            continue
+
+                        # Initialize platform tracking for this video
+                        if video_id not in video_platforms:
+                            video_platforms[video_id] = {
+                                "youtube": False,
+                                "facebook": False,
+                                "instagram": False,
+                                "linkedin": False,
+                                "video_title": title,
+                                "playlist_name": playlist_title,
+                            }
+
+                        video_platforms[video_id]["youtube"] = True
 
                         # Determine the date to display
                         display_date = None
@@ -5056,9 +5150,8 @@ def api_calendar_data():
                                     "post_content": "",
                                     "playlist_name": playlist_title,
                                     "channel_name": "YouTube",
-                                    "video_type": "",
-                                    "role": "",
-                                    "custom_tags": "",
+                                    "video_type": "short",
+                                    "privacy_status": privacy_status,
                                     "description": video.get("description", "")[:200],
                                 }
                             )
@@ -5069,6 +5162,13 @@ def api_calendar_data():
                                 for platform in ["linkedin", "facebook", "instagram"]:
                                     post = social_posts.get(platform, {})
                                     schedule_date_str = post.get("schedule_date", "")
+
+                                    # Mark platform as scheduled
+                                    if (
+                                        schedule_date_str
+                                        or post.get("status") == "published"
+                                    ):
+                                        video_platforms[video_id][platform] = True
 
                                     if schedule_date_str:
                                         try:
@@ -5105,9 +5205,7 @@ def api_calendar_data():
                                                     ),
                                                     "playlist_name": playlist_title,
                                                     "channel_name": platform.title(),
-                                                    "video_type": "",
-                                                    "role": "",
-                                                    "custom_tags": "",
+                                                    "video_type": "short",
                                                     "description": "",
                                                 }
                                             )
@@ -5188,18 +5286,37 @@ def api_calendar_data():
         conn.close()
 
         # Get optimal posting times and generate recommendations
-        optimal_times = get_optimal_posting_times_from_analytics()
-        recommendations = generate_calendar_recommendations(
-            calendar_events, optimal_times
-        )
+        try:
+            optimal_times = get_optimal_posting_times_from_analytics()
+            recommendations = generate_calendar_recommendations(
+                calendar_events, optimal_times
+            )
+        except Exception as e:
+            app.logger.error(f"Error getting optimal times: {e}")
+            optimal_times = {}
+            recommendations = []
 
-        calendar_events.sort(key=lambda x: x["datetime"])
+        # Sort events by datetime (most recent first)
+        calendar_events.sort(key=lambda x: x["datetime"], reverse=True)
+
+        # Add cross-platform status to each event
+        for event in calendar_events:
+            vid_id = event.get("video_id")
+            if vid_id and vid_id in video_platforms:
+                event["platforms"] = video_platforms[vid_id]
+                # Add missing platforms list
+                missing = []
+                for platform in ["facebook", "instagram", "linkedin"]:
+                    if not video_platforms[vid_id].get(platform):
+                        missing.append(platform)
+                event["missing_platforms"] = missing
 
         return jsonify(
             {
                 "events": calendar_events,
                 "optimal_times": optimal_times,
                 "recommendations": recommendations,
+                "video_platforms": video_platforms,  # Include full platform mapping
             }
         )
     except Exception as e:

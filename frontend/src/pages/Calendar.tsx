@@ -25,13 +25,23 @@ interface CalendarEvent {
   post_content: string
   playlist_name?: string
   video_type?: string
-  role?: string
+  privacy_status?: string
+  platforms?: {
+    youtube: boolean
+    facebook: boolean
+    instagram: boolean
+    linkedin: boolean
+    video_title: string
+    playlist_name: string
+  }
+  missing_platforms?: string[]
 }
 
 interface CalendarData {
   events: CalendarEvent[]
   optimal_times?: Record<string, any>
   recommendations?: any[]
+  video_platforms?: Record<string, any>
 }
 
 export default function Calendar() {
@@ -319,15 +329,15 @@ export default function Calendar() {
       {/* Events List */}
       {events.length > 0 && (
         <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Upcoming Events</h2>
+          <h2 className="text-lg font-semibold mb-4">Upcoming Shorts Schedule</h2>
           <div className="space-y-3">
             {events
-              .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
-              .slice(0, 10)
+              .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
+              .slice(0, 20)
               .map((event, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-4 p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-start gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className={`p-2 rounded-lg ${getPlatformColor(event.platform)}`}>
                     {getPlatformIcon(event.platform)}
@@ -339,7 +349,7 @@ export default function Calendar() {
                         {event.platform}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                       <span className="flex items-center gap-1">
                         <CalendarIcon className="w-4 h-4" />
                         {new Date(event.date).toLocaleDateString()}
@@ -349,9 +359,50 @@ export default function Calendar() {
                         {formatTime(event.time)}
                       </span>
                       {event.playlist_name && (
-                        <span className="truncate max-w-xs">{event.playlist_name}</span>
+                        <span className="truncate max-w-xs text-xs bg-accent px-2 py-0.5 rounded">
+                          {event.playlist_name}
+                        </span>
+                      )}
+                      {event.privacy_status && (
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          event.privacy_status === 'public' 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        }`}>
+                          {event.privacy_status}
+                        </span>
                       )}
                     </div>
+                    
+                    {/* Cross-Platform Status */}
+                    {event.missing_platforms && event.missing_platforms.length > 0 && event.platform.toLowerCase() === 'youtube' && (
+                      <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                              Missing on:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {event.missing_platforms.map(platform => (
+                                <button
+                                  key={platform}
+                                  onClick={() => window.location.href = `/shorts?video_id=${event.video_id}&schedule=${platform}`}
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-white dark:bg-gray-800 border border-yellow-300 dark:border-yellow-700 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/40 transition-colors"
+                                >
+                                  {platform === 'facebook' && <Facebook className="w-3 h-3" />}
+                                  {platform === 'instagram' && <Instagram className="w-3 h-3" />}
+                                  {platform === 'linkedin' && <Linkedin className="w-3 h-3" />}
+                                  <span className="capitalize">{platform}</span>
+                                  <span className="text-yellow-600">→ Schedule</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {event.post_content && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                         {event.post_content}
@@ -362,7 +413,7 @@ export default function Calendar() {
                     href={event.youtube_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline text-sm"
+                    className="text-primary hover:underline text-sm whitespace-nowrap"
                   >
                     View →
                   </a>
