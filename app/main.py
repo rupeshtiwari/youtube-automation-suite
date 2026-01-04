@@ -1644,11 +1644,12 @@ def sessions():
 @app.route('/api/sessions')
 def api_get_sessions():
     """Get list of all session files with metadata."""
-    import os
     from pathlib import Path
+    from app.database import get_db_connection
     
     sessions_dir = Path('data/sessions')
     sessions_list = []
+    metadata_map = {}
     
     if not sessions_dir.exists():
         return jsonify({
@@ -1664,6 +1665,24 @@ def api_get_sessions():
             'recent': [],
             'source': 'data/sessions'
         })
+    
+    # Load database metadata once so we can enrich each session
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT filename, role, session_type, client_name, session_date,
+                   meet_recording_url, meet_recording_drive_id,
+                   gemini_transcript_url, gemini_transcript_drive_id,
+                   chatgpt_notes, email_thread_id, email_subject,
+                   additional_notes, tags
+            FROM sessions_metadata
+        ''')
+        rows = cursor.fetchall()
+        conn.close()
+        metadata_map = {row['filename']: dict(row) for row in rows}
+    except Exception as e:
+        app.logger.warning(f"Could not load session metadata: {e}")
     
     # Get all .txt files
     for file_path in sessions_dir.glob('*.txt'):
@@ -1712,6 +1731,40 @@ def api_get_sessions():
                     session_data['preview'] = preview
             except:
                 pass
+            
+            metadata = metadata_map.get(file_path.name)
+            linked_resources = {
+                'recording': False,
+                'transcript': False,
+                'chatgpt': False,
+                'email': False
+            }
+            
+            if metadata:
+                session_data['metadata'] = metadata
+                session_data['role'] = metadata.get('role') or session_data.get('role')
+                session_data['type'] = metadata.get('session_type') or session_data.get('type')
+                session_data['client_name'] = metadata.get('client_name') or session_data.get('client_name')
+                session_data['date'] = metadata.get('session_date') or session_data.get('date')
+                session_data['session_date'] = metadata.get('session_date') or session_data.get('date')
+                session_data['meet_recording_url'] = metadata.get('meet_recording_url')
+                session_data['gemini_transcript_url'] = metadata.get('gemini_transcript_url')
+                session_data['chatgpt_notes'] = metadata.get('chatgpt_notes')
+                session_data['email_thread_id'] = metadata.get('email_thread_id')
+                session_data['email_subject'] = metadata.get('email_subject')
+                session_data['additional_notes'] = metadata.get('additional_notes')
+                session_data['tags'] = metadata.get('tags')
+                
+                linked_resources = {
+                    'recording': bool(metadata.get('meet_recording_url') or metadata.get('meet_recording_drive_id')),
+                    'transcript': bool(metadata.get('gemini_transcript_url') or metadata.get('gemini_transcript_drive_id')),
+                    'chatgpt': bool(metadata.get('chatgpt_notes')),
+                    'email': bool(metadata.get('email_thread_id') or metadata.get('email_subject'))
+                }
+            else:
+                session_data['session_date'] = session_data.get('date')
+            
+            session_data['linked_resources'] = linked_resources
             
             sessions_list.append(session_data)
         except Exception as e:
@@ -1858,6 +1911,20 @@ def api_get_session(filename):
         return jsonify({'error': 'File not found'}), 404
     
     try:
+        metadata = None
+        try:
+            from app.database import get_db_connection
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM sessions_metadata WHERE filename = ?', (filename,))
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                metadata = dict(row)
+        except Exception as meta_error:
+            app.logger.warning(f"Could not load metadata for {filename}: {meta_error}")
+        
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
@@ -1865,7 +1932,8 @@ def api_get_session(filename):
             'success': True,
             'filename': filename,
             'content': content,
-            'size': len(content)
+            'size': len(content),
+            'metadata': metadata
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -5043,4 +5111,3 @@ if __name__ == '__main__':
     print(f"💾 Settings are saved to database - they will persist across restarts and code changes!\n")
     
     app.run(host='0.0.0.0', port=port, debug=debug)
-
