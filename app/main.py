@@ -2834,17 +2834,96 @@ def insights_data():
 
 
 def get_youtube_analytics():
-    """Get YouTube Analytics data from database and optionally from YouTube Analytics API."""
+    """Get YouTube Analytics data from YouTube Analytics API and database."""
     from app.database import get_db_connection
     from datetime import datetime, timedelta
     import pytz
 
     try:
-        # First, get data from database (this always works)
+        # Try to get real analytics from YouTube Analytics API
+        api_analytics = get_youtube_analytics_from_api()
+
+        # Get database stats for video counts
         conn = get_db_connection()
         cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_videos,
+                COUNT(CASE WHEN privacy_status = 'public' THEN 1 END) as public_videos
+            FROM videos
+            WHERE video_id IS NOT NULL
+        """
+        )
+        db_stats = cursor.fetchone()
+        conn.close()
 
-        # Get video statistics from database
+        # If API analytics succeeded, use it
+        if api_analytics and not api_analytics.get("error"):
+            # Process and aggregate the API data
+            views_data = api_analytics.get("views_data", [])
+            total_views_30d = (
+                sum(row[1] for row in views_data if len(row) > 1) if views_data else 0
+            )
+            total_watch_time = (
+                sum(row[2] for row in views_data if len(row) > 2) if views_data else 0
+            )
+
+            # Process demographics
+            demographics = api_analytics.get("demographics", [])
+            age_gender_breakdown = {}
+            for row in demographics:
+                if len(row) >= 3:
+                    age_group = row[0]
+                    gender = row[1]
+                    views = row[2]
+                    key = f"{age_group}_{gender}"
+                    age_gender_breakdown[key] = views
+
+            # Process geography
+            geography = api_analytics.get("geography", [])
+            top_countries = []
+            for row in geography[:5]:  # Top 5 countries
+                if len(row) >= 2:
+                    top_countries.append({"country": row[0], "views": row[1]})
+
+            # Process hourly activity to find optimal posting times
+            hourly_activity = api_analytics.get("hourly_activity", [])
+            hourly_views = {}
+            for row in hourly_activity:
+                if len(row) >= 3:
+                    hour = row[1]  # Hour of day (0-23)
+                    views = row[2]
+                    hourly_views[hour] = hourly_views.get(hour, 0) + views
+
+            # Find top 3 hours
+            sorted_hours = sorted(
+                hourly_views.items(), key=lambda x: x[1], reverse=True
+            )
+            best_times = (
+                [f"{hour:02d}:00" for hour, views in sorted_hours[:3]]
+                if sorted_hours
+                else ["14:00", "17:00", "21:00"]
+            )
+
+            return {
+                "source": "youtube_analytics_api",
+                "total_views_30d": total_views_30d,
+                "watch_time_minutes": total_watch_time,
+                "total_videos": db_stats["total_videos"] if db_stats else 0,
+                "public_videos": db_stats["public_videos"] if db_stats else 0,
+                "demographics": {
+                    "age_gender": age_gender_breakdown,
+                    "top_countries": top_countries,
+                },
+                "optimal_posting_times": best_times,
+                "hourly_activity": hourly_views,
+                "channel_id": api_analytics.get("channel_id", ""),
+            }
+
+        # Fallback to database-only if API fails
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute(
             """
             SELECT 
@@ -2859,7 +2938,6 @@ def get_youtube_analytics():
         )
         stats = cursor.fetchone()
 
-        # Get recent videos (last 30 days)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
         cursor.execute(
             """
@@ -2878,8 +2956,7 @@ def get_youtube_analytics():
             (thirty_days_ago, thirty_days_ago),
         )
         recent_videos = cursor.fetchall()
-        
-        # Get videos by playlist
+
         cursor.execute(
             """
             SELECT 
@@ -2893,10 +2970,8 @@ def get_youtube_analytics():
         """
         )
         playlists = cursor.fetchall()
-
         conn.close()
 
-        # Build analytics response from database
         analytics_data = {
             "source": "database",
             "total_videos": stats["total_videos"] if stats else 0,
@@ -2912,7 +2987,7 @@ def get_youtube_analytics():
                         "published_at": v["published_at"],
                         "playlist": v["playlist_name"],
                         "privacy": v["privacy_status"],
-                        "type": v["video_type"]
+                        "type": v["video_type"],
                     }
                     for v in recent_videos
                 ]
@@ -2920,20 +2995,18 @@ def get_youtube_analytics():
                 else []
             ),
             "playlists": (
-                [
-                    {
-                        "name": p["playlist_name"],
-                        "count": p["count"]
-                    }
-                    for p in playlists
-                ]
+                [{"name": p["playlist_name"], "count": p["count"]} for p in playlists]
                 if playlists
                 else []
             ),
-            "note": "Data from local database. Sync from YouTube to update.",
+            "api_error": (
+                api_analytics.get("error")
+                if api_analytics
+                else "YouTube Analytics API not available"
+            ),
+            "note": "Using database stats. Enable YouTube Analytics API for detailed metrics.",
         }
 
-        # If no videos in database, show helpful message
         if stats and stats["total_videos"] == 0:
             analytics_data["message"] = (
                 "No videos in database. Go to Shorts page to sync from YouTube."
@@ -2942,11 +3015,11 @@ def get_youtube_analytics():
         return analytics_data
 
     except Exception as e:
-        app.logger.error(f"Error getting YouTube analytics from database: {e}")
+        app.logger.error(f"Error getting YouTube analytics: {e}")
         return {
             "error": "Unable to fetch analytics",
             "details": str(e),
-            "suggestion": "Make sure the database is accessible and videos are synced from YouTube.",
+            "suggestion": "Make sure YouTube API is configured and videos are synced.",
         }
 
 
