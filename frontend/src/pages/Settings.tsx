@@ -28,7 +28,6 @@ interface StatusData {
 }
 
 export default function Settings() {
-
   const { data: statusData, isLoading } = useQuery<StatusData>({
     queryKey: ['platform-status'],
     queryFn: async () => {
@@ -39,29 +38,50 @@ export default function Settings() {
 
   const handleConnectClick = (platform: string) => {
     if (platform === 'youtube') {
-      // YouTube uses OAuth flow - redirect to config page
-      // Use window.location.replace to ensure full page reload (bypasses React Router)
-      window.location.replace('/config#social-media-connections')
-    } else if (platform === 'linkedin') {
-      // Check if LinkedIn is configured first
-      const linkedinStatus = statusData?.linkedin
-      if (!linkedinStatus?.configured) {
-        // Not configured - redirect to config page
-        alert('⚠️ LinkedIn Client ID and Secret must be configured first!\n\nPlease go to Settings → API Keys and enter your LinkedIn credentials.')
-        window.location.replace('/config#social-media-connections')
+      // YouTube uses client_secret.json file upload
+      // Open a dialog or file upload interface
+      const youtubeStatus = statusData?.youtube
+      if (youtubeStatus?.configured && youtubeStatus?.authenticated) {
+        alert('✅ YouTube is already connected and authenticated!')
         return
       }
-      // LinkedIn OAuth - use full page navigation to ensure redirect works
-      // This will redirect to LinkedIn OAuth page, then back to callback
+      
+      if (!youtubeStatus?.configured) {
+        alert('⚠️ YouTube client_secret.json not found.\n\nPlease:\n1. Go to Google Cloud Console\n2. Create OAuth 2.0 credentials\n3. Download client_secret.json\n4. Upload it in the Settings')
+        return
+      }
+      
+      // If configured but not authenticated, show auth link
+      alert('✅ client_secret.json is set up.\n\nClick OK to authenticate with your Google account.')
+      window.location.replace('/settings#youtube-auth')
+    } else if (platform === 'linkedin') {
+      const linkedinStatus = statusData?.linkedin
+      if (!linkedinStatus?.configured) {
+        alert('⚠️ LinkedIn Client ID and Secret must be configured first!\n\nPlease go to Settings → API Keys and enter your LinkedIn credentials.')
+        window.location.replace('/settings#social-media-connections')
+        return
+      }
       window.location.replace('/api/linkedin/oauth/authorize')
     } else if (platform === 'facebook' || platform === 'instagram') {
-      // Facebook/Instagram - open helper page in new tab and navigate to config
-      // The helper page provides step-by-step instructions for getting tokens
-      const helperUrl = '/facebook-token-helper'
-      window.open(helperUrl, '_blank')
-      // Navigate to config page where user can enter the tokens
-      setTimeout(() => {
-        window.location.href = '/config#social-media-connections'
+      // Open OAuth popup for Facebook/Instagram
+      const popupUrl = '/api/facebook/oauth/start-auto'
+      const popup = window.open(popupUrl, 'facebook-connect', 'width=500,height=700,scrollbars=yes,resizable=yes')
+      
+      // Check if popup was blocked
+      if (!popup) {
+        alert('⚠️ Popup was blocked! Please allow popups for this site and try again.')
+        return
+      }
+
+      // Listen for popup close and refresh status
+      const checkPopupInterval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopupInterval)
+          // Refresh the page to show updated status
+          setTimeout(() => {
+            window.location.reload()
+          }, 500)
+        }
       }, 500)
     }
   }
@@ -171,7 +191,7 @@ export default function Settings() {
             </p>
           </div>
           <button
-            onClick={() => window.location.replace('/config')}
+            onClick={() => window.location.replace('/settings')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <ExternalLink className="w-4 h-4" />
@@ -256,12 +276,78 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Additional Settings Info */}
+      {/* YouTube Client Secret Upload */}
+      <div className="bg-card border border-border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Youtube className="w-5 h-5" />
+          YouTube Setup
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          YouTube requires a client_secret.json file for authentication. Download it from Google Cloud Console.
+        </p>
+        
+        <div className="space-y-3">
+          <div className="p-4 border border-border rounded-lg bg-accent/50">
+            <h3 className="font-medium mb-2">Step 1: Get client_secret.json</h3>
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console</a></li>
+              <li>Create a new project or select existing one</li>
+              <li>Enable YouTube Data API v3</li>
+              <li>Go to Credentials → Create OAuth 2.0 Client ID (Desktop application)</li>
+              <li>Download the JSON file</li>
+            </ol>
+          </div>
+
+          <div className="p-4 border border-border rounded-lg bg-accent/50">
+            <h3 className="font-medium mb-3">Step 2: Upload client_secret.json</h3>
+            <input 
+              type="file" 
+              accept=".json"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                
+                const formData = new FormData()
+                formData.append('file', file)
+                
+                try {
+                  const response = await fetch('/api/config/upload-client-secret', {
+                    method: 'POST',
+                    body: formData
+                  })
+                  
+                  if (response.ok) {
+                    alert('✅ YouTube client_secret.json uploaded successfully!\n\nPlease refresh the page.')
+                    setTimeout(() => window.location.reload(), 1000)
+                  } else {
+                    const error = await response.json()
+                    alert('❌ Upload failed: ' + error.error)
+                  }
+                } catch (error) {
+                  alert('❌ Upload error: ' + String(error))
+                }
+              }}
+              className="block w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Select your downloaded client_secret.json file
+            </p>
+          </div>
+
+          {statusData?.youtube?.configured && (
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>✅ client_secret.json is configured</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-card border border-border rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-4">Additional Settings</h2>
         <div className="space-y-3">
           <button
-            onClick={() => window.location.replace('/config')}
+            onClick={() => window.location.replace('/settings')}
             className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>
@@ -273,7 +359,7 @@ export default function Settings() {
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
           </button>
           <button
-            onClick={() => window.location.replace('/config#targeting-settings')}
+            onClick={() => window.location.replace('/settings#targeting-settings')}
             className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>
@@ -285,7 +371,7 @@ export default function Settings() {
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
           </button>
           <button
-            onClick={() => window.location.replace('/config#scheduling')}
+            onClick={() => window.location.replace('/settings#scheduling')}
             className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors text-left"
           >
             <div>

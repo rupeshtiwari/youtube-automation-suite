@@ -1,9 +1,10 @@
 """
 Facebook Token Helper - Provides step-by-step instructions for getting Facebook Page Access Token
 """
+
 from flask import Blueprint, render_template_string
 
-facebook_helper_bp = Blueprint('facebook_helper', __name__)
+facebook_helper_bp = Blueprint("facebook_helper", __name__)
 
 FACEBOOK_HELPER_HTML = """
 <!DOCTYPE html>
@@ -197,7 +198,7 @@ GET /{page-id}?fields=instagram_business_account
                 <li><strong>Facebook Page ID:</strong> The ID from step 4</li>
                 <li><strong>Instagram Business Account ID:</strong> The ID from step 6 (if applicable)</li>
             </ul>
-            <a href="/config#social-media-connections" class="button button-secondary">Go to Settings</a>
+            <a href="/settings#social-media-connections" class="button button-secondary">Go to Settings</a>
         </div>
         
         <div class="success">
@@ -236,8 +237,8 @@ GET /{page-id}?fields=instagram_business_account
 </html>
 """
 
-@facebook_helper_bp.route('/facebook-token-helper')
+
+@facebook_helper_bp.route("/facebook-token-helper")
 def facebook_token_helper():
     """Display Facebook token helper page with step-by-step instructions."""
     return render_template_string(FACEBOOK_HELPER_HTML)
-

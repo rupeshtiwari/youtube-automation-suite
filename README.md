@@ -1,53 +1,214 @@
-# YouTube Automation Suite
+# YouTube Automation Suite - Cross-Channel Publishing Platform
 
-A comprehensive Python toolkit for automating YouTube content management and social media distribution. Export playlists, schedule videos, and automatically post to LinkedIn, Facebook, and Instagram.
+> **Publish YouTube shorts to multiple channels at once—just like Buffer.com!**
 
-## 🚀 Features
+A complete automation platform for creating, scheduling, and publishing video shorts across YouTube, Facebook, Instagram, and LinkedIn.
 
-- **Web Interface**: Beautiful web dashboard for configuration and monitoring
-- **Daily Automation**: Automatically run tasks on schedule (configurable)
-- **YouTube Playlist Export**: Export all playlists and videos to Excel with metadata
-- **YouTube Shorts Export**: Specialized export for Shorts playlists with social media post generation
-- **Video Scheduling**: Automatically reschedule all videos in a playlist to publish on specific days/times
-- **Social Media Integration**: Auto-generate and post content to LinkedIn, Facebook, and Instagram
-- **Smart Content Analysis**: Automatically derive video type (leadership/sys design) and role (dir/mgr/vp/sa)
-- **Excel-Based Workflow**: Manage everything through Excel files for easy editing and tracking
-
-## 📋 Prerequisites
-
-- Python 3.8 or higher
-- Google Cloud Console account with YouTube Data API v3 enabled
-- OAuth 2.0 credentials for YouTube API
-- (Optional) Social media API credentials for automated posting
-
-## 🛠️ Installation
-
-### Step 1: Create a Virtual Environment
+## 🚀 Quick Start
 
 ```bash
+# 1. Setup
 python3 -m venv .venv
-```
-
-### Step 2: Activate the Virtual Environment
-
-```bash
 source .venv/bin/activate
-```
-
-Your prompt should now show:
-```text
-(.venv) ➜ youtube-automation
-```
-
-### Step 3: Install Dependencies
-
-```bash
 pip install -r requirements.txt
+
+# 2. Start
+python run.py
+
+# 3. Open
+Visit http://localhost:5001
 ```
 
-### Step 4: Set Up Google OAuth Credentials
+## ✨ What You Can Do
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+- 📱 **Upload shorts** to your library
+- 🎯 **Generate captions** automatically (AI-powered)
+- 📅 **Schedule to multiple channels** - YouTube, Facebook, Instagram, LinkedIn
+- 📊 **Track analytics** - views, engagement, audience insights
+- 🤖 **Automate publishing** - schedule once, publish everywhere
+
+## 📚 Documentation
+
+**Start here based on your needs:**
+
+| I want to...                | Read this                                              |
+| --------------------------- | ------------------------------------------------------ |
+| Learn how to publish shorts | [📖 HOW_TO_PUBLISH_SHORTS.md](HOW_TO_PUBLISH_SHORTS.md) |
+| Setup the app (5 min)       | [🚀 QUICK_START.md](QUICK_START.md)                     |
+| Understand all features     | [📘 README_MAIN.md](README_MAIN.md)                     |
+| Configure OAuth & API keys  | [⚙️ CONFIG_STATUS.md](CONFIG_STATUS.md)                 |
+| Setup on server/NAS         | [🖥️ DEPLOY_NAS.md](DEPLOY_NAS.md)                       |
+
+## 🎯 Core Features
+
+### 1. Upload & Manage
+- Upload short videos (≤60 seconds)
+- Organize by playlists
+- Preview before publishing
+
+### 2. Generate & Edit
+- AI-powered caption generation
+- Edit captions & tags
+- Custom templates
+
+### 3. Schedule Everywhere
+```
+Select Video → Choose Channels → Pick Time → Publish
+```
+Automatically publishes to:
+- ✅ YouTube
+- ✅ Facebook
+- ✅ Instagram
+- ✅ LinkedIn
+
+### 4. Analytics & Insights
+- Views, likes, shares per platform
+- Audience demographics
+- Optimal posting times
+- Content performance trends
+
+### 5. Automation
+- Daily automated publishing
+- Batch scheduling
+- Intelligent retries
+- Activity logging
+
+## 🔗 Supported Platforms
+
+| Platform    | Status         |
+| ----------- | -------------- |
+| 🎬 YouTube   | ✅ Full Support |
+| 📘 Facebook  | ✅ Full Support |
+| 📷 Instagram | ✅ Full Support |
+| 💼 LinkedIn  | ✅ Full Support |
+| 𝕏 Twitter   | 🔜 Coming Soon  |
+
+## 🛠️ Tech Stack
+
+- **Backend**: Python + Flask
+- **Frontend**: React + TypeScript + TailwindCSS
+- **Database**: SQLite
+- **Scheduling**: APScheduler
+- **APIs**: YouTube v3, Facebook Graph, LinkedIn OAuth
+
+## ⚙️ Setup Checklist
+
+- [ ] Install Python 3.8+
+- [ ] Create virtual environment
+- [ ] Install dependencies: `pip install -r requirements.txt`
+- [ ] Start app: `python run.py`
+- [ ] Open http://localhost:5001
+- [ ] Go to Settings ⚙️
+- [ ] Connect YouTube (🎬 Connect)
+- [ ] Connect Facebook (📘 Connect)
+- [ ] Start publishing! 🎉
+
+## 🎓 Example Workflow
+
+```
+1. Upload Video
+   Shorts → Upload → Select file → Save
+
+2. Generate Caption
+   Your Video → Generate Caption → Edit → Save
+
+3. Schedule to Channels
+   Queue → Your Video → ➕ Publish
+   Select: YouTube ✓ Facebook ✓ Instagram
+   Pick time → Schedule Publishing
+
+4. Track Performance
+   Analytics → See views & engagement
+```
+
+Done! Your short publishes automatically to all channels ✨
+
+## 📊 Dashboard Overview
+
+### 📅 Queue
+- All pending, scheduled, published content
+- Real-time status updates
+- One-click publishing
+
+### 🗓️ Calendar
+- Visual timeline of all posts
+- Drag-to-reschedule
+- Multi-platform view
+
+### 🎬 Shorts
+- Upload & manage videos
+- Generate captions
+- Bulk operations
+
+### 📊 Analytics
+- Performance metrics
+- Optimal posting times
+- Audience insights
+
+### ⚙️ Settings
+- Connect channels
+- API configuration
+- Automation rules
+
+## 🐛 Troubleshooting
+
+**Video won't upload?**
+- Check file size (max 128MB)
+- Verify it's a valid video format
+- Ensure audio codec is AAC or MP3
+
+**Publishing failed?**
+- Check internet connection
+- Verify channels are connected in Settings
+- Check if you've hit YouTube quota (6/day)
+
+**Channels not showing?**
+- Go to Settings → Reconnect the platform
+- Refresh page (F5)
+- Clear browser cache
+
+**More help?** See [HOW_TO_PUBLISH_SHORTS.md → Troubleshooting](HOW_TO_PUBLISH_SHORTS.md#-troubleshooting)
+
+## 🎯 Pro Tips
+
+1. **Post at off-peak times** - Less competition, more visibility
+2. **Repurpose content** - Cut one long video into multiple shorts
+3. **Use caption templates** - Save time, keep consistency
+4. **Schedule in batches** - Do a week's worth in one session
+5. **Monitor analytics** - See what works, double down on it
+
+## 📞 Need Help?
+
+1. **Check Docs**: [HOW_TO_PUBLISH_SHORTS.md](HOW_TO_PUBLISH_SHORTS.md) has complete guide + FAQ
+2. **Check Logs**: Terminal shows detailed error messages
+3. **Restart App**: Kill process and start fresh
+4. **Clear Cache**: Browser cache might need clearing
+
+## 📝 License
+
+MIT License - feel free to use and modify!
+
+## 🙋 FAQ
+
+**Q: Is this safe?**  
+A: Yes! Tokens stored locally only, official OAuth used, no data shared.
+
+**Q: Can I run on a server?**  
+A: Yes! Docker & NAS supported. See DEPLOY_NAS.md.
+
+**Q: Upload limits?**  
+A: YouTube: 6/day. Facebook/Instagram/LinkedIn: Unlimited.
+
+**Q: Can I schedule months ahead?**  
+A: Yes! Schedule as far ahead as you want.
+
+---
+
+**Ready to start?** → [📖 HOW_TO_PUBLISH_SHORTS.md](HOW_TO_PUBLISH_SHORTS.md)
+
+*Version 2.0 - Cross-Channel Publishing Release*  
+*Last Updated: January 2026*
+
 2. Create a new project or select an existing one
 3. Enable **YouTube Data API v3**
 4. Go to **APIs & Services** → **Credentials**

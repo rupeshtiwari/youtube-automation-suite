@@ -71,8 +71,8 @@ export default function Sidebar() {
                       // Use React Router navigation for internal routes
                       window.location.href = '/';
                     } else {
-                      // Navigate to settings to manage this channel - use replace to bypass React Router
-                      window.location.replace('/config#social-media-connections');
+                      // Navigate to settings to manage this channel
+                      window.location.href = '/settings';
                     }
                   }}
                   className={cn(
@@ -99,64 +99,17 @@ export default function Sidebar() {
 
           {/* Connect New Channels */}
           <div className="mt-4 space-y-0.5">
-            <a
-              href="/config#social-media-connections"
-              onClick={(e) => {
-                // Force full page reload to bypass React Router
-                e.preventDefault();
-                window.location.href = '/config#social-media-connections';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              title="Connect YouTube account"
-            >
-              <Plus className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Connect YouTube</span>
-            </a>
-            <a
-              href="/api/linkedin/oauth/authorize"
-              onClick={(e) => {
-                // Force full page reload to bypass React Router
-                e.preventDefault();
-                window.location.href = '/api/linkedin/oauth/authorize';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              title="Connect LinkedIn account"
-            >
-              <Plus className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Connect LinkedIn</span>
-            </a>
-            <a
-              href="/facebook-token-helper"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
               onClick={() => {
-                // Open helper in new tab, navigate current tab to config
-                setTimeout(() => {
-                  window.location.href = '/config#social-media-connections';
-                }, 500);
+                // Navigate to Settings page which handles all connections
+                window.location.href = '/settings';
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              title="Connect Facebook account (includes Instagram)"
+              title="Manage all social media connections"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Connect Facebook</span>
-            </a>
-            <a
-              href="/facebook-token-helper"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                // Open helper in new tab, navigate current tab to config
-                setTimeout(() => {
-                  window.location.href = '/config#social-media-connections';
-                }, 500);
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              title="Connect Instagram account (via Facebook)"
-            >
-              <Plus className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Connect Instagram</span>
-            </a>
+              <span className="truncate">Add Channel</span>
+            </button>
           </div>
 
           {channels.length > 5 && (
