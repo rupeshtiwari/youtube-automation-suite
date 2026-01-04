@@ -99,45 +99,41 @@ export default function Sidebar() {
 
           {/* Connect New Channels */}
           <div className="mt-4 space-y-0.5">
-            <button
+            <a
+              href="/config#social-media-connections"
               onClick={(e) => {
+                // Force full page navigation, bypass React Router
                 e.preventDefault();
-                e.stopPropagation();
-                // Force navigation to config page - use assign for better compatibility
-                const url = window.location.origin + '/config#social-media-connections';
-                window.location.assign(url);
+                window.location.href = '/config#social-media-connections';
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect YouTube account"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Connect YouTube</span>
-            </button>
-            <button
+            </a>
+            <a
+              href="/api/linkedin/oauth/authorize"
               onClick={(e) => {
+                // Force full page navigation, bypass React Router
                 e.preventDefault();
-                e.stopPropagation();
-                // Force navigation to LinkedIn OAuth - use assign for better compatibility
-                const url = window.location.origin + '/api/linkedin/oauth/authorize';
-                window.location.assign(url);
+                window.location.href = '/api/linkedin/oauth/authorize';
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               title="Connect LinkedIn account"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Connect LinkedIn</span>
-            </button>
-            <button
+            </a>
+            <a
+              href="/facebook-token-helper"
               onClick={(e) => {
                 e.preventDefault();
-                e.stopPropagation();
                 // Open Facebook token helper in new tab
-                const helperUrl = window.location.origin + '/facebook-token-helper';
-                window.open(helperUrl, '_blank');
+                window.open('/facebook-token-helper', '_blank');
                 // Navigate to config page
-                const configUrl = window.location.origin + '/config#social-media-connections';
                 setTimeout(() => {
-                  window.location.assign(configUrl);
+                  window.location.href = '/config#social-media-connections';
                 }, 500);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -145,18 +141,16 @@ export default function Sidebar() {
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Connect Facebook</span>
-            </button>
-            <button
+            </a>
+            <a
+              href="/facebook-token-helper"
               onClick={(e) => {
                 e.preventDefault();
-                e.stopPropagation();
                 // Instagram uses Facebook OAuth, open helper page
-                const helperUrl = window.location.origin + '/facebook-token-helper';
-                window.open(helperUrl, '_blank');
+                window.open('/facebook-token-helper', '_blank');
                 // Navigate to config page
-                const configUrl = window.location.origin + '/config#social-media-connections';
                 setTimeout(() => {
-                  window.location.assign(configUrl);
+                  window.location.href = '/config#social-media-connections';
                 }, 500);
               }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -164,7 +158,7 @@ export default function Sidebar() {
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Connect Instagram</span>
-            </button>
+            </a>
           </div>
 
           {channels.length > 5 && (
