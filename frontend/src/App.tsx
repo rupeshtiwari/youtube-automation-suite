@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Sessions from './pages/Sessions'
-import Shorts from './pages/Shorts'
+import ShortsNew from './pages/ShortsNew'
 import Calendar from './pages/Calendar'
 import ContentPreview from './pages/ContentPreview'
 import Insights from './pages/Insights'
@@ -15,7 +15,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
-        <Route path="/shorts" element={<Shorts />} />
+        <Route path="/shorts" element={<ShortsNew />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/content-preview" element={<ContentPreview />} />
         <Route path="/insights" element={<Insights />} />
