@@ -2698,12 +2698,18 @@ def insights():
 def insights_data():
     """API endpoint for insights data - used by React app."""
     try:
-        # Get YouTube Analytics if available (with error handling)
+        # Get YouTube Analytics from database (always works)
         try:
             youtube_analytics = get_youtube_analytics()
         except Exception as e:
             app.logger.error(f"Error getting YouTube analytics: {e}")
-            youtube_analytics = {"error": f"YouTube Analytics error: {str(e)}"}
+            youtube_analytics = {
+                "error": "Unable to fetch analytics",
+                "total_videos": 0,
+                "total_views": 0,
+                "total_likes": 0,
+                "message": "Go to Shorts page to sync videos from YouTube",
+            }
 
         # Get Facebook Insights if available (with error handling)
         try:
@@ -2828,7 +2834,124 @@ def insights_data():
 
 
 def get_youtube_analytics():
-    """Get YouTube Analytics data."""
+    """Get YouTube Analytics data from database and optionally from YouTube Analytics API."""
+    from app.database import get_db_connection
+    from datetime import datetime, timedelta
+    import pytz
+
+    try:
+        # First, get data from database (this always works)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get video statistics from database
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_videos,
+                COUNT(CASE WHEN privacy_status = 'public' THEN 1 END) as public_videos,
+                COUNT(CASE WHEN privacy_status = 'unlisted' THEN 1 END) as unlisted_videos,
+                COUNT(CASE WHEN privacy_status = 'private' THEN 1 END) as private_videos,
+                COUNT(DISTINCT playlist_name) as total_playlists
+            FROM videos
+            WHERE video_id IS NOT NULL
+        """
+        )
+        stats = cursor.fetchone()
+
+        # Get recent videos (last 30 days)
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+        cursor.execute(
+            """
+            SELECT 
+                video_id,
+                title,
+                youtube_published_date as published_at,
+                playlist_name,
+                privacy_status,
+                video_type
+            FROM videos
+            WHERE youtube_published_date >= ? OR youtube_schedule_date >= ?
+            ORDER BY COALESCE(youtube_schedule_date, youtube_published_date) DESC
+            LIMIT 10
+        """,
+            (thirty_days_ago, thirty_days_ago),
+        )
+        recent_videos = cursor.fetchall()
+        
+        # Get videos by playlist
+        cursor.execute(
+            """
+            SELECT 
+                playlist_name,
+                COUNT(*) as count
+            FROM videos
+            WHERE playlist_name IS NOT NULL AND playlist_name != ''
+            GROUP BY playlist_name
+            ORDER BY count DESC
+            LIMIT 10
+        """
+        )
+        playlists = cursor.fetchall()
+
+        conn.close()
+
+        # Build analytics response from database
+        analytics_data = {
+            "source": "database",
+            "total_videos": stats["total_videos"] if stats else 0,
+            "public_videos": stats["public_videos"] if stats else 0,
+            "unlisted_videos": stats["unlisted_videos"] if stats else 0,
+            "private_videos": stats["private_videos"] if stats else 0,
+            "total_playlists": stats["total_playlists"] if stats else 0,
+            "recent_videos": (
+                [
+                    {
+                        "video_id": v["video_id"],
+                        "title": v["title"],
+                        "published_at": v["published_at"],
+                        "playlist": v["playlist_name"],
+                        "privacy": v["privacy_status"],
+                        "type": v["video_type"]
+                    }
+                    for v in recent_videos
+                ]
+                if recent_videos
+                else []
+            ),
+            "playlists": (
+                [
+                    {
+                        "name": p["playlist_name"],
+                        "count": p["count"]
+                    }
+                    for p in playlists
+                ]
+                if playlists
+                else []
+            ),
+            "note": "Data from local database. Sync from YouTube to update.",
+        }
+
+        # If no videos in database, show helpful message
+        if stats and stats["total_videos"] == 0:
+            analytics_data["message"] = (
+                "No videos in database. Go to Shorts page to sync from YouTube."
+            )
+
+        return analytics_data
+
+    except Exception as e:
+        app.logger.error(f"Error getting YouTube analytics from database: {e}")
+        return {
+            "error": "Unable to fetch analytics",
+            "details": str(e),
+            "suggestion": "Make sure the database is accessible and videos are synced from YouTube.",
+        }
+
+
+def get_youtube_analytics_from_api():
+    """Get YouTube Analytics data from YouTube Analytics API (optional, requires setup)."""
     try:
         youtube = get_youtube_service()
         if not youtube:
@@ -2840,7 +2963,9 @@ def get_youtube_analytics():
         import os
 
         SCOPES_ANALYTICS = ["https://www.googleapis.com/auth/yt-analytics.readonly"]
-        TOKEN_FILE = "token.json"
+        TOKEN_FILE = os.path.join(
+            os.path.dirname(__file__), "..", "config", "token.json"
+        )
 
         creds = None
         if os.path.exists(TOKEN_FILE):
@@ -2949,7 +3074,88 @@ def get_youtube_analytics():
 
 
 def get_facebook_insights():
-    """Get Facebook Page Insights."""
+    """Get Facebook Page Insights from database and optionally from Facebook API."""
+    from app.database import get_db_connection
+
+    try:
+        # Get stats from database first (always works)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_posts,
+                COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+            FROM social_media_posts
+            WHERE platform = 'facebook'
+        """
+        )
+        stats = cursor.fetchone()
+
+        # Get recent posts
+        cursor.execute(
+            """
+            SELECT 
+                video_id,
+                post_content,
+                status,
+                schedule_date,
+                created_at
+            FROM social_media_posts
+            WHERE platform = 'facebook'
+            ORDER BY created_at DESC
+            LIMIT 10
+        """
+        )
+        recent_posts = cursor.fetchall()
+
+        conn.close()
+
+        facebook_data = {
+            "source": "database",
+            "total_posts": stats["total_posts"] if stats else 0,
+            "published": stats["published"] if stats else 0,
+            "scheduled": stats["scheduled"] if stats else 0,
+            "pending": stats["pending"] if stats else 0,
+            "recent_posts": (
+                [
+                    {
+                        "video_id": p["video_id"],
+                        "content": p["post_content"][:100] if p["post_content"] else "",
+                        "status": p["status"],
+                        "schedule_date": p["schedule_date"],
+                    }
+                    for p in recent_posts
+                ]
+                if recent_posts
+                else []
+            ),
+            "note": "Data from local database. Configure Facebook API for live insights.",
+        }
+
+        if stats and stats["total_posts"] == 0:
+            facebook_data["message"] = (
+                "No Facebook posts yet. Schedule posts from Shorts page."
+            )
+
+        return facebook_data
+
+    except Exception as e:
+        app.logger.error(f"Error getting Facebook insights from database: {e}")
+        return {
+            "error": "Unable to fetch Facebook insights",
+            "total_posts": 0,
+            "published": 0,
+            "scheduled": 0,
+            "suggestion": "Schedule posts to Facebook from the Shorts page.",
+        }
+
+
+def get_facebook_insights_from_api():
+    """Get Facebook Page Insights from Facebook API (optional, requires access token)."""
     try:
         settings = load_settings()
         api_keys = settings.get("api_keys", {})
@@ -3047,32 +3253,84 @@ def get_facebook_insights():
 
 
 def get_linkedin_analytics():
-    """Get LinkedIn Analytics data."""
+    """Get LinkedIn Analytics from database."""
+    from app.database import get_db_connection
+
     try:
-        settings = load_settings()
-        api_keys = settings.get("api_keys", {})
-        access_token = api_keys.get("linkedin_access_token", "")
+        # Get stats from database
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        if not access_token:
-            return {"error": "LinkedIn credentials not configured"}
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_posts,
+                COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+            FROM social_media_posts
+            WHERE platform = 'linkedin'
+        """
+        )
+        stats = cursor.fetchone()
 
-        import requests
+        # Get recent posts
+        cursor.execute(
+            """
+            SELECT 
+                video_id,
+                post_content,
+                status,
+                schedule_date,
+                created_at
+            FROM social_media_posts
+            WHERE platform = 'linkedin'
+            ORDER BY created_at DESC
+            LIMIT 10
+        """
+        )
+        recent_posts = cursor.fetchall()
 
-        # LinkedIn Analytics API endpoint
-        url = "https://api.linkedin.com/v2/analytics"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
+        conn.close()
+
+        linkedin_data = {
+            "source": "database",
+            "total_posts": stats["total_posts"] if stats else 0,
+            "published": stats["published"] if stats else 0,
+            "scheduled": stats["scheduled"] if stats else 0,
+            "pending": stats["pending"] if stats else 0,
+            "recent_posts": (
+                [
+                    {
+                        "video_id": p["video_id"],
+                        "content": p["post_content"][:100] if p["post_content"] else "",
+                        "status": p["status"],
+                        "schedule_date": p["schedule_date"],
+                    }
+                    for p in recent_posts
+                ]
+                if recent_posts
+                else []
+            ),
+            "note": "Data from local database. Configure LinkedIn API for live insights.",
         }
 
-        # Note: LinkedIn Analytics API requires specific permissions
-        # This is a placeholder - actual implementation depends on LinkedIn API version
-        return {
-            "note": "LinkedIn Analytics requires specific API access",
-            "error": "Not fully implemented",
-        }
+        if stats and stats["total_posts"] == 0:
+            linkedin_data["message"] = (
+                "No LinkedIn posts yet. Schedule posts from Shorts page."
+            )
+
+        return linkedin_data
+
     except Exception as e:
-        return {"error": f"Error getting LinkedIn Analytics: {str(e)}"}
+        app.logger.error(f"Error getting LinkedIn analytics from database: {e}")
+        return {
+            "error": "Unable to fetch LinkedIn analytics",
+            "total_posts": 0,
+            "published": 0,
+            "scheduled": 0,
+            "suggestion": "Schedule posts to LinkedIn from the Shorts page.",
+        }
 
 
 def calculate_optimal_posting_times(youtube_data, facebook_data, linkedin_data):
