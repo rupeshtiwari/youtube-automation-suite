@@ -327,7 +327,7 @@ def internal_error(error):
     try:
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
-        return render_template('dashboard.html', settings=load_settings())
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500)
     except:
         return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
 
@@ -344,7 +344,7 @@ def handle_exception(e):
     try:
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
-        return render_template('dashboard.html', settings=load_settings())
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500)
     except:
         return "<html><body><h1>Error</h1><p>An error occurred. Please refresh the page.</p></body></html>", 500
 
@@ -998,12 +998,12 @@ def index():
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
         # Fallback to old template if React build doesn't exist
         settings = load_settings()
-        return render_template('dashboard.html', settings=settings)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in index route: {e}", exc_info=True)
         # Return a simple error page instead of crashing
         try:
-            return render_template('dashboard.html', settings={})
+            return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
         except:
             return f"<html><body><h1>Error loading page</h1><p>{str(e)}</p></body></html>", 500
 
@@ -1013,7 +1013,7 @@ def index():
 def documentation():
     """Documentation page."""
     try:
-        return render_template('documentation.html')
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error loading documentation: {e}", exc_info=True)
         return f"<html><body><h1>Documentation</h1><p>Error loading documentation: {str(e)}</p></body></html>", 500
@@ -1420,7 +1420,7 @@ def playlists():
             playlist["videosLoaded"] = False
         
         # Add cache control headers to prevent browser caching
-        response = make_response(render_template('playlists.html', playlists=playlists_data, channel_title=channel_title))
+        response = make_response(jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -1597,7 +1597,7 @@ def shorts():
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
         # Fallback to Flask template if React build doesn't exist
-        return render_template('shorts.html', playlists=[], total_videos=0, total_youtube=0, total_other_platforms=0, total_not_scheduled=0, weekly_schedule='23:00', schedule_day='wednesday')
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in shorts route: {e}", exc_info=True)
         return render_template('error.html', message=f"Error loading Shorts page: {str(e)}")
@@ -1630,11 +1630,11 @@ def sessions():
         # Sort by modified date (newest first)
         sessions_list.sort(key=lambda x: x['modified'], reverse=True)
         
-        return render_template('sessions.html', sessions=sessions_list)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in sessions route: {e}", exc_info=True)
         # Return empty sessions list on error instead of crashing
-        return render_template('sessions.html', sessions=[])
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
 
 
 @app.route('/api/sessions')
@@ -2194,7 +2194,7 @@ def insights():
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
         # Fallback to Flask template if React build doesn't exist
-        return render_template('insights.html', insights={})
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in insights route: {e}", exc_info=True)
         return render_template('error.html', message=f"Error loading insights: {str(e)}")
@@ -2242,7 +2242,7 @@ def insights_data():
             return jsonify(insights_data)
         
         # Return template for direct access
-        return render_template('insights.html', insights=insights_data)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         import traceback
         app.logger.error(f"Error loading insights: {e}", exc_info=True)
@@ -2509,11 +2509,11 @@ def activity():
         # Get activity logs (last 200 by default)
         logs = get_activity_logs(limit=200)
         
-        return render_template('activity.html', logs=logs)
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in activity route: {e}", exc_info=True)
         # Return empty logs on error instead of crashing
-        return render_template('activity.html', logs=[])
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
 
 
 @app.route('/api/activity/<int:activity_id>')
@@ -2827,7 +2827,7 @@ def content_preview():
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
         # Fallback to Flask template if React build doesn't exist
-        return render_template('content_preview.html', playlists=[])
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in content_preview route: {e}", exc_info=True)
         return render_template('error.html', message=f"Error loading content preview: {str(e)}")
@@ -3485,7 +3485,7 @@ def calendar():
         if os.path.exists(FRONTEND_BUILD_DIR) and os.path.exists(os.path.join(FRONTEND_BUILD_DIR, 'index.html')):
             return send_from_directory(FRONTEND_BUILD_DIR, 'index.html')
         # Fallback to Flask template if React build doesn't exist
-        return render_template('calendar.html')
+        return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
     except Exception as e:
         app.logger.error(f"Error in calendar route: {e}", exc_info=True)
         return f"<html><body><h1>Error loading calendar</h1><p>{str(e)}</p></body></html>", 500
@@ -3494,7 +3494,7 @@ def calendar():
 @app.route('/content')
 def content():
     """Content management page - view and schedule videos across all channels."""
-    return render_template('content.html')
+    return jsonify({'error': 'React build not found. Please run: cd frontend && npm run build'}), 500
 
 
 @app.route('/api/content/videos')
