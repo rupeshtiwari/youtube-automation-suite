@@ -1896,9 +1896,7 @@ def api_submit_session():
 @app.route('/api/sessions/<filename>')
 def api_get_session(filename):
     """Get content of a session file."""
-    import os
     from pathlib import Path
-    from flask import safe_join
     
     # Security: prevent directory traversal
     if '..' in filename or '/' in filename or '\\' in filename:
