@@ -101,7 +101,12 @@ export default function Sidebar() {
           <div className="mt-4 space-y-0.5">
             <a
               href="/config#social-media-connections"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              onClick={(e) => {
+                // Force full page reload to bypass React Router
+                e.preventDefault();
+                window.location.href = '/config#social-media-connections';
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
               title="Connect YouTube account"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
@@ -109,7 +114,12 @@ export default function Sidebar() {
             </a>
             <a
               href="/api/linkedin/oauth/authorize"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              onClick={(e) => {
+                // Force full page reload to bypass React Router
+                e.preventDefault();
+                window.location.href = '/api/linkedin/oauth/authorize';
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
               title="Connect LinkedIn account"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
@@ -119,13 +129,13 @@ export default function Sidebar() {
               href="/facebook-token-helper"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => {
-                // Also navigate to config page after opening helper
+              onClick={(e) => {
+                // Open helper in new tab, navigate current tab to config
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
                 }, 500);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
               title="Connect Facebook account (includes Instagram)"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
@@ -135,13 +145,13 @@ export default function Sidebar() {
               href="/facebook-token-helper"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => {
-                // Also navigate to config page after opening helper
+              onClick={(e) => {
+                // Open helper in new tab, navigate current tab to config
                 setTimeout(() => {
                   window.location.href = '/config#social-media-connections';
                 }, 500);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
               title="Connect Instagram account (via Facebook)"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
