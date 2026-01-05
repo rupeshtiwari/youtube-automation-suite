@@ -1775,13 +1775,99 @@ def playlists():
         )
 
 
+def get_shorts_from_database():
+    """Get all shorts from database with cross-platform status."""
+    from app.database import get_db_connection
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Get all videos from database
+        cursor.execute(
+            """
+            SELECT 
+                v.video_id,
+                v.title,
+                v.playlist_name,
+                v.description,
+                v.privacy_status,
+                v.youtube_published_date,
+                v.youtube_schedule_date,
+                v.playlist_id,
+                v.youtube_url,
+                v.video_type,
+                v.role
+            FROM videos v
+            ORDER BY v.youtube_published_date DESC, v.youtube_schedule_date DESC
+        """
+        )
+
+        videos_data = cursor.fetchall()
+        videos = []
+
+        for video in videos_data:
+            video_id = video[0]
+
+            # Get social media posts for this video
+            cursor.execute(
+                """
+                SELECT platform, status, schedule_date, post_content
+                FROM social_media_posts
+                WHERE video_id = ?
+            """,
+                (video_id,),
+            )
+
+            posts = cursor.fetchall()
+
+            # Build platforms status
+            platforms = {
+                "youtube": video[4] == "public"
+                or video[5] is not None,  # privacy_status or published_date
+                "facebook": False,
+                "instagram": False,
+                "linkedin": False,
+            }
+
+            for post in posts:
+                platform = post[0].lower()
+                if platform in platforms and post[1] in ("scheduled", "published"):
+                    platforms[platform] = True
+
+            videos.append(
+                {
+                    "video_id": video_id,
+                    "title": video[1],
+                    "playlist_name": video[2],
+                    "description": video[3],
+                    "privacy_status": video[4],
+                    "youtube_published_date": video[5],
+                    "youtube_schedule_date": video[6],
+                    "playlist_id": video[7],
+                    "youtube_url": video[8],
+                    "video_type": video[9],
+                    "role": video[10],
+                    "platforms": platforms,
+                }
+            )
+
+        conn.close()
+        return jsonify({"videos": videos})
+
+    except Exception as e:
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/shorts")
 def api_shorts():
     """API endpoint for Shorts data with role/type tagging and filtering."""
     try:
         youtube = get_youtube_service()
         if not youtube:
-            return jsonify({"error": "YouTube API not configured"}), 400
+            # Return database fallback instead of error
+            return get_shorts_from_database()
 
         # Get filter parameters
         role_filter = request.args.get("role", "").strip()
@@ -4565,6 +4651,91 @@ def api_schedule_post():
             ),
             500,
         )
+
+
+@app.route("/api/schedule-to-platform", methods=["POST"])
+def api_schedule_to_platform():
+    """Quick schedule a video to a platform (Buffer.com style)."""
+    try:
+        from app.database import insert_or_update_social_post, log_activity, get_video
+        from datetime import datetime, timedelta
+
+        data = request.json or {}
+        video_id = data.get("video_id")
+        platform = data.get("platform", "").lower()
+
+        if not video_id or not platform:
+            return (
+                jsonify({"success": False, "error": "Missing video_id or platform"}),
+                400,
+            )
+
+        # Get video details from database
+        video = get_video(video_id)
+        if not video:
+            return jsonify({"success": False, "error": "Video not found"}), 404
+
+        # Auto-generate post content
+        video_title = video.get("title", "Check out this video!")
+        youtube_url = video.get("youtube_url", f"https://youtube.com/shorts/{video_id}")
+
+        # Platform-specific post content
+        if platform == "facebook":
+            post_content = (
+                f"{video_title}\n\n🎥 Watch here: {youtube_url}\n\n#Shorts #Video"
+            )
+        elif platform == "instagram":
+            post_content = f"{video_title}\n\n🔗 Link in bio\n\n#Shorts #Reels #Video"
+        elif platform == "linkedin":
+            post_content = f"{video_title}\n\nWatch the full video: {youtube_url}\n\n#ProfessionalDevelopment #Learning"
+        else:
+            post_content = f"{video_title}\n\n{youtube_url}"
+
+        # Schedule for tomorrow at 2 PM
+        tomorrow = datetime.now() + timedelta(days=1)
+        schedule_datetime = tomorrow.replace(hour=14, minute=0, second=0, microsecond=0)
+        schedule_str = schedule_datetime.strftime("%Y-%m-%d %H:%M")
+
+        # Save to database
+        insert_or_update_social_post(
+            video_id,
+            platform,
+            {
+                "post_content": post_content,
+                "schedule_date": schedule_str,
+                "status": "scheduled",
+            },
+        )
+
+        # Log activity
+        log_activity(
+            "quick_schedule",
+            platform=platform,
+            video_id=video_id,
+            status="success",
+            message=f"Quick scheduled on {platform} for {schedule_str}",
+            details={
+                "schedule_date": schedule_str,
+                "auto_generated": True,
+            },
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Scheduled to {platform} for {schedule_str}",
+                "schedule_date": schedule_str,
+                "post_content": post_content,
+            }
+        )
+
+    except Exception as e:
+        import traceback
+
+        app.logger.error(
+            f"Error in api_schedule_to_platform: {e}\n{traceback.format_exc()}"
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/playlist/<playlist_id>/videos")
