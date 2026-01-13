@@ -30,7 +30,7 @@ const navItems = [
   { path: '/course-manager', icon: BookOpen, label: 'Course Manager', section: 'audio', isFlask: false },
   
   // YouTube Section
-  { path: '/shorts', icon: PlaySquare, label: 'Shorts', section: 'youtube', isFlask: false },
+  { path: '/shorts-library', icon: PlaySquare, label: 'Shorts', section: 'youtube', isFlask: false },
   { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
   { path: '/video-upload', icon: Plus, label: 'Upload Video', section: 'youtube', isFlask: false },
   
@@ -173,24 +173,6 @@ export default function Sidebar() {
               </div>
             </div>
           </nav>
-        </div>
-
-        {/* Shorts Library Link */}
-        <div className="border-b border-border p-4">
-          <NavLink
-            to="/shorts-library"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              )
-            }
-          >
-            <Video className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">Shorts Library</span>
-          </NavLink>
         </div>
 
         {/* Shorts Playlists Section */}
