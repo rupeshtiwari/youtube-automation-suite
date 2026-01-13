@@ -27,12 +27,10 @@ const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Queue', section: 'top', isFlask: false },
   
   // Audio Section
-  { section: 'audio', label: 'Audio' },
   { path: '/audio-generator', icon: Mic, label: 'Audio Generator', section: 'audio', isFlask: false },
   { path: '/audio-library', icon: Mic, label: 'Audio Library', section: 'audio', isFlask: false },
   
   // YouTube Section
-  { section: 'youtube', label: 'YouTube' },
   { path: '/shorts', icon: Video, label: 'Shorts', section: 'youtube', isFlask: false },
   { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
   
@@ -210,11 +208,11 @@ export default function Sidebar() {
             {/* Queue at top */}
             <div className="space-y-0.5">
               {navItems.filter(item => item.section === 'top').map((item) => {
-                const Icon = item.icon;
+                const Icon = item.icon!;
                 return (
                   <NavLink
-                    key={item.path}
-                    to={item.path}
+                    key={item.path!}
+                    to={item.path!}
                     className={({ isActive }) =>
                       cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -235,12 +233,12 @@ export default function Sidebar() {
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Audio</h3>
               <div className="space-y-0.5">
-                {navItems.filter(item => item.section === 'audio' && item.path).map((item) => {
-                  const Icon = item.icon;
+                {navItems.filter(item => item.section === 'audio').map((item) => {
+                  const Icon = item.icon!;
                   return (
                     <NavLink
-                      key={item.path}
-                      to={item.path}
+                      key={item.path!}
+                      to={item.path!}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -262,12 +260,12 @@ export default function Sidebar() {
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">YouTube</h3>
               <div className="space-y-0.5">
-                {navItems.filter(item => item.section === 'youtube' && item.path).map((item) => {
-                  const Icon = item.icon;
+                {navItems.filter(item => item.section === 'youtube').map((item) => {
+                  const Icon = item.icon!;
                   return (
                     <NavLink
-                      key={item.path}
-                      to={item.path}
+                      key={item.path!}
+                      to={item.path!}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -289,12 +287,12 @@ export default function Sidebar() {
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Other</h3>
               <div className="space-y-0.5">
-                {navItems.filter(item => item.section === 'other' && item.path).map((item) => {
-                  const Icon = item.icon;
+                {navItems.filter(item => item.section === 'other').map((item) => {
+                  const Icon = item.icon!;
                   return (
                     <NavLink
-                      key={item.path}
-                      to={item.path}
+                      key={item.path!}
+                      to={item.path!}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
