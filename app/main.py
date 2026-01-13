@@ -2543,44 +2543,46 @@ def api_shorts_library():
     """API endpoint to fetch downloaded shorts from disk."""
     try:
         import os
+
+        # Use the data/shorts_downloads folder relative to project root
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        shorts_download_dir = os.path.join(project_root, 'data', 'shorts_downloads')
         
-        shorts_download_dir = os.path.join(UPLOAD_FOLDER, 'shorts_downloads')
         if not os.path.exists(shorts_download_dir):
             return jsonify({"folders": [], "total_videos": 0}), 200
-        
+
         folders = []
         total_videos = 0
-        
+
         # Scan all folders in shorts_downloads
         for folder_name in os.listdir(shorts_download_dir):
             folder_path = os.path.join(shorts_download_dir, folder_name)
             if not os.path.isdir(folder_path):
                 continue
-            
+
             # Count video files in this folder
             video_count = 0
-            video_extensions = ('.mp4', '.mkv', '.webm', '.mov', '.avi')
-            
+            video_extensions = (".mp4", ".mkv", ".webm", ".mov", ".avi")
+
             for file_name in os.listdir(folder_path):
                 if file_name.lower().endswith(video_extensions):
                     video_count += 1
-            
+
             if video_count > 0:
-                folders.append({
-                    'name': folder_name,
-                    'count': video_count,
-                    'path': os.path.relpath(folder_path, UPLOAD_FOLDER)
-                })
+                folders.append(
+                    {
+                        "name": folder_name,
+                        "count": video_count,
+                        "path": os.path.join('data', 'shorts_downloads', folder_name),
+                    }
+                )
                 total_videos += video_count
-        
+
         # Sort folders by name
-        folders.sort(key=lambda x: x['name'])
-        
-        return jsonify({
-            "folders": folders,
-            "total_videos": total_videos
-        }), 200
-    
+        folders.sort(key=lambda x: x["name"])
+
+        return jsonify({"folders": folders, "total_videos": total_videos}), 200
+
     except Exception as e:
         app.logger.error(f"Error in api_shorts_library: {str(e)}")
         return jsonify({"folders": [], "total_videos": 0}), 200
