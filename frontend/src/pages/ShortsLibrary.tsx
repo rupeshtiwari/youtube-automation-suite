@@ -26,7 +26,7 @@ export default function ShortsLibrary() {
   const { data, isLoading, error } = useQuery<ShortsLibraryData>({
     queryKey: ['shorts-library'],
     queryFn: async () => {
-      const response = await api.get('/api/shorts-library')
+      const response = await api.get('/shorts-library')
       return response.data
     },
   })

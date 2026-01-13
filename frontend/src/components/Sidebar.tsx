@@ -84,124 +84,10 @@ export default function Sidebar() {
         </h1>
       </div>
 
-      {/* Channels Section - Buffer Style */}
+      {/* Navigation and Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">
-            Channels
-          </h3>
-          <div className="space-y-0.5">
-            {channels.map((channel) => {
-              const Icon = channel.icon;
-              return (
-                <button
-                  key={channel.id}
-                  onClick={() => {
-                    // Filter view by channel - for now just navigate to dashboard
-                    // In future, this could filter the queue/content by channel
-                    if (channel.id === 'all') {
-                      // Use React Router navigation for internal routes
-                      window.location.href = '/';
-                    } else {
-                      // Navigate to settings to manage this channel
-                      window.location.href = '/settings';
-                    }
-                  }}
-                  className={cn(
-                    'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    channel.id === 'all'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  )}
-                  title={channel.id === 'all' ? 'View all channels' : `Manage ${channel.name}`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{channel.name}</span>
-                  </div>
-                  {channel.count > 0 && (
-                    <span className="px-1.5 py-0.5 text-xs bg-background/50 rounded-full flex-shrink-0 ml-2">
-                      {channel.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Connect New Channels */}
-          <div className="mt-4 space-y-0.5">
-            <button
-              onClick={() => {
-                // Navigate to Settings page which handles all connections
-                window.location.href = '/settings';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              title="Manage all social media connections"
-            >
-              <Plus className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Add Channel</span>
-            </button>
-          </div>
-
-          {channels.length > 5 && (
-            <button
-              onClick={() => setShowMoreChannels(!showMoreChannels)}
-              className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-1"
-            >
-              <ChevronDown className={cn('w-3 h-3 transition-transform', showMoreChannels && 'rotate-180')} />
-              Show more channels
-            </button>
-          )}
-        </div>
-
-        {/* Shorts Playlists Section */}
-        {shortsPlaylists.length > 0 && (
-          <div className="border-t border-border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Shorts Playlists
-              </h3>
-              <button
-                onClick={() => setShowShortsPlaylists(!showShortsPlaylists)}
-                className="p-0 hover:text-foreground transition-colors"
-                title={showShortsPlaylists ? 'Collapse' : 'Expand'}
-              >
-                <ChevronDown className={cn('w-3 h-3 transition-transform', !showShortsPlaylists && '-rotate-90')} />
-              </button>
-            </div>
-
-            {showShortsPlaylists && (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {loadingPlaylists ? (
-                  <div className="text-xs text-muted-foreground px-3 py-2">Loading...</div>
-                ) : (
-                  shortsPlaylists.map((playlist) => (
-                    <a
-                      key={playlist.playlistId}
-                      href={playlist.playlistUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors group"
-                      title={`${playlist.playlistTitle} (${playlist.itemCount} videos)`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <PlaySquare className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
-                        <span className="truncate text-xs">{playlist.playlistTitle}</span>
-                      </div>
-                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-background/50 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {playlist.itemCount}
-                      </span>
-                    </a>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Navigation */}
-        <div className="border-t border-border p-4">
+        <div className="border-b border-border p-4">
           <nav className="space-y-4">
             {/* Audio Section */}
             <div>
@@ -284,6 +170,113 @@ export default function Sidebar() {
               </div>
             </div>
           </nav>
+        </div>
+
+        {/* Shorts Playlists Section */}
+        {shortsPlaylists.length > 0 && (
+          <div className="border-b border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Shorts Playlists
+              </h3>
+              <button
+                onClick={() => setShowShortsPlaylists(!showShortsPlaylists)}
+                className="p-0 hover:text-foreground transition-colors"
+                title={showShortsPlaylists ? 'Collapse' : 'Expand'}
+              >
+                <ChevronDown className={cn('w-3 h-3 transition-transform', !showShortsPlaylists && '-rotate-90')} />
+              </button>
+            </div>
+
+            {showShortsPlaylists && (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {loadingPlaylists ? (
+                  <div className="text-xs text-muted-foreground px-3 py-2">Loading...</div>
+                ) : (
+                  shortsPlaylists.map((playlist) => (
+                    <a
+                      key={playlist.playlistId}
+                      href={playlist.playlistUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors group"
+                      title={`${playlist.playlistTitle} (${playlist.itemCount} videos)`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <PlaySquare className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
+                        <span className="truncate text-xs">{playlist.playlistTitle}</span>
+                      </div>
+                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-background/50 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {playlist.itemCount}
+                      </span>
+                    </a>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Channels Section - Now at bottom of scrollable area */}
+        <div className="border-b border-border p-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">
+            Channels
+          </h3>
+          <div className="space-y-0.5">
+            {channels.map((channel) => {
+              const Icon = channel.icon;
+              return (
+                <button
+                  key={channel.id}
+                  onClick={() => {
+                    if (channel.id === 'all') {
+                      window.location.href = '/';
+                    } else {
+                      window.location.href = '/settings';
+                    }
+                  }}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    channel.id === 'all'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )}
+                  title={channel.id === 'all' ? 'View all channels' : `Manage ${channel.name}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{channel.name}</span>
+                  </div>
+                  {channel.count > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-background/50 rounded-full flex-shrink-0 ml-2">
+                      {channel.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 space-y-0.5">
+            <button
+              onClick={() => window.location.href = '/settings'}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+              title="Manage all social media connections"
+            >
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Add Channel</span>
+            </button>
+          </div>
+
+          {channels.length > 5 && (
+            <button
+              onClick={() => setShowMoreChannels(!showMoreChannels)}
+              className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-1"
+            >
+              <ChevronDown className={cn('w-3 h-3 transition-transform', showMoreChannels && 'rotate-180')} />
+              Show more channels
+            </button>
+          )}
         </div>
       </div>
 

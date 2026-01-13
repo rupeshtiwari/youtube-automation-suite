@@ -2546,8 +2546,8 @@ def api_shorts_library():
 
         # Use the data/shorts_downloads folder relative to project root
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        shorts_download_dir = os.path.join(project_root, 'data', 'shorts_downloads')
-        
+        shorts_download_dir = os.path.join(project_root, "data", "shorts_downloads")
+
         if not os.path.exists(shorts_download_dir):
             return jsonify({"folders": [], "total_videos": 0}), 200
 
@@ -2573,7 +2573,7 @@ def api_shorts_library():
                     {
                         "name": folder_name,
                         "count": video_count,
-                        "path": os.path.join('data', 'shorts_downloads', folder_name),
+                        "path": os.path.join("data", "shorts_downloads", folder_name),
                     }
                 )
                 total_videos += video_count
