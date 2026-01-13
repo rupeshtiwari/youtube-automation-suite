@@ -7819,6 +7819,32 @@ def api_create_playlist():
             500,
         )
 
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run Flask web server")
+    parser.add_argument("--port", type=int, default=5001, help="Port to run on")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    args = parser.parse_args()
+
+    port = args.port
+    debug = args.debug
+
+    # Test database connection
+    try:
+        test_settings = get_settings()
+        if test_settings:
+            api_keys = test_settings.get("api_keys", {})
+            keys_count = sum(1 for v in api_keys.values() if v)
+            print(
+                f"✅ Settings loaded successfully from database ({keys_count} API keys configured)"
+            )
+        else:
+            print(
+                "ℹ️  No settings found in database - will use defaults until you configure"
+            )
+    except Exception as e:
         print(f"⚠️ Warning: Could not load settings: {e}")
 
     # Schedule daily job
