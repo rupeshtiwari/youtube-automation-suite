@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Upload, Loader2, AlertCircle, CheckCircle, Youtube, Calendar } from 'lucide-react'
+import { Upload, Loader2, AlertCircle, CheckCircle, Youtube, Calendar, Plus, X } from 'lucide-react'
 import api from '@/lib/api'
 
 interface Playlist {
@@ -28,6 +28,9 @@ export default function VideoUpload() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false)
+  const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false)
 
   const [formData, setFormData] = useState<UploadFormData>({
     title: '',
@@ -42,29 +45,67 @@ export default function VideoUpload() {
 
   // Fetch playlists on mount
   useEffect(() => {
-    const fetchPlaylists = async () => {
-      setLoadingPlaylists(true)
-      try {
-        const response = await api.get('/api/shorts-playlists')
-        if (response.data.playlists) {
-          setPlaylists(response.data.playlists)
-          if (response.data.playlists.length > 0) {
-            setFormData(prev => ({
-              ...prev,
-              playlist: response.data.playlists[0].playlistId
-            }))
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching playlists:', err)
-        setError('Failed to load playlists')
-      } finally {
-        setLoadingPlaylists(false)
-      }
-    }
-
     fetchPlaylists()
   }, [])
+
+  const fetchPlaylists = async () => {
+    setLoadingPlaylists(true)
+    try {
+      const response = await api.get('/api/shorts-playlists')
+      if (response.data.playlists) {
+        setPlaylists(response.data.playlists)
+        if (response.data.playlists.length > 0 && !formData.playlist) {
+          setFormData(prev => ({
+            ...prev,
+            playlist: response.data.playlists[0].playlistId
+          }))
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching playlists:', err)
+      setError('Failed to load playlists')
+    } finally {
+      setLoadingPlaylists(false)
+    }
+  }
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) {
+      setError('Playlist name is required')
+      return
+    }
+
+    setCreatingPlaylist(true)
+    setError('')
+
+    try {
+      const response = await api.post('/api/create-playlist', {
+        title: newPlaylistName.trim(),
+        description: `Playlist created via YouTube Automation`,
+        privacy_status: 'public'
+      })
+
+      if (response.data.success) {
+        // Refresh playlists
+        await fetchPlaylists()
+        // Set the new playlist as selected
+        if (response.data.playlist_id) {
+          setFormData(prev => ({
+            ...prev,
+            playlist: response.data.playlist_id
+          }))
+        }
+        setNewPlaylistName('')
+        setShowCreatePlaylist(false)
+        setSuccess('Playlist created successfully!')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create playlist'
+      setError(message)
+    } finally {
+      setCreatingPlaylist(false)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -307,14 +348,34 @@ export default function VideoUpload() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Playlist Selection */}
           <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Playlist</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Playlist</h2>
+              <button
+                onClick={() => setShowCreatePlaylist(true)}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                title="Create new playlist"
+              >
+                <Plus className="w-4 h-4" />
+                New
+              </button>
+            </div>
+
             {loadingPlaylists ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Loading playlists...
               </div>
             ) : playlists.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No playlists available</p>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">No playlists available. Create one to get started.</p>
+                <button
+                  onClick={() => setShowCreatePlaylist(true)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Playlist
+                </button>
+              </div>
             ) : (
               <select
                 name="playlist"
@@ -323,6 +384,7 @@ export default function VideoUpload() {
                 className="w-full px-3 py-2 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={uploading}
               >
+                <option value="">-- Select a playlist --</option>
                 {playlists.map(pl => (
                   <option key={pl.playlistId} value={pl.playlistId}>
                     {pl.playlistTitle} ({pl.itemCount} videos)
@@ -399,6 +461,74 @@ export default function VideoUpload() {
             )}
           </div>
         </div>
+
+        {/* Create Playlist Dialog */}
+        {showCreatePlaylist && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Create New Playlist</h3>
+                <button
+                  onClick={() => {
+                    setShowCreatePlaylist(false)
+                    setNewPlaylistName('')
+                    setError('')
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Playlist Name *</label>
+                <input
+                  type="text"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  placeholder="Enter playlist name"
+                  maxLength={100}
+                  className="w-full px-3 py-2 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={creatingPlaylist}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreatePlaylist()
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{newPlaylistName.length}/100</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowCreatePlaylist(false)
+                    setNewPlaylistName('')
+                    setError('')
+                  }}
+                  className="flex-1 px-3 py-2 rounded border border-border text-foreground font-medium hover:bg-accent transition-colors"
+                  disabled={creatingPlaylist}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreatePlaylist}
+                  disabled={creatingPlaylist || !newPlaylistName.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {creatingPlaylist ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upload Progress */}
         {uploading && uploadProgress > 0 && (

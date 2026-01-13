@@ -7745,6 +7745,80 @@ def api_upload_video():
 
     except Exception as e:
         return jsonify({"success": False, "error": f"An error occurred: {str(e)}"}), 500
+
+
+# Create Playlist Endpoint
+@app.route("/api/create-playlist", methods=["POST"])
+def api_create_playlist():
+    """Create a new YouTube playlist."""
+    try:
+        from googleapiclient.discovery import build
+
+        data = request.get_json()
+        title = data.get("title", "").strip()
+        description = data.get("description", "").strip()
+        privacy_status = data.get("privacy_status", "public").lower()
+
+        if not title:
+            return (
+                jsonify({"success": False, "error": "Playlist title is required"}),
+                400,
+            )
+
+        if privacy_status not in ["public", "unlisted", "private"]:
+            privacy_status = "public"
+
+        try:
+            youtube = get_youtube_service()
+        except Exception as e:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"YouTube authentication failed: {str(e)}",
+                    }
+                ),
+                401,
+            )
+
+        # Create playlist
+        playlist_body = {
+            "snippet": {
+                "title": title,
+                "description": description,
+            },
+            "status": {
+                "privacyStatus": privacy_status,
+            },
+        }
+
+        playlist_response = (
+            youtube.playlists()
+            .insert(
+                part="snippet,status",
+                body=playlist_body,
+            )
+            .execute()
+        )
+
+        playlist_id = playlist_response.get("id")
+
+        return jsonify(
+            {
+                "success": True,
+                "playlist_id": playlist_id,
+                "message": f"Playlist '{title}' created successfully!",
+            }
+        )
+
+    except Exception as e:
+        return (
+            jsonify(
+                {"success": False, "error": f"Failed to create playlist: {str(e)}"}
+            ),
+            500,
+        )
+
         print(f"⚠️ Warning: Could not load settings: {e}")
 
     # Schedule daily job
