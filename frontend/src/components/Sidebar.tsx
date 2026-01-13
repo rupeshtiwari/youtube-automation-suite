@@ -14,10 +14,12 @@ import {
   Linkedin,
   Facebook,
   Instagram,
-  Plus
+  Plus,
+  PlaySquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 // All routes are now handled by React Router
 const navItems = [
@@ -43,6 +45,28 @@ const channels = [
 
 export default function Sidebar() {
   const [showMoreChannels, setShowMoreChannels] = useState(false);
+  const [showShortsPlaylists, setShowShortsPlaylists] = useState(true);
+  const [shortsPlaylists, setShortsPlaylists] = useState<Array<{playlistId: string; playlistTitle: string; playlistUrl: string; itemCount: number}>>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+
+  useEffect(() => {
+    // Fetch shorts playlists on mount
+    const fetchShortsPlaylists = async () => {
+      setLoadingPlaylists(true);
+      try {
+        const response = await api.get('/api/shorts-playlists');
+        if (response.data.playlists) {
+          setShortsPlaylists(response.data.playlists);
+        }
+      } catch (error) {
+        console.error('Error fetching shorts playlists:', error);
+      } finally {
+        setLoadingPlaylists(false);
+      }
+    };
+
+    fetchShortsPlaylists();
+  }, []);
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col flex-shrink-0">
@@ -124,6 +148,51 @@ export default function Sidebar() {
             </button>
           )}
         </div>
+
+        {/* Shorts Playlists Section */}
+        {shortsPlaylists.length > 0 && (
+          <div className="border-t border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Shorts Playlists
+              </h3>
+              <button
+                onClick={() => setShowShortsPlaylists(!showShortsPlaylists)}
+                className="p-0 hover:text-foreground transition-colors"
+                title={showShortsPlaylists ? 'Collapse' : 'Expand'}
+              >
+                <ChevronDown className={cn('w-3 h-3 transition-transform', !showShortsPlaylists && '-rotate-90')} />
+              </button>
+            </div>
+
+            {showShortsPlaylists && (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {loadingPlaylists ? (
+                  <div className="text-xs text-muted-foreground px-3 py-2">Loading...</div>
+                ) : (
+                  shortsPlaylists.map((playlist) => (
+                    <a
+                      key={playlist.playlistId}
+                      href={playlist.playlistUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors group"
+                      title={`${playlist.playlistTitle} (${playlist.itemCount} videos)`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <PlaySquare className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
+                        <span className="truncate text-xs">{playlist.playlistTitle}</span>
+                      </div>
+                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-background/50 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {playlist.itemCount}
+                      </span>
+                    </a>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="border-t border-border p-4">

@@ -2237,6 +2237,50 @@ def api_shorts():
         return jsonify({"error": f"Error loading Shorts: {str(e)}"}), 500
 
 
+@app.route("/api/shorts-playlists")
+def api_shorts_playlists():
+    """API endpoint to fetch shorts playlists (lightweight - for menu display)."""
+    try:
+        youtube = get_youtube_service()
+        if not youtube:
+            return jsonify({"playlists": []}), 200
+
+        try:
+            channel_id = get_my_channel_id_helper(youtube)
+            if not channel_id:
+                return jsonify({"playlists": []}), 200
+
+            # Fetch all playlists
+            all_playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+
+            # Filter for Shorts playlists (case-insensitive check for "short" in title)
+            shorts_playlists = [
+                {
+                    "playlistId": pl.get("playlistId"),
+                    "playlistTitle": pl.get("playlistTitle"),
+                    "playlistUrl": pl.get("playlistUrl"),
+                    "itemCount": pl.get("itemCount", 0),
+                }
+                for pl in all_playlists
+                if "short" in pl.get("playlistTitle", "").lower()
+            ]
+
+            return (
+                jsonify(
+                    {"playlists": shorts_playlists, "count": len(shorts_playlists)}
+                ),
+                200,
+            )
+
+        except Exception as e:
+            app.logger.error(f"Error fetching shorts playlists: {str(e)}")
+            return jsonify({"playlists": []}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error in api_shorts_playlists: {str(e)}")
+        return jsonify({"playlists": []}), 200
+
+
 @app.route("/shorts")
 def shorts():
     """Shorts page - serve React app (React will fetch data from /api/shorts)."""
