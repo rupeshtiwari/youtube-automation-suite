@@ -131,8 +131,8 @@ def check_ytdlp_installed():
         return False
 
 
-def download_video(video_id, video_title, output_dir):
-    """Download a single video using yt-dlp."""
+def download_video(video_id, video_title, output_dir, use_cookies=True):
+    """Download a single video using yt-dlp with cookie authentication."""
     url = f"https://www.youtube.com/watch?v={video_id}"
 
     # Create sanitized filename
@@ -149,13 +149,39 @@ def download_video(video_id, video_title, output_dir):
         "--no-overwrites",  # Skip if file exists
         "--quiet",  # Suppress output
         "--progress",  # Show progress
-        url,
     ]
 
+    # Add cookie authentication to access private/unlisted videos
+    if use_cookies:
+        # Try multiple browsers in order of preference
+        browsers = ["chrome", "firefox", "safari", "edge"]
+        for browser in browsers:
+            try:
+                # Test if cookies can be extracted from this browser
+                test_cmd = [
+                    "yt-dlp",
+                    "--cookies-from-browser",
+                    browser,
+                    "--skip-download",
+                    "--quiet",
+                    "https://www.youtube.com/",
+                ]
+                result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                if result.returncode == 0:
+                    cmd.extend(["--cookies-from-browser", browser])
+                    break
+            except (subprocess.TimeoutExpired, Exception):
+                continue
+
+    cmd.append(url)
+
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, capture_output=True)
         return True
     except subprocess.CalledProcessError as e:
+        # Try without cookies if cookie auth failed
+        if use_cookies:
+            return download_video(video_id, video_title, output_dir, use_cookies=False)
         print(f"      ❌ Failed to download: {e}")
         return False
     except Exception as e:
