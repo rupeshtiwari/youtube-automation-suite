@@ -8134,8 +8134,11 @@ def delete_module(course_id, module_id):
 def create_track(module_id):
     """Create a new audio track in a module using text-to-speech."""
     try:
+        from scripts.create_audio import paragraph_to_wav
+        from app.database import get_db_connection
         import uuid
         from datetime import datetime
+        import re
 
         data = request.get_json()
         name = data.get("name", "").strip()
@@ -8143,26 +8146,6 @@ def create_track(module_id):
 
         if not name or not text:
             return jsonify({"error": "Track name and text are required"}), 400
-
-        # Generate audio using ElevenLabs
-        audio_filename = generate_audio(text, name)
-
-        if not audio_filename:
-            return jsonify({"error": "Failed to generate audio"}), 500
-
-        # Get audio file info
-        audio_path = os.path.join(AUDIO_OUTPUT_DIR, audio_filename)
-        duration = None
-        if os.path.exists(audio_path):
-            try:
-                import wave
-
-                with wave.open(audio_path, "rb") as wav:
-                    frames = wav.getnframes()
-                    rate = wav.getframerate()
-                    duration = frames / float(rate)
-            except:
-                pass
 
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         courses_file = os.path.join(project_root, "data", "courses.json")
@@ -8173,18 +8156,92 @@ def create_track(module_id):
         with open(courses_file, "r") as f:
             courses = json.load(f)
 
-        # Find the module
+        # Find the module and course
         module = None
-        for course in courses:
-            for m in course["modules"]:
+        course = None
+        course_idx = 0
+        module_idx = 0
+        
+        for c in courses:
+            for m_idx, m in enumerate(c["modules"]):
                 if m["id"] == module_id:
                     module = m
+                    course = c
+                    module_idx = m_idx
                     break
             if module:
                 break
 
-        if not module:
+        if not module or not course:
             return jsonify({"error": "Module not found"}), 404
+
+        # Create safe filename: modulename-m01-trackname.wav
+        def sanitize_filename(s):
+            """Convert string to safe filename."""
+            s = re.sub(r'[^\w\s-]', '', s.lower())
+            s = re.sub(r'[-\s]+', '-', s)
+            return s.strip('-')
+
+        course_slug = sanitize_filename(course["name"])[:20]
+        module_slug = sanitize_filename(module["name"])[:20]
+        track_slug = sanitize_filename(name)[:30]
+        module_num = str(module_idx + 1).zfill(2)
+        track_num = str(len(module["tracks"]) + 1).zfill(2)
+        
+        audio_filename = f"{course_slug}-m{module_num}-{track_slug}.wav"
+        audio_path = os.path.join(AUDIO_OUTPUT_DIR, audio_filename)
+
+        # Generate audio using ElevenLabs
+        try:
+            result_path = paragraph_to_wav(text, audio_path)
+            if not result_path or not os.path.exists(result_path):
+                return jsonify({"error": "Failed to generate audio file"}), 500
+        except Exception as e:
+            app.logger.error(f"Error generating audio: {str(e)}")
+            return jsonify({"error": f"Failed to generate audio: {str(e)}"}), 500
+
+        # Get audio duration
+        duration = None
+        try:
+            import wave
+            with wave.open(audio_path, "rb") as wav:
+                frames = wav.getnframes()
+                rate = wav.getframerate()
+                duration = frames / float(rate)
+        except Exception as e:
+            app.logger.error(f"Could not get audio duration: {str(e)}")
+
+        # Save metadata to database for Audio Library
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Create tags: course name, module name, track name
+            tags = f"{course['name']}, {module['name']}, {name}"
+            
+            cursor.execute(
+                """
+                INSERT INTO audio_files 
+                (filename, course_name, module_number, module_name, track_number, track_name, description, tags, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    audio_filename,
+                    course["name"],
+                    module_num,
+                    module["name"],
+                    track_num,
+                    name,
+                    text[:200],  # First 200 chars as description
+                    tags,
+                    datetime.utcnow().isoformat()
+                )
+            )
+            conn.commit()
+            conn.close()
+            app.logger.info(f"Saved audio metadata to database: {audio_filename}")
+        except Exception as e:
+            app.logger.error(f"Error saving audio metadata: {str(e)}")
 
         # Create new track
         new_track = {
@@ -8201,7 +8258,11 @@ def create_track(module_id):
         with open(courses_file, "w") as f:
             json.dump(courses, f, indent=2)
 
-        return jsonify({"success": True, "track": new_track}), 201
+        return jsonify({
+            "success": True, 
+            "track": new_track,
+            "message": f"Audio track created: {audio_filename}"
+        }), 201
     except Exception as e:
         app.logger.error(f"Error creating track: {str(e)}")
         return jsonify({"error": str(e)}), 500

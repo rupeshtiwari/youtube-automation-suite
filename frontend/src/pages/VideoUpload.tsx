@@ -30,6 +30,7 @@ export default function VideoUpload() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [newPlaylistDescription, setNewPlaylistDescription] = useState('')
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
 
   const [formData, setFormData] = useState<UploadFormData>({
@@ -81,7 +82,7 @@ export default function VideoUpload() {
     try {
       const response = await api.post('/api/create-playlist', {
         title: newPlaylistName.trim(),
-        description: `Playlist created via YouTube Automation`,
+        description: newPlaylistDescription.trim() || 'Playlist created via YouTube Automation',
         privacy_status: 'public'
       })
 
@@ -96,6 +97,7 @@ export default function VideoUpload() {
           }))
         }
         setNewPlaylistName('')
+        setNewPlaylistDescription('')
         setShowCreatePlaylist(false)
         setSuccess('Playlist created successfully!')
       }
@@ -472,6 +474,7 @@ export default function VideoUpload() {
                   onClick={() => {
                     setShowCreatePlaylist(false)
                     setNewPlaylistName('')
+                    setNewPlaylistDescription('')
                     setError('')
                   }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -490,20 +493,48 @@ export default function VideoUpload() {
                   maxLength={100}
                   className="w-full px-3 py-2 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   disabled={creatingPlaylist}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreatePlaylist()
-                    }
-                  }}
                 />
                 <p className="text-xs text-muted-foreground mt-1">{newPlaylistName.length}/100</p>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Description (Optional)</label>
+                <textarea
+                  value={newPlaylistDescription}
+                  onChange={(e) => setNewPlaylistDescription(e.target.value)}
+                  placeholder="Enter playlist description"
+                  maxLength={500}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  disabled={creatingPlaylist}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{newPlaylistDescription.length}/500</p>
+              </div>
+
+              {/* Show existing playlists */}
+              {playlists.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <label className="block text-sm font-medium text-foreground mb-2">Existing Playlists ({playlists.length})</label>
+                  <div className="max-h-32 overflow-y-auto space-y-1 bg-muted/30 rounded p-2">
+                    {playlists.slice(0, 10).map((pl) => (
+                      <div key={pl.playlistId} className="text-xs text-muted-foreground flex items-center justify-between py-1 px-2 hover:bg-muted rounded">
+                        <span className="truncate flex-1">{pl.playlistTitle}</span>
+                        <span className="text-xs bg-background px-1.5 py-0.5 rounded ml-2 flex-shrink-0">{pl.itemCount}</span>
+                      </div>
+                    ))}
+                    {playlists.length > 10 && (
+                      <p className="text-xs text-muted-foreground text-center py-1">+ {playlists.length - 10} more playlists</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setShowCreatePlaylist(false)
                     setNewPlaylistName('')
+                    setNewPlaylistDescription('')
                     setError('')
                   }}
                   className="flex-1 px-3 py-2 rounded border border-border text-foreground font-medium hover:bg-accent transition-colors"
