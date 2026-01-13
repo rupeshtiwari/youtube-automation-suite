@@ -154,12 +154,43 @@ export default function AudioLibrary() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-2">Audio Library</h1>
-        <p className="text-muted-foreground">Organize and manage your generated audio files</p>
+        <p className="text-muted-foreground">Organize and manage all your generated audio files</p>
       </div>
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
           {error}
+        </div>
+      )}
+
+      {/* Info Card */}
+      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+        <p className="text-sm text-purple-800 dark:text-purple-200">
+          <strong>📚 This page:</strong> View ALL audio files, organize them by course/module/track, add tags, and search. Need to generate new audio? Go to <strong>Audio Generator</strong> first.
+        </p>
+      </div>
+
+      {/* Stats Card */}
+      {!loading && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {Object.keys(grouped).filter(k => !k.includes('Untagged')).reduce((sum, course) => sum + Object.values(grouped[course] as any).flat().length, 0)}
+            </div>
+            <div className="text-sm text-blue-700 dark:text-blue-300">Tagged Files</div>
+          </div>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              {grouped['📌 Untagged Files']?.['Click tag button to organize']?.length || 0}
+            </div>
+            <div className="text-sm text-yellow-700 dark:text-yellow-300">Untagged Files</div>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {Object.keys(grouped).filter(k => k.includes('Untagged')).length === 0 ? Object.keys(grouped).length : Object.keys(grouped).length - 1}
+            </div>
+            <div className="text-sm text-green-700 dark:text-green-300">Courses</div>
+          </div>
         </div>
       )}
 

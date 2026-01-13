@@ -144,6 +144,13 @@ export default function AudioGenerator() {
         </div>
       </div>
 
+      {/* Info Card */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          <strong>💡 This page:</strong> Generate new audio files from text. After generating, go to <strong>Audio Library</strong> to organize, tag, and manage all your audio files.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Enter your paragraph</label>

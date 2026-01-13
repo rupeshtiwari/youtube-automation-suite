@@ -315,10 +315,18 @@ def init_database():
         "CREATE INDEX IF NOT EXISTS idx_videos_custom_tags ON videos(custom_tags)"
     )
     # Audio file indexes
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_course ON audio_files(course_name)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_module ON audio_files(module_number)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_track ON audio_files(track_number)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_filename ON audio_files(filename)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audio_course ON audio_files(course_name)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audio_module ON audio_files(module_number)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audio_track ON audio_files(track_number)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audio_filename ON audio_files(filename)"
+    )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_posts_video_id ON social_media_posts(video_id)"
     )

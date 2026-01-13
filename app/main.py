@@ -1587,58 +1587,111 @@ def audio_history():
 
 @app.route("/api/audio/metadata", methods=["GET"])
 def get_audio_metadata():
-    """Get all audio files grouped by course, module, and track."""
+    """Get all audio files from filesystem grouped by course, module, and track."""
     try:
         from app.database import get_db_connection
-        
+        import os
+
+        audio_dir = AUDIO_OUTPUT_DIR
+        os.makedirs(audio_dir, exist_ok=True)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Get all audio files ordered by course, module, track
-        cursor.execute("""
-            SELECT 
-                id, filename, filepath, filesize, course_name, 
-                module_number, module_name, track_number, track_name,
-                description, tags, created_at
-            FROM audio_files
-            ORDER BY 
-                COALESCE(course_name, ''), 
-                CAST(COALESCE(module_number, '0') AS INTEGER),
-                CAST(COALESCE(track_number, '0') AS INTEGER)
-        """)
-        
-        files = cursor.fetchall()
-        
+
+        # Get all audio files from the filesystem
+        all_files = []
+        for fname in os.listdir(audio_dir):
+            if not fname.endswith(".wav"):
+                continue
+
+            filepath = os.path.join(audio_dir, fname)
+            if not os.path.isfile(filepath):
+                continue
+
+            stat = os.stat(filepath)
+
+            # Check if file has metadata in database
+            cursor.execute("SELECT * FROM audio_files WHERE filename = ?", (fname,))
+            db_record = cursor.fetchone()
+
+            if db_record:
+                # Use database metadata
+                all_files.append(
+                    {
+                        "id": db_record["id"],
+                        "filename": fname,
+                        "filepath": filepath,
+                        "filesize": stat.st_size,
+                        "course_name": db_record["course_name"],
+                        "module_number": db_record["module_number"],
+                        "module_name": db_record["module_name"],
+                        "track_number": db_record["track_number"],
+                        "track_name": db_record["track_name"],
+                        "description": db_record["description"],
+                        "tags": db_record["tags"],
+                        "created_at": db_record["created_at"],
+                        "is_tagged": True,
+                        "download_url": f"/download-audio/{fname}",
+                        "stream_url": f"/audio/{fname}",
+                    }
+                )
+            else:
+                # Untagged file from filesystem
+                all_files.append(
+                    {
+                        "id": None,
+                        "filename": fname,
+                        "filepath": filepath,
+                        "filesize": stat.st_size,
+                        "course_name": None,
+                        "module_number": None,
+                        "module_name": None,
+                        "track_number": None,
+                        "track_name": None,
+                        "description": None,
+                        "tags": None,
+                        "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "is_tagged": False,
+                        "download_url": f"/download-audio/{fname}",
+                        "stream_url": f"/audio/{fname}",
+                    }
+                )
+
         # Group by course -> module -> track
         grouped = {}
-        for file in files:
-            course = file['course_name'] or 'Untagged'
-            module = f"Module {file['module_number']}: {file['module_name']}" if file['module_number'] else "Unorganized"
-            track_key = f"Track {file['track_number']}: {file['track_name']}" if file['track_number'] else file['filename']
-            
+        untagged = []
+
+        for file in all_files:
+            if not file["course_name"]:
+                untagged.append(file)
+                continue
+
+            course = file["course_name"]
+            module = (
+                f"Module {file['module_number']}: {file['module_name']}"
+                if file["module_number"]
+                else "Unorganized"
+            )
+
             if course not in grouped:
                 grouped[course] = {}
             if module not in grouped[course]:
                 grouped[course][module] = []
-            
-            grouped[course][module].append({
-                "id": file['id'],
-                "filename": file['filename'],
-                "filepath": file['filepath'],
-                "filesize": file['filesize'],
-                "course_name": file['course_name'],
-                "module_number": file['module_number'],
-                "module_name": file['module_name'],
-                "track_number": file['track_number'],
-                "track_name": file['track_name'],
-                "description": file['description'],
-                "tags": file['tags'],
-                "created_at": file['created_at'],
-                "download_url": f"/download-audio/{file['filename']}",
-                "stream_url": f"/audio/{file['filename']}"
-            })
-        
-        return jsonify({"grouped": grouped, "total": len(files)})
+
+            grouped[course][module].append(file)
+
+        # Add untagged files as a separate group
+        if untagged:
+            grouped["📌 Untagged Files"] = {"Click tag button to organize": untagged}
+
+        return jsonify(
+            {
+                "grouped": grouped,
+                "total": len(all_files),
+                "untagged_count": len(untagged),
+                "tagged_count": len(all_files) - len(untagged),
+            }
+        )
     except Exception as e:
         app.logger.error(f"Error getting audio metadata: {e}", exc_info=True)
         return jsonify({"error": "Could not retrieve audio metadata"}), 500
@@ -1649,65 +1702,71 @@ def tag_audio():
     """Tag an audio file with course, module, and track information."""
     try:
         from app.database import get_db_connection
-        
+
         data = request.get_json()
-        filename = data.get('filename')
-        
+        filename = data.get("filename")
+
         if not filename:
             return jsonify({"error": "Filename required"}), 400
-        
+
         # Validate filename exists
         audio_path = os.path.join(AUDIO_OUTPUT_DIR, filename)
         if not os.path.exists(audio_path):
             return jsonify({"error": "Audio file not found"}), 404
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Check if file already has metadata
         cursor.execute("SELECT id FROM audio_files WHERE filename = ?", (filename,))
         existing = cursor.fetchone()
-        
+
         stat = os.stat(audio_path)
-        
+
         if existing:
             # Update existing
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE audio_files 
                 SET course_name = ?, module_number = ?, module_name = ?,
                     track_number = ?, track_name = ?, description = ?,
                     tags = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE filename = ?
-            """, (
-                data.get('course_name'),
-                data.get('module_number'),
-                data.get('module_name'),
-                data.get('track_number'),
-                data.get('track_name'),
-                data.get('description'),
-                data.get('tags'),
-                filename
-            ))
+            """,
+                (
+                    data.get("course_name"),
+                    data.get("module_number"),
+                    data.get("module_name"),
+                    data.get("track_number"),
+                    data.get("track_name"),
+                    data.get("description"),
+                    data.get("tags"),
+                    filename,
+                ),
+            )
         else:
             # Insert new
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO audio_files 
                 (filename, filepath, filesize, course_name, module_number, 
                  module_name, track_number, track_name, description, tags)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                filename,
-                audio_path,
-                stat.st_size,
-                data.get('course_name'),
-                data.get('module_number'),
-                data.get('module_name'),
-                data.get('track_number'),
-                data.get('track_name'),
-                data.get('description'),
-                data.get('tags')
-            ))
-        
+            """,
+                (
+                    filename,
+                    audio_path,
+                    stat.st_size,
+                    data.get("course_name"),
+                    data.get("module_number"),
+                    data.get("module_name"),
+                    data.get("track_number"),
+                    data.get("track_name"),
+                    data.get("description"),
+                    data.get("tags"),
+                ),
+            )
+
         conn.commit()
         return jsonify({"success": True, "message": "Audio tagged successfully"})
     except Exception as e:
@@ -1720,44 +1779,49 @@ def search_audio():
     """Search audio files by course, module, or track."""
     try:
         from app.database import get_db_connection
-        
-        query = request.args.get('q', '').strip()
-        course_filter = request.args.get('course', '').strip()
-        module_filter = request.args.get('module', '').strip()
-        
+
+        query = request.args.get("q", "").strip()
+        course_filter = request.args.get("course", "").strip()
+        module_filter = request.args.get("module", "").strip()
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         sql = "SELECT * FROM audio_files WHERE 1=1"
         params = []
-        
+
         if course_filter:
             sql += " AND LOWER(course_name) LIKE ?"
             params.append(f"%{course_filter.lower()}%")
-        
+
         if module_filter:
             sql += " AND LOWER(module_name) LIKE ?"
             params.append(f"%{module_filter.lower()}%")
-        
+
         if query:
             sql += " AND (LOWER(filename) LIKE ? OR LOWER(track_name) LIKE ? OR LOWER(tags) LIKE ?)"
-            params.extend([f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%"])
-        
+            params.extend(
+                [f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%"]
+            )
+
         sql += " ORDER BY COALESCE(course_name, ''), CAST(COALESCE(module_number, '0') AS INTEGER), CAST(COALESCE(track_number, '0') AS INTEGER)"
-        
+
         cursor.execute(sql, params)
         files = cursor.fetchall()
-        
-        results = [{
-            "id": f['id'],
-            "filename": f['filename'],
-            "course_name": f['course_name'],
-            "module_name": f['module_name'],
-            "track_name": f['track_name'],
-            "download_url": f"/download-audio/{f['filename']}",
-            "stream_url": f"/audio/{f['filename']}"
-        } for f in files]
-        
+
+        results = [
+            {
+                "id": f["id"],
+                "filename": f["filename"],
+                "course_name": f["course_name"],
+                "module_name": f["module_name"],
+                "track_name": f["track_name"],
+                "download_url": f"/download-audio/{f['filename']}",
+                "stream_url": f"/audio/{f['filename']}",
+            }
+            for f in files
+        ]
+
         return jsonify({"results": results, "total": len(results)})
     except Exception as e:
         app.logger.error(f"Error searching audio: {e}", exc_info=True)
