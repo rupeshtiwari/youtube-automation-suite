@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, Loader2, Search, Filter, Tag, Folder } from 'lucide-react'
+import { Download, Loader2, Search, Tag, Folder } from 'lucide-react'
 import api from '@/lib/api'
 
 interface AudioFile {
@@ -136,14 +136,6 @@ export default function AudioLibrary() {
     } catch (err) {
       setError('Download failed')
     }
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (!bytes) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`
   }
 
   if (loading) {
