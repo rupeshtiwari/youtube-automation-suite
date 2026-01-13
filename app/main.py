@@ -2540,52 +2540,90 @@ def api_shorts_playlists():
 
 @app.route("/api/shorts-library")
 def api_shorts_library():
-    """API endpoint to fetch downloaded shorts from disk."""
+    """API endpoint to fetch downloaded shorts from disk and uploaded videos."""
     try:
         import os
+        import json
+        from datetime import datetime
 
         # Use the data/shorts_downloads folder relative to project root
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         shorts_download_dir = os.path.join(project_root, "data", "shorts_downloads")
-
-        if not os.path.exists(shorts_download_dir):
-            return jsonify({"folders": [], "total_videos": 0}), 200
+        uploads_metadata_file = os.path.join(
+            project_root, "data", "uploads_metadata.json"
+        )
 
         folders = []
         total_videos = 0
+        uploaded_videos = []
 
         # Scan all folders in shorts_downloads
-        for folder_name in os.listdir(shorts_download_dir):
-            folder_path = os.path.join(shorts_download_dir, folder_name)
-            if not os.path.isdir(folder_path):
-                continue
+        if os.path.exists(shorts_download_dir):
+            for folder_name in os.listdir(shorts_download_dir):
+                folder_path = os.path.join(shorts_download_dir, folder_name)
+                if not os.path.isdir(folder_path):
+                    continue
 
-            # Count video files in this folder
-            video_count = 0
-            video_extensions = (".mp4", ".mkv", ".webm", ".mov", ".avi")
+                # Count video files in this folder
+                video_count = 0
+                video_extensions = (".mp4", ".mkv", ".webm", ".mov", ".avi")
 
-            for file_name in os.listdir(folder_path):
-                if file_name.lower().endswith(video_extensions):
-                    video_count += 1
+                for file_name in os.listdir(folder_path):
+                    if file_name.lower().endswith(video_extensions):
+                        video_count += 1
 
-            if video_count > 0:
-                folders.append(
-                    {
-                        "name": folder_name,
-                        "count": video_count,
-                        "path": os.path.join("data", "shorts_downloads", folder_name),
-                    }
-                )
-                total_videos += video_count
+                if video_count > 0:
+                    folders.append(
+                        {
+                            "name": folder_name,
+                            "count": video_count,
+                            "path": os.path.join(
+                                "data", "shorts_downloads", folder_name
+                            ),
+                        }
+                    )
+                    total_videos += video_count
 
-        # Sort folders by name
-        folders.sort(key=lambda x: x["name"])
+            # Sort folders by name
+            folders.sort(key=lambda x: x["name"])
 
-        return jsonify({"folders": folders, "total_videos": total_videos}), 200
+        # Load uploaded videos metadata
+        if os.path.exists(uploads_metadata_file):
+            try:
+                with open(uploads_metadata_file, "r") as f:
+                    uploaded_videos = json.load(f)
+                    # Sort by upload date (newest first)
+                    uploaded_videos.sort(
+                        key=lambda x: x.get("uploaded_at", ""), reverse=True
+                    )
+            except Exception as e:
+                app.logger.error(f"Error loading uploads metadata: {str(e)}")
+
+        return (
+            jsonify(
+                {
+                    "folders": folders,
+                    "total_videos": total_videos,
+                    "uploaded_videos": uploaded_videos,
+                    "uploaded_count": len(uploaded_videos),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         app.logger.error(f"Error in api_shorts_library: {str(e)}")
-        return jsonify({"folders": [], "total_videos": 0}), 200
+        return (
+            jsonify(
+                {
+                    "folders": [],
+                    "total_videos": 0,
+                    "uploaded_videos": [],
+                    "uploaded_count": 0,
+                }
+            ),
+            200,
+        )
 
 
 @app.route("/shorts")
@@ -7722,6 +7760,50 @@ def api_upload_video():
                 except Exception as e:
                     # Log error but don't fail the whole operation
                     print(f"Warning: Failed to add video to playlist: {str(e)}")
+
+            # Save uploaded video metadata
+            try:
+                from datetime import datetime
+
+                project_root = os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))
+                )
+                uploads_metadata_file = os.path.join(
+                    project_root, "data", "uploads_metadata.json"
+                )
+
+                # Load existing metadata
+                uploads_metadata = []
+                if os.path.exists(uploads_metadata_file):
+                    try:
+                        with open(uploads_metadata_file, "r") as f:
+                            uploads_metadata = json.load(f)
+                    except:
+                        uploads_metadata = []
+
+                # Add new upload
+                uploads_metadata.append(
+                    {
+                        "video_id": video_id,
+                        "title": title,
+                        "description": description,
+                        "tags": tags,
+                        "filename": secure_filename(file.filename),
+                        "uploaded_at": datetime.utcnow().isoformat(),
+                        "scheduled": not publish_now,
+                        "schedule_time": schedule_datetime if not publish_now else None,
+                        "playlist_id": playlist_id,
+                        "visibility": visibility,
+                    }
+                )
+
+                # Save updated metadata
+                os.makedirs(os.path.dirname(uploads_metadata_file), exist_ok=True)
+                with open(uploads_metadata_file, "w") as f:
+                    json.dump(uploads_metadata, f, indent=2)
+
+            except Exception as e:
+                print(f"Warning: Failed to save upload metadata: {str(e)}")
 
             # Clean up temp file
             if os.path.exists(filepath):

@@ -7,7 +7,9 @@ import {
   Play,
   AlertCircle,
   X,
-  ArrowUp
+  ArrowUp,
+  Clock,
+  CheckCircle2
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -19,9 +21,24 @@ interface ShortsFolder {
   interviewTypes?: string[]
 }
 
+interface UploadedVideo {
+  video_id: string
+  title: string
+  description: string
+  tags: string[]
+  filename: string
+  uploaded_at: string
+  scheduled: boolean
+  schedule_time?: string
+  playlist_id?: string
+  visibility: string
+}
+
 interface ShortsLibraryData {
   folders: ShortsFolder[]
   total_videos: number
+  uploaded_videos: UploadedVideo[]
+  uploaded_count: number
 }
 
 // Senior roles priority (higher = shows first)
@@ -135,6 +152,8 @@ export default function ShortsLibrary() {
 
   const folders = data.folders || []
   const totalVideos = data.total_videos || 0
+  const uploadedVideos = data.uploaded_videos || []
+  const uploadedCount = data.uploaded_count || 0
   
   // Get all unique roles and interview types
   const allRoles = [...new Set(folders.map(f => f.role).filter((role): role is string => !!role))]
@@ -193,10 +212,14 @@ export default function ShortsLibrary() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-3xl font-bold text-primary mb-1">{totalVideos}</div>
-          <div className="text-sm text-muted-foreground">Total Videos Downloaded</div>
+          <div className="text-sm text-muted-foreground">Videos Downloaded</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-3xl font-bold text-purple-600 mb-1">{uploadedCount}</div>
+          <div className="text-sm text-muted-foreground">Videos Uploaded</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-3xl font-bold text-green-600 mb-1">{folders.length}</div>
@@ -295,6 +318,99 @@ export default function ShortsLibrary() {
           </p>
           <button
             onClick={clearFilters}
+            className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Clear Filters
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Recently Uploaded Videos Section */}
+          {uploadedVideos.length > 0 && (
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
+                  <Video className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Recently Uploaded</h2>
+                  <p className="text-sm text-muted-foreground">{uploadedCount} video{uploadedCount !== 1 ? 's' : ''} uploaded to YouTube</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {uploadedVideos.slice(0, 6).map((video: UploadedVideo) => {
+                  const uploadDate = new Date(video.uploaded_at)
+                  const isScheduled = video.scheduled && video.schedule_time
+                  
+                  return (
+                    <div
+                      key={video.video_id}
+                      className="bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-800 rounded-lg p-4 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-medium text-sm line-clamp-2 flex-1">{video.title}</h3>
+                        {isScheduled ? (
+                          <Clock className="w-4 h-4 text-orange-500 flex-shrink-0 ml-2" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 ml-2" />
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{video.description}</p>
+                      
+                      {/* Tags */}
+                      {video.tags && video.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {video.tags.slice(0, 3).map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {video.tags.length > 3 && (
+                            <span className="text-xs text-muted-foreground">+{video.tags.length - 3}</span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <span className="text-xs text-muted-foreground">
+                          {uploadDate.toLocaleDateString()} {uploadDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${video.video_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-3 py-1 rounded bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-medium transition-colors"
+                        >
+                          <Play className="w-3 h-3" />
+                          Watch
+                        </a>
+                      </div>
+                      
+                      {isScheduled && (
+                        <div className="mt-2 text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Scheduled for: {new Date(video.schedule_time!).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {uploadedVideos.length > 6 && (
+                <div className="mt-4 text-center">
+                  <span className="text-sm text-muted-foreground">Showing 6 of {uploadedCount} uploaded videos</span>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Downloaded Shorts by Role */}
             className="text-primary hover:text-primary/80 font-medium text-sm"
           >
             Clear Filters
