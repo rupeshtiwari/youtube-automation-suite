@@ -22,11 +22,16 @@ export default function ShortsFolder() {
   const [searchParams] = useSearchParams()
   const folderPath = searchParams.get('path')
 
+  console.log('ShortsFolder mounted with path:', folderPath)
+
   const { data, isLoading, error } = useQuery<ShortsFolderData>({
     queryKey: ['shorts-folder', folderPath],
     queryFn: async () => {
       if (!folderPath) throw new Error('No folder path provided')
-      const response = await api.get(`/shorts-folder-videos?path=${encodeURIComponent(folderPath)}`)
+      const url = `/shorts-folder-videos?path=${encodeURIComponent(folderPath)}`
+      console.log('Fetching from URL:', url)
+      const response = await api.get(url)
+      console.log('Response data:', response.data)
       return response.data
     },
     enabled: !!folderPath,

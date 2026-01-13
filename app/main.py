@@ -2643,6 +2643,16 @@ def api_shorts_folder_videos():
 
         # Resolve absolute path and check if it's within shorts_downloads
         abs_folder_path = os.path.normpath(os.path.join(project_root, folder_path))
+
+        app.logger.info(f"Requested folder: {folder_path}")
+        app.logger.info(f"Project root: {project_root}")
+        app.logger.info(f"Shorts download dir: {shorts_download_dir}")
+        app.logger.info(f"Resolved abs path: {abs_folder_path}")
+        app.logger.info(f"Path exists: {os.path.exists(abs_folder_path)}")
+        app.logger.info(
+            f"Is directory: {os.path.isdir(abs_folder_path) if os.path.exists(abs_folder_path) else 'N/A'}"
+        )
+
         if not abs_folder_path.startswith(shorts_download_dir):
             return jsonify({"error": "Invalid folder path"}), 403
 
