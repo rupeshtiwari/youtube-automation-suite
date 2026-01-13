@@ -6,7 +6,8 @@ import {
   Download,
   Play,
   AlertCircle,
-  X
+  X,
+  ArrowUp
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -23,9 +24,24 @@ interface ShortsLibraryData {
   total_videos: number
 }
 
+// Senior roles priority (higher = shows first)
+const SENIOR_ROLES = {
+  'SPO': 5,
+  'SPM': 5,
+  'Director': 4,
+  'VP': 4,
+  'TPM': 3,
+  'Manager': 2,
+  'Architect': 2,
+  'Engineer': 1,
+  'SRE': 1,
+  'SWE': 1,
+  'Other': 0
+}
+
 // Extract role and interview types from folder name
 function extractMetadata(name: string): { role: string; interviewTypes: string[] } {
-  const roles = ['VP', 'Director', 'Manager', 'TPM', 'SPO', 'SRE', 'SWE', 'Architect', 'Engineer']
+  const roles = ['SPO', 'SPM', 'VP', 'Director', 'TPM', 'Manager', 'Architect', 'SRE', 'SWE', 'Engineer']
   const interviewTypes = [
     'System Design',
     'Behavioral',
@@ -46,9 +62,10 @@ function extractMetadata(name: string): { role: string; interviewTypes: string[]
   let detectedRole = 'Other'
   const detectedTypes: string[] = []
 
-  // Find role
+  // Find role - check for exact matches first (like "SPO" or "SPM")
   for (const role of roles) {
-    if (name.toLowerCase().includes(role.toLowerCase())) {
+    const roleRegex = new RegExp(`\\b${role}\\b`, 'i')
+    if (roleRegex.test(name)) {
       detectedRole = role
       break
     }
@@ -70,6 +87,7 @@ function extractMetadata(name: string): { role: string; interviewTypes: string[]
 export default function ShortsLibrary() {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set())
+  const [sortBy, setSortBy] = useState<'senior-first' | 'alphabetical'>('senior-first')
   
   const { data, isLoading, error } = useQuery<ShortsLibraryData>({
     queryKey: ['shorts-library'],
@@ -122,6 +140,18 @@ export default function ShortsLibrary() {
   const allRoles = [...new Set(folders.map(f => f.role).filter((role): role is string => !!role))]
   const allInterviewTypes = [...new Set(folders.flatMap(f => f.interviewTypes || []))]
   
+  // Sort roles based on selected sort order
+  const sortedRoles = [...allRoles].sort((a, b) => {
+    if (sortBy === 'senior-first') {
+      const priorityA = (SENIOR_ROLES as Record<string, number>)[a] ?? 0
+      const priorityB = (SENIOR_ROLES as Record<string, number>)[b] ?? 0
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA // Higher priority first
+      }
+    }
+    return a.localeCompare(b) // Alphabetical fallback or primary sort
+  })
+  
   // Filter folders based on selected filters
   const filteredFolders = selectedFilters.size === 0
     ? folders
@@ -132,7 +162,7 @@ export default function ShortsLibrary() {
       })
   
   // Group folders by role
-  const foldersByRole = allRoles.reduce((acc, role) => {
+  const foldersByRole = sortedRoles.reduce((acc, role) => {
     acc[role] = filteredFolders.filter(f => f.role === role)
     return acc
   }, {} as Record<string, ShortsFolder[]>)
@@ -178,6 +208,32 @@ export default function ShortsLibrary() {
         </div>
       </div>
 
+      {/* Sort Options */}
+      <div className="flex items-center gap-3 bg-card border border-border rounded-lg p-4">
+        <span className="text-sm font-medium text-foreground">Sort by:</span>
+        <button
+          onClick={() => setSortBy('senior-first')}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+            sortBy === 'senior-first'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+          }`}
+        >
+          <ArrowUp className="w-4 h-4" />
+          Senior First
+        </button>
+        <button
+          onClick={() => setSortBy('alphabetical')}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+            sortBy === 'alphabetical'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+          }`}
+        >
+          Alphabetical
+        </button>
+      </div>
+
       {/* Filter Tags */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -193,7 +249,7 @@ export default function ShortsLibrary() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {allRoles.map(role => (
+          {sortedRoles.map(role => (
             <button
               key={role}
               onClick={() => toggleFilter(role)}
@@ -246,7 +302,7 @@ export default function ShortsLibrary() {
         </div>
       ) : (
         <div className="space-y-8">
-          {allRoles.map((role: string) => {
+          {sortedRoles.map((role: string) => {
             const roleFolder = foldersByRole[role]
             if (roleFolder.length === 0) return null
             
