@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Audio Generator - Eleven Labs TTS</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+
+            .container {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                padding: 40px;
+                max-width: 600px;
+                width: 100%;
+            }
+
+            h1 {
+                color: #333;
+                margin-bottom: 10px;
+                text-align: center;
+                font-size: 28px;
+            }
+
+            .subtitle {
+                color: #666;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 14px;
+            }
+
+            .form-group {
+                margin-bottom: 20px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: #333;
+                font-weight: 600;
+                font-size: 14px;
+            }
+
+            textarea {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-family: inherit;
+                font-size: 14px;
+                resize: vertical;
+                min-height: 120px;
+                transition: border-color 0.3s ease;
+            }
+
+            textarea:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+            .button-group {
+                display: flex;
+                gap: 10px;
+                margin-top: 30px;
+            }
+
+            button {
+                flex: 1;
+                padding: 12px 20px;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .btn-generate {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .btn-generate:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            }
+
+            .btn-generate:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .btn-clear {
+                background: #f0f0f0;
+                color: #333;
+            }
+
+            .btn-clear:hover {
+                background: #e0e0e0;
+            }
+
+            .loading {
+                display: none;
+                text-align: center;
+                margin-top: 20px;
+            }
+
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 10px;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .loading-text {
+                color: #666;
+                font-size: 14px;
+                margin-top: 10px;
+            }
+
+            .alert {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                font-size: 14px;
+                display: none;
+            }
+
+            .alert.error {
+                background: #fee;
+                color: #c33;
+                border-left: 4px solid #c33;
+            }
+
+            .alert.success {
+                background: #efe;
+                color: #3c3;
+                border-left: 4px solid #3c3;
+            }
+
+            .result-section {
+                display: none;
+                margin-top: 30px;
+                padding-top: 30px;
+                border-top: 2px solid #e0e0e0;
+            }
+
+            .result-section.active {
+                display: block;
+            }
+
+            .result-header {
+                color: #333;
+                font-weight: 600;
+                margin-bottom: 15px;
+                font-size: 16px;
+            }
+
+            .audio-player {
+                background: #f9f9f9;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+            }
+
+            audio {
+                width: 100%;
+                height: 40px;
+                border-radius: 4px;
+            }
+
+            .file-info {
+                background: #f9f9f9;
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                font-size: 13px;
+                color: #666;
+            }
+
+            .file-info-item {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+
+            .file-info-item:last-child {
+                margin-bottom: 0;
+            }
+
+            .label {
+                font-weight: 600;
+                color: #333;
+            }
+
+            .download-btn {
+                display: inline-block;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 10px 16px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-size: 13px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            }
+
+            .download-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            }
+
+            .character-count {
+                font-size: 12px;
+                color: #999;
+                margin-top: 5px;
+            }
+
+            .char-warning {
+                color: #ff6b6b;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>🎙️ Audio Generator</h1>
+            <p class="subtitle">Convert your text to speech using Eleven Labs AI</p>
+
+            <div id="alertBox" class="alert"></div>
+
+            <form id="audioForm">
+                <div class="form-group">
+                    <label for="paragraph">Enter your paragraph:</label>
+                    <textarea id="paragraph" name="paragraph" placeholder="Type or paste your text here..."
+                        required></textarea>
+                    <div class="character-count">
+                        <span id="charCount">0</span> characters
+                        <span id="charWarning" class="char-warning"></span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-generate" id="generateBtn">
+                        Generate Audio
+                    </button>
+                    <button type="button" class="btn-clear" id="clearBtn">
+                        Clear
+                    </button>
+                </div>
+            </form>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Creating audio from your text...</div>
+            </div>
+
+            <div id="resultSection" class="result-section">
+                <div class="result-header">✅ Audio Created Successfully</div>
+
+                <div class="audio-player">
+                    <audio id="audioPlayer" controls>
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+
+                <div class="file-info">
+                    <div class="file-info-item">
+                        <span class="label">Filename:</span>
+                        <span id="fileName">-</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="label">File Size:</span>
+                        <span id="fileSize">-</span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="label">Location:</span>
+                        <span id="fileLocation">-</span>
+                    </div>
+                </div>
+
+                <a href="#" id="downloadBtn" class="download-btn">⬇️ Download Audio</a>
+            </div>
+        </div>
+
+        <script>
+            const form = document.getElementById('audioForm');
+            const paragraph = document.getElementById('paragraph');
+            const generateBtn = document.getElementById('generateBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const loading = document.getElementById('loading');
+            const alertBox = document.getElementById('alertBox');
+            const resultSection = document.getElementById('resultSection');
+            const charCount = document.getElementById('charCount');
+            const charWarning = document.getElementById('charWarning');
+
+            // Update character count
+            paragraph.addEventListener('input', function () {
+                const count = this.value.length;
+                charCount.textContent = count;
+
+                if (count > 5000) {
+                    charWarning.textContent = ' (⚠️ Large text - may take longer)';
+                } else {
+                    charWarning.textContent = '';
+                }
+            });
+
+            // Clear button
+            clearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                paragraph.value = '';
+                charCount.textContent = '0';
+                charWarning.textContent = '';
+                resultSection.classList.remove('active');
+                hideAlert();
+            });
+
+            // Form submission
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const text = paragraph.value.trim();
+                if (!text) {
+                    showAlert('Please enter some text', 'error');
+                    return;
+                }
+
+                // Show loading state
+                loading.style.display = 'block';
+                generateBtn.disabled = true;
+                resultSection.classList.remove('active');
+                hideAlert();
+
+                try {
+                    const response = await fetch('/api/generate-audio', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ text: text })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to generate audio');
+                    }
+
+                    // Display result
+                    displayResult(data);
+                    showAlert('Audio created successfully!', 'success');
+
+                } catch (error) {
+                    showAlert(error.message || 'An error occurred', 'error');
+                    console.error('Error:', error);
+                } finally {
+                    loading.style.display = 'none';
+                    generateBtn.disabled = false;
+                }
+            });
+
+            function displayResult(data) {
+                document.getElementById('audioPlayer').src = '/audio/' + data.filename;
+                document.getElementById('fileName').textContent = data.filename;
+                document.getElementById('fileSize').textContent = formatFileSize(data.filesize);
+                document.getElementById('fileLocation').textContent = data.filepath;
+                document.getElementById('downloadBtn').href = '/download-audio/' + data.filename;
+
+                resultSection.classList.add('active');
+
+                // Scroll to result
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            function showAlert(message, type) {
+                alertBox.textContent = message;
+                alertBox.className = `alert ${type}`;
+                alertBox.style.display = 'block';
+            }
+
+            function hideAlert() {
+                alertBox.style.display = 'none';
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            }
+        </script>
+    </body>
+
+</html>

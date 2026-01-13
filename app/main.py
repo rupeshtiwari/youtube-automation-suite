@@ -1428,6 +1428,120 @@ def settings():
         )
 
 
+@app.route("/audio-generator")
+def audio_generator():
+    """Audio Generator page - serve HTML template."""
+    try:
+        return render_template("audio_generator.html")
+    except Exception as e:
+        app.logger.error(f"Error in audio_generator route: {e}", exc_info=True)
+        return (
+            jsonify({"error": f"Error loading Audio Generator: {str(e)}"}),
+            500,
+        )
+
+
+@app.route("/api/generate-audio", methods=["POST"])
+def generate_audio():
+    """Generate audio from text using Eleven Labs TTS."""
+    try:
+        from scripts.create_audio import paragraph_to_wav
+
+        data = request.get_json()
+        text = data.get("text", "").strip()
+
+        if not text:
+            return jsonify({"error": "Text cannot be empty"}), 400
+
+        if len(text) > 10000:
+            return jsonify({"error": "Text is too long (max 10000 characters)"}), 400
+
+        # Create audio folder if it doesn't exist
+        audio_dir = os.path.join(app.root_path, "static", "audio")
+        os.makedirs(audio_dir, exist_ok=True)
+
+        # Generate unique filename with timestamp
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"audio_{timestamp}.wav"
+        filepath = os.path.join(audio_dir, filename)
+
+        # Generate audio using the create_audio script
+        result_path = paragraph_to_wav(text, filepath)
+
+        # Get file size
+        if os.path.exists(result_path):
+            filesize = os.path.getsize(result_path)
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "filename": filename,
+                        "filepath": audio_dir,
+                        "filesize": filesize,
+                    }
+                ),
+                200,
+            )
+        else:
+            return jsonify({"error": "Failed to create audio file"}), 500
+
+    except ImportError as e:
+        app.logger.error(f"Import error in generate_audio: {e}", exc_info=True)
+        return (
+            jsonify(
+                {
+                    "error": "Audio generation module not found. Make sure ELEVENLABS_API_KEY is set."
+                }
+            ),
+            500,
+        )
+    except Exception as e:
+        app.logger.error(f"Error generating audio: {e}", exc_info=True)
+        return jsonify({"error": f"Error generating audio: {str(e)}"}), 500
+
+
+@app.route("/audio/<filename>")
+def serve_audio(filename):
+    """Serve generated audio file."""
+    try:
+        # Security: only allow .wav files and alphanumeric with underscores/dots
+        if not filename.endswith(".wav") or not all(
+            c.isalnum() or c in "._-" for c in filename
+        ):
+            return jsonify({"error": "Invalid filename"}), 400
+
+        audio_dir = os.path.join(app.root_path, "static", "audio")
+        return send_from_directory(audio_dir, filename, mimetype="audio/wav")
+    except Exception as e:
+        app.logger.error(f"Error serving audio: {e}", exc_info=True)
+        return jsonify({"error": "File not found"}), 404
+
+
+@app.route("/download-audio/<filename>")
+def download_audio(filename):
+    """Download audio file."""
+    try:
+        # Security: only allow .wav files and alphanumeric with underscores/dots
+        if not filename.endswith(".wav") or not all(
+            c.isalnum() or c in "._-" for c in filename
+        ):
+            return jsonify({"error": "Invalid filename"}), 400
+
+        audio_dir = os.path.join(app.root_path, "static", "audio")
+        return send_from_directory(
+            audio_dir,
+            filename,
+            mimetype="audio/wav",
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as e:
+        app.logger.error(f"Error downloading audio: {e}", exc_info=True)
+        return jsonify({"error": "File not found"}), 404
+
+
 @app.route("/api/automation-status")
 def api_automation_status():
     """API endpoint for automation status."""
