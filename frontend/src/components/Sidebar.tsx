@@ -31,7 +31,7 @@ const navItems = [
   
   // YouTube Section
   { path: '/shorts', icon: PlaySquare, label: 'Shorts', section: 'youtube', isFlask: false },
-  { path: '/preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
+  { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
   { path: '/video-upload', icon: Plus, label: 'Upload Video', section: 'youtube', isFlask: false },
   
   // Other
