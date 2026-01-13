@@ -2626,6 +2626,69 @@ def api_shorts_library():
         )
 
 
+@app.route("/api/shorts-folder-videos")
+def api_shorts_folder_videos():
+    """API endpoint to get all videos from a specific shorts folder."""
+    try:
+        import os
+        from pathlib import Path
+
+        folder_path = request.args.get("path", "")
+        if not folder_path:
+            return jsonify({"error": "Folder path is required"}), 400
+
+        # Security: ensure path is within our shorts_downloads directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        shorts_download_dir = os.path.join(project_root, "data", "shorts_downloads")
+
+        # Resolve absolute path and check if it's within shorts_downloads
+        abs_folder_path = os.path.normpath(os.path.join(project_root, folder_path))
+        if not abs_folder_path.startswith(shorts_download_dir):
+            return jsonify({"error": "Invalid folder path"}), 403
+
+        if not os.path.exists(abs_folder_path) or not os.path.isdir(abs_folder_path):
+            return jsonify({"error": "Folder not found"}), 404
+
+        # Get all video files
+        video_extensions = (".mp4", ".mkv", ".webm", ".mov", ".avi")
+        videos = []
+
+        for file_name in sorted(os.listdir(abs_folder_path)):
+            if file_name.lower().endswith(video_extensions):
+                file_path = os.path.join(abs_folder_path, file_name)
+                stat = os.stat(file_path)
+
+                # Create relative path for serving
+                rel_path = os.path.relpath(file_path, project_root)
+
+                videos.append(
+                    {
+                        "name": file_name,
+                        "path": rel_path,
+                        "size": stat.st_size,
+                        "modified": stat.st_mtime,
+                    }
+                )
+
+        folder_name = os.path.basename(abs_folder_path)
+
+        return (
+            jsonify(
+                {
+                    "folder_name": folder_name,
+                    "folder_path": folder_path,
+                    "videos": videos,
+                    "count": len(videos),
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        app.logger.error(f"Error in api_shorts_folder_videos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/shorts")
 def shorts():
     """Shorts page - serve React app (React will fetch data from /api/shorts)."""
@@ -8161,7 +8224,7 @@ def create_track(module_id):
         course = None
         course_idx = 0
         module_idx = 0
-        
+
         for c in courses:
             for m_idx, m in enumerate(c["modules"]):
                 if m["id"] == module_id:
@@ -8178,16 +8241,16 @@ def create_track(module_id):
         # Create safe filename: modulename-m01-trackname.wav
         def sanitize_filename(s):
             """Convert string to safe filename."""
-            s = re.sub(r'[^\w\s-]', '', s.lower())
-            s = re.sub(r'[-\s]+', '-', s)
-            return s.strip('-')
+            s = re.sub(r"[^\w\s-]", "", s.lower())
+            s = re.sub(r"[-\s]+", "-", s)
+            return s.strip("-")
 
         course_slug = sanitize_filename(course["name"])[:20]
         module_slug = sanitize_filename(module["name"])[:20]
         track_slug = sanitize_filename(name)[:30]
         module_num = str(module_idx + 1).zfill(2)
         track_num = str(len(module["tracks"]) + 1).zfill(2)
-        
+
         audio_filename = f"{course_slug}-m{module_num}-{track_slug}.wav"
         audio_path = os.path.join(AUDIO_OUTPUT_DIR, audio_filename)
 
@@ -8204,6 +8267,7 @@ def create_track(module_id):
         duration = None
         try:
             import wave
+
             with wave.open(audio_path, "rb") as wav:
                 frames = wav.getnframes()
                 rate = wav.getframerate()
@@ -8215,10 +8279,10 @@ def create_track(module_id):
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            
+
             # Create tags: course name, module name, track name
             tags = f"{course['name']}, {module['name']}, {name}"
-            
+
             cursor.execute(
                 """
                 INSERT INTO audio_files 
@@ -8234,8 +8298,8 @@ def create_track(module_id):
                     name,
                     text[:200],  # First 200 chars as description
                     tags,
-                    datetime.utcnow().isoformat()
-                )
+                    datetime.utcnow().isoformat(),
+                ),
             )
             conn.commit()
             conn.close()
@@ -8258,11 +8322,16 @@ def create_track(module_id):
         with open(courses_file, "w") as f:
             json.dump(courses, f, indent=2)
 
-        return jsonify({
-            "success": True, 
-            "track": new_track,
-            "message": f"Audio track created: {audio_filename}"
-        }), 201
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "track": new_track,
+                    "message": f"Audio track created: {audio_filename}",
+                }
+            ),
+            201,
+        )
     except Exception as e:
         app.logger.error(f"Error creating track: {str(e)}")
         return jsonify({"error": str(e)}), 500

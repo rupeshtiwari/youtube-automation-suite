@@ -12,6 +12,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface ShortsFolder {
   name: string
@@ -48,17 +49,38 @@ const SENIOR_ROLES = {
   'Director': 4,
   'VP': 4,
   'TPM': 3,
+  'Engineering Manager': 2,
+  'SRE Manager': 2,
   'Manager': 2,
   'Architect': 2,
+  'Lead': 1,
   'Engineer': 1,
   'SRE': 1,
   'SWE': 1,
+  'Developer': 1,
   'Other': 0
 }
 
 // Extract role and interview types from folder name
 function extractMetadata(name: string): { role: string; interviewTypes: string[] } {
-  const roles = ['SPO', 'SPM', 'VP', 'Director', 'TPM', 'Manager', 'Architect', 'SRE', 'SWE', 'Engineer']
+  // Order matters - check more specific roles first
+  const roles = [
+    'SPO', 
+    'SPM', 
+    'Engineering Manager',
+    'SRE Manager',
+    'VP', 
+    'Director', 
+    'TPM', 
+    'Manager', 
+    'Architect', 
+    'SRE', 
+    'SWE', 
+    'Lead',
+    'Engineer',
+    'Developer'
+  ]
+  
   const interviewTypes = [
     'System Design',
     'Behavioral',
@@ -79,12 +101,21 @@ function extractMetadata(name: string): { role: string; interviewTypes: string[]
   let detectedRole = 'Other'
   const detectedTypes: string[] = []
 
-  // Find role - check for exact matches first (like "SPO" or "SPM")
+  // Find role - check for exact matches, starting with multi-word roles
   for (const role of roles) {
-    const roleRegex = new RegExp(`\\b${role}\\b`, 'i')
-    if (roleRegex.test(name)) {
-      detectedRole = role
-      break
+    // For multi-word roles like "Engineering Manager", check for the full phrase
+    if (role.includes(' ')) {
+      if (name.toLowerCase().includes(role.toLowerCase())) {
+        detectedRole = role
+        break
+      }
+    } else {
+      // For single-word roles, use word boundary regex
+      const roleRegex = new RegExp(`\\b${role}\\b`, 'i')
+      if (roleRegex.test(name)) {
+        detectedRole = role
+        break
+      }
     }
   }
 
@@ -102,6 +133,7 @@ function extractMetadata(name: string): { role: string; interviewTypes: string[]
 }
 
 export default function ShortsLibrary() {
+  const navigate = useNavigate()
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<'senior-first' | 'alphabetical'>('senior-first')
@@ -460,7 +492,7 @@ export default function ShortsLibrary() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            window.open(`/view-shorts-folder?path=${encodeURIComponent(folder.path)}`, '_blank')
+                            navigate(`/shorts-folder?path=${encodeURIComponent(folder.path)}`)
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
                         >

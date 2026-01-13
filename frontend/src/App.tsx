@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Sessions from './pages/Sessions'
 import ShortsNew from './pages/ShortsNew'
 import ShortsLibrary from './pages/ShortsLibrary'
+import ShortsFolder from './pages/ShortsFolder'
 import Calendar from './pages/Calendar'
 import ContentPreview from './pages/ContentPreview'
 import Insights from './pages/Insights'
@@ -22,6 +23,7 @@ function App() {
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/shorts" element={<ShortsNew />} />
         <Route path="/shorts-library" element={<ShortsLibrary />} />
+        <Route path="/shorts-folder" element={<ShortsFolder />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/content-preview" element={<ContentPreview />} />
         <Route path="/insights" element={<Insights />} />
