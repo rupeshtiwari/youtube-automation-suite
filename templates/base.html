@@ -36,31 +36,31 @@
                 --warning: #f59e0b;
                 --danger: #ef4444;
                 --info: #06b6d4;
-                
+
                 --text-primary: #0f172a;
                 --text-secondary: #475569;
                 --text-muted: #94a3b8;
                 --text-light: #cbd5e1;
-                
+
                 --bg-primary: #ffffff;
                 --bg-secondary: #f8fafc;
                 --bg-tertiary: #f1f5f9;
                 --bg-hover: #e2e8f0;
-                
+
                 --border: #e2e8f0;
                 --border-light: #f1f5f9;
                 --border-dark: #cbd5e1;
-                
+
                 --card-bg: #ffffff;
                 --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
                 --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                
+
                 /* Platform colors */
                 --linkedin: #0077b5;
                 --facebook: #1877f2;
                 --instagram: #e4405f;
                 --youtube: #ff0000;
-                
+
                 /* Gradient */
                 --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -77,21 +77,21 @@
                 --warning: #f59e0b;
                 --danger: #ef4444;
                 --info: #06b6d4;
-                
+
                 --text-primary: #f1f5f9;
                 --text-secondary: #cbd5e1;
                 --text-muted: #94a3b8;
                 --text-light: #64748b;
-                
+
                 --bg-primary: #0f172a;
                 --bg-secondary: #1e293b;
                 --bg-tertiary: #334155;
                 --bg-hover: #475569;
-                
+
                 --border: #334155;
                 --border-light: #1e293b;
                 --border-dark: #475569;
-                
+
                 --card-bg: #1e293b;
                 --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
                 --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
@@ -276,7 +276,7 @@
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
             }
-            
+
             .btn-primary:active {
                 transform: translateY(0);
             }
@@ -501,6 +501,7 @@
                     transform: translateX(100%);
                     opacity: 0;
                 }
+
                 to {
                     transform: translateX(0);
                     opacity: 1;
@@ -512,6 +513,7 @@
                     transform: translateX(0);
                     opacity: 1;
                 }
+
                 to {
                     transform: translateX(100%);
                     opacity: 0;
@@ -629,7 +631,10 @@
             }
 
             /* Smooth Transitions */
-            .card, .btn, .form-control, .form-select {
+            .card,
+            .btn,
+            .form-control,
+            .form-select {
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
@@ -670,6 +675,7 @@
                     opacity: 0;
                     transform: translateY(10px);
                 }
+
                 to {
                     opacity: 1;
                     transform: translateY(0);
@@ -682,9 +688,12 @@
             }
 
             @keyframes pulse {
-                0%, 100% {
+
+                0%,
+                100% {
                     opacity: 1;
                 }
+
                 50% {
                     opacity: 0.5;
                 }
@@ -744,6 +753,12 @@
                         Activity
                     </a>
                 </li>
+                <li>
+                    <a href="/audio-generator" id="nav-audio-generator">
+                        <i class="bi bi-mic"></i>
+                        Audio Generator
+                    </a>
+                </li>
                 <li class="nav-divider"></li>
                 <li>
                     <a href="/config" id="nav-config">
@@ -778,45 +793,49 @@
             </div>
         </nav>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <div class="top-bar">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
-                            <i class="bi bi-list"></i>
-                        </button>
-                        <h2>{% block page_title %}Dashboard{% endblock %}</h2>
-                    </div>
-                </div>
-                <div class="content-container">
-                    <!-- Config Validation Warnings -->
-                    {% if g.config_warnings %}
-                    <div class="config-warnings-container mb-4">
-                        {% for warning in g.config_warnings %}
-                        <div class="alert alert-{{ 'danger' if warning.severity == 'error' else 'warning' }} alert-dismissible fade show config-warning" role="alert">
-                            <div class="d-flex align-items-start">
-                                <div class="flex-shrink-0 me-3">
-                                    <i class="bi bi-{{ 'exclamation-triangle-fill' if warning.severity == 'error' else 'exclamation-circle-fill' }}" style="font-size: 24px;"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h5 class="alert-heading mb-2">
-                                        {{ warning.platform }} Configuration {{ 'Error' if warning.severity == 'error' else 'Warning' }}
-                                    </h5>
-                                    <p class="mb-2">{{ warning.message }}</p>
-                                    <p class="mb-2"><strong>Missing fields:</strong> {{ warning.fields|join(', ') }}</p>
-                                    <a href="{{ warning.link }}" class="btn btn-sm btn-{{ 'danger' if warning.severity == 'error' else 'warning' }}">
-                                        <i class="bi bi-gear"></i> Fix Configuration
-                                    </a>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% block content %}{% endblock %}
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h2>{% block page_title %}Dashboard{% endblock %}</h2>
                 </div>
             </div>
+            <div class="content-container">
+                <!-- Config Validation Warnings -->
+                {% if g.config_warnings %}
+                <div class="config-warnings-container mb-4">
+                    {% for warning in g.config_warnings %}
+                    <div class="alert alert-{{ 'danger' if warning.severity == 'error' else 'warning' }} alert-dismissible fade show config-warning"
+                        role="alert">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0 me-3">
+                                <i class="bi bi-{{ 'exclamation-triangle-fill' if warning.severity == 'error' else 'exclamation-circle-fill' }}"
+                                    style="font-size: 24px;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="alert-heading mb-2">
+                                    {{ warning.platform }} Configuration
+                                    {{ 'Error' if warning.severity == 'error' else 'Warning' }}
+                                </h5>
+                                <p class="mb-2">{{ warning.message }}</p>
+                                <p class="mb-2"><strong>Missing fields:</strong> {{ warning.fields|join(', ') }}</p>
+                                <a href="{{ warning.link }}"
+                                    class="btn btn-sm btn-{{ 'danger' if warning.severity == 'error' else 'warning' }}">
+                                    <i class="bi bi-gear"></i> Fix Configuration
+                                </a>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </div>
 
         <!-- Toast Notification Container -->
         <div class="toast-container" id="toastContainer"></div>
@@ -849,7 +868,8 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Post Content</label>
-                            <textarea class="form-control" id="compose-content" rows="6" placeholder="What would you like to share?"></textarea>
+                            <textarea class="form-control" id="compose-content" rows="6"
+                                placeholder="What would you like to share?"></textarea>
                             <small class="text-muted">Tip: Use YouTube video title/description as source</small>
                         </div>
                         <div class="row">
@@ -864,7 +884,8 @@
                         </div>
                         <div class="mt-3">
                             <label class="form-label">YouTube Video (Optional)</label>
-                            <input type="text" class="form-control" id="compose-video-url" placeholder="YouTube URL or Video ID">
+                            <input type="text" class="form-control" id="compose-video-url"
+                                placeholder="YouTube URL or Video ID">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -891,7 +912,7 @@
             }
 
             // Close sidebar when clicking outside on mobile
-            document.addEventListener('click', function(event) {
+            document.addEventListener('click', function (event) {
                 const sidebar = document.querySelector('.sidebar');
                 const toggle = document.querySelector('.mobile-menu-toggle');
                 if (window.innerWidth <= 768 && sidebar && toggle) {
@@ -903,12 +924,12 @@
 
             // Service Worker Registration for PWA
             if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
+                window.addEventListener('load', function () {
                     navigator.serviceWorker.register('/static/js/service-worker.js')
-                        .then(function(registration) {
+                        .then(function (registration) {
                             console.log('ServiceWorker registration successful:', registration.scope);
                         })
-                        .catch(function(error) {
+                        .catch(function (error) {
                             console.log('ServiceWorker registration failed:', error);
                         });
                 });
@@ -1067,7 +1088,7 @@
 
             // Toast Notification System
             window.Toast = {
-                show: function(message, type = 'info', duration = 5000) {
+                show: function (message, type = 'info', duration = 5000) {
                     const container = document.getElementById('toastContainer');
                     if (!container) return;
 
@@ -1111,22 +1132,22 @@
 
                     return toast;
                 },
-                success: function(message, duration) {
+                success: function (message, duration) {
                     return this.show(message, 'success', duration);
                 },
-                error: function(message, duration) {
+                error: function (message, duration) {
                     return this.show(message, 'error', duration);
                 },
-                warning: function(message, duration) {
+                warning: function (message, duration) {
                     return this.show(message, 'warning', duration);
                 },
-                info: function(message, duration) {
+                info: function (message, duration) {
                     return this.show(message, 'info', duration);
                 }
             };
 
             // Button Loading State Helper
-            window.setButtonLoading = function(button, loading = true) {
+            window.setButtonLoading = function (button, loading = true) {
                 if (typeof button === 'string') {
                     button = document.querySelector(button);
                 }
@@ -1148,7 +1169,7 @@
             };
 
             // Quick Compose Modal - Global function
-            window.openQuickCompose = function() {
+            window.openQuickCompose = function () {
                 try {
                     const modalElement = document.getElementById('quickComposeModal');
                     if (!modalElement) {
@@ -1160,7 +1181,7 @@
                         }
                         return;
                     }
-                    
+
                     // Check if Bootstrap is loaded
                     if (typeof bootstrap === 'undefined') {
                         console.error('Bootstrap is not loaded');
@@ -1171,21 +1192,21 @@
                         }
                         return;
                     }
-                    
+
                     const modal = new bootstrap.Modal(modalElement);
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    
+
                     const dateInput = document.getElementById('compose-date');
                     const timeInput = document.getElementById('compose-time');
-                    
+
                     if (dateInput) {
                         dateInput.value = tomorrow.toISOString().split('T')[0];
                     }
                     if (timeInput) {
                         timeInput.value = '19:30';
                     }
-                    
+
                     // Clear previous content
                     const contentInput = document.getElementById('compose-content');
                     if (contentInput) {
@@ -1195,10 +1216,10 @@
                     if (videoUrlInput) {
                         videoUrlInput.value = '';
                     }
-                    
+
                     // Reset platform checkboxes
                     Array.from(document.querySelectorAll('.platform-checkbox input')).forEach(cb => cb.checked = true);
-                    
+
                     modal.show();
                 } catch (error) {
                     console.error('Error opening quick compose modal:', error);
@@ -1212,13 +1233,13 @@
 
             // Save Quick Post - Global function (if not already defined)
             if (typeof window.saveQuickPost === 'undefined') {
-                window.saveQuickPost = function() {
+                window.saveQuickPost = function () {
                     const platforms = Array.from(document.querySelectorAll('.platform-checkbox input:checked')).map(cb => cb.value);
                     const content = document.getElementById('compose-content').value;
                     const date = document.getElementById('compose-date').value;
                     const time = document.getElementById('compose-time').value;
                     const videoUrl = document.getElementById('compose-video-url').value;
-                    
+
                     if (!content.trim()) {
                         if (typeof Toast !== 'undefined') {
                             Toast.error('Please enter post content');
@@ -1227,7 +1248,7 @@
                         }
                         return;
                     }
-                    
+
                     if (!date || !time) {
                         if (typeof Toast !== 'undefined') {
                             Toast.error('Please select date and time');
@@ -1236,7 +1257,7 @@
                         }
                         return;
                     }
-                    
+
                     if (platforms.length === 0) {
                         if (typeof Toast !== 'undefined') {
                             Toast.error('Please select at least one platform');
@@ -1245,9 +1266,9 @@
                         }
                         return;
                     }
-                    
+
                     const scheduleDateTime = `${date} ${time}`;
-                    
+
                     // Call API to schedule posts
                     fetch('/api/queue/schedule', {
                         method: 'POST',
@@ -1259,44 +1280,44 @@
                             video_url: videoUrl
                         })
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (typeof Toast !== 'undefined') {
-                                Toast.success('Post scheduled successfully!');
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (typeof Toast !== 'undefined') {
+                                    Toast.success('Post scheduled successfully!');
+                                } else {
+                                    alert('Post scheduled successfully!');
+                                }
+                                bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
+                                // Reload page or refresh queue
+                                if (window.location.pathname === '/') {
+                                    window.location.reload();
+                                }
                             } else {
-                                alert('Post scheduled successfully!');
+                                if (typeof Toast !== 'undefined') {
+                                    Toast.error(data.error || 'Failed to schedule post');
+                                } else {
+                                    alert(data.error || 'Failed to schedule post');
+                                }
                             }
-                            bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
-                            // Reload page or refresh queue
-                            if (window.location.pathname === '/') {
-                                window.location.reload();
-                            }
-                        } else {
+                        })
+                        .catch(error => {
                             if (typeof Toast !== 'undefined') {
-                                Toast.error(data.error || 'Failed to schedule post');
+                                Toast.error('Error: ' + error.message);
                             } else {
-                                alert(data.error || 'Failed to schedule post');
+                                alert('Error: ' + error.message);
                             }
-                        }
-                    })
-                    .catch(error => {
-                        if (typeof Toast !== 'undefined') {
-                            Toast.error('Error: ' + error.message);
-                        } else {
-                            alert('Error: ' + error.message);
-                        }
-                    });
+                        });
                 };
             }
 
             // Publish Now - Global function (if not already defined)
             if (typeof window.publishNow === 'undefined') {
-                window.publishNow = function() {
+                window.publishNow = function () {
                     const platforms = Array.from(document.querySelectorAll('.platform-checkbox input:checked')).map(cb => cb.value);
                     const content = document.getElementById('compose-content').value;
                     const videoUrl = document.getElementById('compose-video-url').value;
-                    
+
                     if (!content.trim()) {
                         if (typeof Toast !== 'undefined') {
                             Toast.error('Please enter post content');
@@ -1305,7 +1326,7 @@
                         }
                         return;
                     }
-                    
+
                     if (platforms.length === 0) {
                         if (typeof Toast !== 'undefined') {
                             Toast.error('Please select at least one platform');
@@ -1314,11 +1335,11 @@
                         }
                         return;
                     }
-                    
+
                     if (!confirm(`Publish this post immediately to ${platforms.join(', ')}?`)) {
                         return;
                     }
-                    
+
                     // Call API to publish immediately
                     fetch('/api/queue/publish-now', {
                         method: 'POST',
@@ -1329,39 +1350,39 @@
                             video_url: videoUrl
                         })
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (typeof Toast !== 'undefined') {
-                                Toast.success('Post published successfully!');
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (typeof Toast !== 'undefined') {
+                                    Toast.success('Post published successfully!');
+                                } else {
+                                    alert('Post published successfully!');
+                                }
+                                bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
+                                // Reload page or refresh queue
+                                if (window.location.pathname === '/') {
+                                    window.location.reload();
+                                }
                             } else {
-                                alert('Post published successfully!');
+                                if (typeof Toast !== 'undefined') {
+                                    Toast.error(data.error || 'Failed to publish post');
+                                } else {
+                                    alert(data.error || 'Failed to publish post');
+                                }
                             }
-                            bootstrap.Modal.getInstance(document.getElementById('quickComposeModal')).hide();
-                            // Reload page or refresh queue
-                            if (window.location.pathname === '/') {
-                                window.location.reload();
-                            }
-                        } else {
+                        })
+                        .catch(error => {
                             if (typeof Toast !== 'undefined') {
-                                Toast.error(data.error || 'Failed to publish post');
+                                Toast.error('Error: ' + error.message);
                             } else {
-                                alert(data.error || 'Failed to publish post');
+                                alert('Error: ' + error.message);
                             }
-                        }
-                    })
-                    .catch(error => {
-                        if (typeof Toast !== 'undefined') {
-                            Toast.error('Error: ' + error.message);
-                        } else {
-                            alert('Error: ' + error.message);
-                        }
-                    });
+                        });
                 };
             }
 
             // Enhanced Fetch Helper with Loading States
-            window.fetchWithLoading = async function(url, options = {}, button = null) {
+            window.fetchWithLoading = async function (url, options = {}, button = null) {
                 if (button) {
                     setButtonLoading(button, true);
                 }
@@ -1391,7 +1412,7 @@
             };
 
             // Form Validation Helper
-            window.validateForm = function(form) {
+            window.validateForm = function (form) {
                 let isValid = true;
                 const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
 
@@ -1410,7 +1431,7 @@
             };
 
             // Add fade-in animation to content on load
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const content = document.querySelector('.content-container');
                 if (content) {
                     content.classList.add('fade-in');

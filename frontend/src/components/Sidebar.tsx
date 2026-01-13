@@ -8,6 +8,7 @@ import {
   BarChart3,
   Activity,
   Settings,
+  Mic,
   ChevronDown,
   Youtube,
   Linkedin,
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', isFlask: false },
   { path: '/insights', icon: BarChart3, label: 'Analytics', isFlask: false },
   { path: '/activity', icon: Activity, label: 'Activity', isFlask: false },
+  { path: '/audio-generator', icon: Mic, label: 'Audio Generator', isFlask: false },
   { path: '/settings', icon: Settings, label: 'Settings', isFlask: false },
 ];
 
@@ -129,7 +131,23 @@ export default function Sidebar() {
             {navItems.map((item) => {
               const Icon = item.icon;
 
-              // Use NavLink for all routes (React Router handles everything)
+              // Flask-backed routes should bypass React Router
+              if (item.isFlask) {
+                return (
+                  <a
+                    key={item.path}
+                    href={item.path}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </a>
+                );
+              }
+
               return (
                 <NavLink
                   key={item.path}

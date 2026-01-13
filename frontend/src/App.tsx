@@ -8,6 +8,7 @@ import ContentPreview from './pages/ContentPreview'
 import Insights from './pages/Insights'
 import Activity from './pages/Activity'
 import Settings from './pages/Settings'
+import AudioGenerator from './pages/AudioGenerator'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/content-preview" element={<ContentPreview />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/activity" element={<Activity />} />
+        <Route path="/audio-generator" element={<AudioGenerator />} />
         <Route path="/settings" element={<Settings />} />
         {/* Catch-all for unknown routes */}
         <Route path="*" element={<Dashboard />} />
