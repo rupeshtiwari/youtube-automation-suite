@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Upload, Loader2, AlertCircle, CheckCircle, Youtube, Calendar, Plus, X } from 'lucide-react'
+import { Upload, Loader2, AlertCircle, CheckCircle, Youtube, Calendar, Plus, X, Search } from 'lucide-react'
 import api from '@/lib/api'
 
 interface Playlist {
@@ -24,6 +24,8 @@ export default function VideoUpload() {
   const [file, setFile] = useState<File | null>(null)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loadingPlaylists, setLoadingPlaylists] = useState(false)
+  const [playlistSearch, setPlaylistSearch] = useState('')
+  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -51,20 +53,29 @@ export default function VideoUpload() {
 
   const fetchPlaylists = async () => {
     setLoadingPlaylists(true)
+    setError('')
     try {
       const response = await api.get('/api/playlists')
-      if (response.data.playlists) {
+      console.log('Playlists response:', response.data)
+      
+      if (response.data && response.data.playlists && Array.isArray(response.data.playlists)) {
         setPlaylists(response.data.playlists)
+        console.log(`Loaded ${response.data.playlists.length} playlists`)
+        
+        // Auto-select first playlist if available
         if (response.data.playlists.length > 0 && !formData.playlist) {
           setFormData(prev => ({
             ...prev,
             playlist: response.data.playlists[0].playlistId
           }))
         }
+      } else {
+        console.log('No playlists in response:', response.data)
+        setError('No playlists found')
       }
     } catch (err) {
       console.error('Error fetching playlists:', err)
-      setError('Failed to load playlists')
+      setError('Failed to load playlists. Make sure you are authenticated.')
     } finally {
       setLoadingPlaylists(false)
     }
@@ -363,9 +374,9 @@ export default function VideoUpload() {
             </div>
 
             {loadingPlaylists ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-muted-foreground py-3">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Loading playlists...
+                Loading {playlists.length} playlists...
               </div>
             ) : playlists.length === 0 ? (
               <div className="space-y-3">
@@ -379,20 +390,86 @@ export default function VideoUpload() {
                 </button>
               </div>
             ) : (
-              <select
-                name="playlist"
-                value={formData.playlist}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={uploading}
-              >
-                <option value="">-- Select a playlist --</option>
-                {playlists.map(pl => (
-                  <option key={pl.playlistId} value={pl.playlistId}>
-                    {pl.playlistTitle} ({pl.itemCount} videos)
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                {/* Playlist Search & Dropdown */}
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search playlists..."
+                      value={playlistSearch}
+                      onChange={(e) => setPlaylistSearch(e.target.value)}
+                      onFocus={() => setShowPlaylistDropdown(true)}
+                      className="w-full pl-9 pr-3 py-2 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={uploading}
+                    />
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {showPlaylistDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+                      {playlists
+                        .filter(pl =>
+                          pl.playlistTitle.toLowerCase().includes(playlistSearch.toLowerCase())
+                        )
+                        .map(pl => (
+                          <button
+                            key={pl.playlistId}
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                playlist: pl.playlistId
+                              }))
+                              setPlaylistSearch('')
+                              setShowPlaylistDropdown(false)
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-accent transition-colors border-b border-border last:border-b-0 ${
+                              formData.playlist === pl.playlistId ? 'bg-primary/10' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm line-clamp-1">{pl.playlistTitle}</p>
+                                <p className="text-xs text-muted-foreground">{pl.itemCount} videos</p>
+                              </div>
+                              {formData.playlist === pl.playlistId && (
+                                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                              )}
+                            </div>
+                          </button>
+                        ))}
+
+                      {playlists.filter(pl =>
+                        pl.playlistTitle.toLowerCase().includes(playlistSearch.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          No playlists match your search
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Playlist Display */}
+                {formData.playlist && playlists.find(p => p.playlistId === formData.playlist) && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Selected Playlist</p>
+                    <p className="font-medium text-sm">{playlists.find(p => p.playlistId === formData.playlist)?.playlistTitle}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {playlists.find(p => p.playlistId === formData.playlist)?.itemCount} videos
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Close dropdown when clicking outside */}
+            {showPlaylistDropdown && (
+              <div
+                className="fixed inset-0 z-5"
+                onClick={() => setShowPlaylistDropdown(false)}
+              />
             )}
           </div>
 
