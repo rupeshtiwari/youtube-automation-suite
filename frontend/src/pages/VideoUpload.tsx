@@ -51,7 +51,7 @@ export default function VideoUpload() {
   const fetchPlaylists = async () => {
     setLoadingPlaylists(true)
     try {
-      const response = await api.get('/api/shorts-playlists')
+      const response = await api.get('/api/playlists')
       if (response.data.playlists) {
         setPlaylists(response.data.playlists)
         if (response.data.playlists.length > 0 && !formData.playlist) {

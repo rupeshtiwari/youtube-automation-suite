@@ -7829,6 +7829,56 @@ def api_upload_video():
         return jsonify({"success": False, "error": f"An error occurred: {str(e)}"}), 500
 
 
+# Get All Playlists Endpoint
+@app.route("/api/playlists", methods=["GET"])
+def api_get_playlists():
+    """Get all YouTube playlists for the authenticated user."""
+    try:
+        youtube = get_youtube_service()
+        if not youtube:
+            return (
+                jsonify({"playlists": [], "error": "YouTube service not available"}),
+                200,
+            )
+
+        try:
+            channel_id = get_my_channel_id_helper(youtube)
+            if not channel_id:
+                return (
+                    jsonify({"playlists": [], "error": "Could not get channel ID"}),
+                    200,
+                )
+
+            # Fetch all playlists
+            all_playlists = fetch_all_playlists_from_youtube(youtube, channel_id)
+
+            # Return all playlists with full details
+            playlists_response = [
+                {
+                    "playlistId": pl.get("playlistId"),
+                    "playlistTitle": pl.get("playlistTitle"),
+                    "playlistUrl": pl.get("playlistUrl"),
+                    "itemCount": pl.get("itemCount", 0),
+                }
+                for pl in all_playlists
+            ]
+
+            return (
+                jsonify(
+                    {"playlists": playlists_response, "count": len(playlists_response)}
+                ),
+                200,
+            )
+
+        except Exception as e:
+            app.logger.error(f"Error fetching playlists: {str(e)}")
+            return jsonify({"playlists": [], "error": str(e)}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error in api_get_playlists: {str(e)}")
+        return jsonify({"playlists": [], "error": str(e)}), 200
+
+
 # Create Playlist Endpoint
 @app.route("/api/create-playlist", methods=["POST"])
 def api_create_playlist():
