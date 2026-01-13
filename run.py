@@ -5,9 +5,13 @@ Entry point for running the Flask application.
 
 import os
 import sys
+from dotenv import load_dotenv
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load environment variables from .env so ElevenLabs keys and others are available
+load_dotenv()
 
 from app.main import app
 
