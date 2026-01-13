@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Download, Loader2, Mic } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Download, Loader2, Mic, RotateCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface AudioResult {
@@ -8,12 +8,24 @@ interface AudioResult {
   filepath: string
 }
 
+interface AudioHistoryItem {
+  filename: string
+  filesize: number
+  created_at: string
+  download_url: string
+  stream_url: string
+}
+
 export default function AudioGenerator() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [result, setResult] = useState<AudioResult | null>(null)
+  const [history, setHistory] = useState<AudioHistoryItem[]>([])
+  const [historyDir, setHistoryDir] = useState('')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +62,7 @@ export default function AudioGenerator() {
         filepath: data.filepath,
       })
       setSuccess('Audio created successfully')
+      void fetchHistory()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred'
       setError(message)
@@ -73,6 +86,51 @@ export default function AudioGenerator() {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`
   }
+
+  const downloadFile = async (fname: string) => {
+    try {
+      const response = await fetch(`/download-audio/${fname}`)
+      if (!response.ok) throw new Error('Download failed')
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = fname
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Download failed'
+      setError(`Error downloading: ${message}`)
+      console.error('Download error:', error)
+    }
+  }
+
+  const fetchHistory = async () => {
+    try {
+      setHistoryLoading(true)
+      setHistoryError('')
+      const res = await fetch('/api/audio-history')
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load history')
+      }
+      setHistory(data.files || [])
+      setHistoryDir(data.output_dir || '')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not load history'
+      setHistoryError(message)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  // Initial load
+  useEffect(() => {
+    void fetchHistory()
+  }, [])
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -138,6 +196,7 @@ export default function AudioGenerator() {
         <div className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Audio Created</h3>
           <audio className="w-full" controls src={`/audio/${result.filename}`} />
+          <div className="text-xs text-muted-foreground">If the player is silent, click Download to verify the file.</div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-muted-foreground">
             <div>
               <div className="text-foreground font-medium">Filename</div>
@@ -153,15 +212,83 @@ export default function AudioGenerator() {
             </div>
           </div>
           <div>
-            <a
-              href={`/download-audio/${result.filename}`}
+            <button
+              type="button"
+              onClick={() => {
+                downloadFile(result.filename)
+              }}
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 transition"
             >
               <Download className="w-4 h-4" /> Download Audio
-            </a>
+            </button>
           </div>
         </div>
       )}
+
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">History</h3>
+            <p className="text-xs text-muted-foreground">
+              Files saved in {historyDir || 'static/audio'} (newest first). Click download to re-fetch.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void fetchHistory()}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 transition"
+          >
+            <RotateCw className={cn('w-4 h-4', historyLoading && 'animate-spin')} /> Refresh
+          </button>
+        </div>
+
+        {historyError && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 text-destructive px-3 py-2 text-sm">
+            {historyError}
+          </div>
+        )}
+
+        {!historyLoading && history.length === 0 && !historyError && (
+          <div className="text-sm text-muted-foreground">No files yet. Generate audio to see history.</div>
+        )}
+
+        {historyLoading && (
+          <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading history...
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="space-y-2">
+            {history.map((item) => (
+              <div
+                key={item.filename}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{item.filename}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(item.created_at).toLocaleString()} • {formatFileSize(item.filesize)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 transition"
+                    href={item.download_url}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      downloadFile(item.filename)
+                    }}
+                  >
+                    <Download className="w-4 h-4" /> Download
+                  </a>
+                  <audio className="w-40" controls src={item.stream_url} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

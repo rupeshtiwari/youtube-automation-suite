@@ -317,6 +317,12 @@ else:
         static_url_path="/static",
     )
 
+# Audio output directory (can override with AUDIO_OUTPUT_DIR env var)
+AUDIO_OUTPUT_DIR = os.getenv("AUDIO_OUTPUT_DIR")
+if not AUDIO_OUTPUT_DIR:
+    AUDIO_OUTPUT_DIR = os.path.join(app.root_path, "static", "audio")
+os.makedirs(AUDIO_OUTPUT_DIR, exist_ok=True)
+
 # Register blueprints
 app.register_blueprint(facebook_helper_bp)
 app.register_blueprint(facebook_auto_setup_bp)
@@ -1457,7 +1463,7 @@ def generate_audio():
             return jsonify({"error": "Text is too long (max 10000 characters)"}), 400
 
         # Create audio folder if it doesn't exist
-        audio_dir = os.path.join(app.root_path, "static", "audio")
+        audio_dir = AUDIO_OUTPUT_DIR
         os.makedirs(audio_dir, exist_ok=True)
 
         # Generate unique filename with timestamp
@@ -1512,7 +1518,7 @@ def serve_audio(filename):
         ):
             return jsonify({"error": "Invalid filename"}), 400
 
-        audio_dir = os.path.join(app.root_path, "static", "audio")
+        audio_dir = AUDIO_OUTPUT_DIR
         return send_from_directory(audio_dir, filename, mimetype="audio/wav")
     except Exception as e:
         app.logger.error(f"Error serving audio: {e}", exc_info=True)
@@ -1529,7 +1535,7 @@ def download_audio(filename):
         ):
             return jsonify({"error": "Invalid filename"}), 400
 
-        audio_dir = os.path.join(app.root_path, "static", "audio")
+        audio_dir = AUDIO_OUTPUT_DIR
         return send_from_directory(
             audio_dir,
             filename,
@@ -1540,6 +1546,43 @@ def download_audio(filename):
     except Exception as e:
         app.logger.error(f"Error downloading audio: {e}", exc_info=True)
         return jsonify({"error": "File not found"}), 404
+
+
+@app.route("/api/audio-history", methods=["GET"])
+def audio_history():
+    """List generated audio files with metadata for history view."""
+    try:
+        audio_dir = AUDIO_OUTPUT_DIR
+        os.makedirs(audio_dir, exist_ok=True)
+
+        entries = []
+        for fname in os.listdir(audio_dir):
+            if not fname.endswith(".wav"):
+                continue
+            if not all(c.isalnum() or c in "._-" for c in fname):
+                continue
+
+            path = os.path.join(audio_dir, fname)
+            if not os.path.isfile(path):
+                continue
+
+            stat = os.stat(path)
+            entries.append(
+                {
+                    "filename": fname,
+                    "filesize": stat.st_size,
+                    "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "download_url": f"/download-audio/{fname}",
+                    "stream_url": f"/audio/{fname}",
+                }
+            )
+
+        # Newest first
+        entries.sort(key=lambda x: x["created_at"], reverse=True)
+        return jsonify({"files": entries, "output_dir": audio_dir})
+    except Exception as e:
+        app.logger.error(f"Error listing audio history: {e}", exc_info=True)
+        return jsonify({"error": "Could not list audio history"}), 500
 
 
 @app.route("/api/automation-status")
