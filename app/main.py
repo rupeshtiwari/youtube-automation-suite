@@ -7578,6 +7578,173 @@ if __name__ == "__main__":
                 "ℹ️  No settings found in database - will use defaults until you configure"
             )
     except Exception as e:
+        pass
+
+
+# Video Upload Endpoint
+@app.route("/api/upload-video", methods=["POST"])
+def api_upload_video():
+    """Upload video to YouTube with all details and scheduling."""
+    try:
+        import os
+        from werkzeug.utils import secure_filename
+        from datetime import datetime
+        from googleapiclient.http import MediaFileUpload
+        from googleapiclient.errors import HttpError
+
+        # Check for file
+        if "file" not in request.files:
+            return jsonify({"success": False, "error": "No file provided"}), 400
+
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"success": False, "error": "No file selected"}), 400
+
+        # Validate file extension
+        allowed_extensions = {"mp4", "mov", "avi", "mkv", "webm"}
+        if not (
+            "." in file.filename
+            and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
+        ):
+            return jsonify({"success": False, "error": "Invalid file type"}), 400
+
+        # Get form data
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        tags = request.form.get("tags", "").strip()
+        playlist_id = request.form.get("playlist_id", "").strip()
+        publish_now = request.form.get("publish_now", "true").lower() == "true"
+        schedule_datetime = request.form.get("schedule_datetime", "")
+        visibility = request.form.get("visibility", "public").lower()
+
+        # Validate required fields
+        if not title:
+            return jsonify({"success": False, "error": "Title is required"}), 400
+
+        if not publish_now and not schedule_datetime:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Schedule date/time is required when not publishing now",
+                    }
+                ),
+                400,
+            )
+
+        if visibility not in ["public", "unlisted", "private"]:
+            visibility = "public"
+
+        # Save uploaded file temporarily
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        temp_uploads_dir = os.path.join(project_root, "data", "uploads")
+        os.makedirs(temp_uploads_dir, exist_ok=True)
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(temp_uploads_dir, filename)
+        file.save(filepath)
+
+        # Get YouTube service
+        try:
+            youtube = get_youtube_service()
+        except Exception as e:
+            os.remove(filepath) if os.path.exists(filepath) else None
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"YouTube authentication failed: {str(e)}",
+                    }
+                ),
+                401,
+            )
+
+        # Prepare video metadata
+        body = {
+            "snippet": {
+                "title": title,
+                "description": description,
+                "tags": [tag.strip() for tag in tags.split(",") if tag.strip()],
+                "categoryId": "22",  # Category: People & Blogs (adjustable)
+            },
+            "status": {
+                "privacyStatus": visibility,
+                "selfDeclaredMadeForKids": False,
+            },
+        }
+
+        # Add schedule time if not publishing now
+        if not publish_now and schedule_datetime:
+            body["status"]["publishAt"] = schedule_datetime + ":00Z"
+
+        # Upload video
+        try:
+            request_obj = youtube.videos().insert(
+                part="snippet,status",
+                body=body,
+                media_body=MediaFileUpload(
+                    filepath, chunksize=10 * 1024 * 1024, resumable=True
+                ),
+            )
+
+            # Execute upload
+            response = None
+            while response is None:
+                try:
+                    status, response = request_obj.next_chunk()
+                    if status:
+                        percent = int(status.progress() * 100)
+                        print(f"Upload progress: {percent}%")
+                except HttpError as e:
+                    if e.resp.status in [500, 502, 503, 504]:
+                        # Retry on server errors
+                        continue
+                    else:
+                        raise
+
+            video_id = response.get("id")
+
+            # Add to playlist if specified
+            if playlist_id and video_id:
+                try:
+                    youtube.playlistItems().insert(
+                        part="snippet",
+                        body={
+                            "snippet": {
+                                "playlistId": playlist_id,
+                                "resourceId": {
+                                    "kind": "youtube#video",
+                                    "videoId": video_id,
+                                },
+                            }
+                        },
+                    ).execute()
+                except Exception as e:
+                    # Log error but don't fail the whole operation
+                    print(f"Warning: Failed to add video to playlist: {str(e)}")
+
+            # Clean up temp file
+            if os.path.exists(filepath):
+                os.remove(filepath)
+
+            return jsonify(
+                {
+                    "success": True,
+                    "video_id": video_id,
+                    "message": f"Video uploaded successfully!",
+                    "scheduled": not publish_now,
+                    "schedule_time": schedule_datetime if not publish_now else None,
+                }
+            )
+
+        except Exception as e:
+            # Clean up on error
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return jsonify({"success": False, "error": f"Upload failed: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "error": f"An error occurred: {str(e)}"}), 500
         print(f"⚠️ Warning: Could not load settings: {e}")
 
     # Schedule daily job
