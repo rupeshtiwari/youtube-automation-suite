@@ -6,7 +6,8 @@ import {
   Share2, 
   AlertTriangle,
   Rocket,
-  PlayCircle
+  PlayCircle,
+  Settings
 } from 'lucide-react'
 
 interface Playlist {
@@ -171,11 +172,18 @@ export default function Shorts() {
       {/* Playlists List */}
       {playlists.length === 0 ? (
         <div className="bg-card border border-border rounded-lg p-12 text-center">
-          <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h3 className="text-lg font-semibold mb-2">No Shorts Playlists Found</h3>
-          <p className="text-muted-foreground">
-            No playlists with "short" in the name were found in your YouTube channel.
+          <Youtube className="w-16 h-16 mx-auto mb-4 text-red-500 opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">Connect Your YouTube Channel</h3>
+          <p className="text-muted-foreground mb-6">
+            Connect your YouTube account to view and manage your Shorts playlists.
           </p>
+          <button
+            onClick={() => window.location.href = '/settings'}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-6 rounded-lg transition-colors inline-flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Go to Settings
+          </button>
         </div>
       ) : (
         <div className="space-y-3">

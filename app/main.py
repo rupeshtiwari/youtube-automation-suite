@@ -2023,8 +2023,22 @@ def api_shorts():
     try:
         youtube = get_youtube_service()
         if not youtube:
-            # Return database fallback instead of error
-            return get_shorts_from_database()
+            # Return empty playlists structure when YouTube not connected
+            return jsonify(
+                {
+                    "playlists": [],
+                    "weekly_schedule": "23:00",
+                    "schedule_day": "wednesday",
+                    "total_videos": 0,
+                    "total_youtube": 0,
+                    "total_other_platforms": 0,
+                    "total_not_scheduled": 0,
+                    "available_roles": [],
+                    "available_types": [],
+                    "roles": {},
+                    "types": {},
+                }
+            )
 
         # Get filter parameters
         role_filter = request.args.get("role", "").strip()
