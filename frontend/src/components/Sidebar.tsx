@@ -23,16 +23,25 @@ import api from '@/lib/api';
 
 // All routes are now handled by React Router
 const navItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Queue', isFlask: false },
-  { path: '/calendar', icon: Calendar, label: 'Calendar', isFlask: false },
-  { path: '/shorts', icon: Video, label: 'Shorts', isFlask: false },
-  { path: '/sessions', icon: FileText, label: 'Sessions', isFlask: false },
-  { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', isFlask: false },
-  { path: '/insights', icon: BarChart3, label: 'Analytics', isFlask: false },
-  { path: '/activity', icon: Activity, label: 'Activity', isFlask: false },
-  { path: '/audio-generator', icon: Mic, label: 'Audio Generator', isFlask: false },
-  { path: '/audio-library', icon: Mic, label: 'Audio Library', isFlask: false },
-  { path: '/settings', icon: Settings, label: 'Settings', isFlask: false },
+  // Queue - Top Level
+  { path: '/', icon: LayoutDashboard, label: 'Queue', section: 'top', isFlask: false },
+  
+  // Audio Section
+  { section: 'audio', label: 'Audio' },
+  { path: '/audio-generator', icon: Mic, label: 'Audio Generator', section: 'audio', isFlask: false },
+  { path: '/audio-library', icon: Mic, label: 'Audio Library', section: 'audio', isFlask: false },
+  
+  // YouTube Section
+  { section: 'youtube', label: 'YouTube' },
+  { path: '/shorts', icon: Video, label: 'Shorts', section: 'youtube', isFlask: false },
+  { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
+  
+  // Other
+  { path: '/calendar', icon: Calendar, label: 'Calendar', section: 'other', isFlask: false },
+  { path: '/sessions', icon: FileText, label: 'Sessions', section: 'other', isFlask: false },
+  { path: '/insights', icon: BarChart3, label: 'Analytics', section: 'other', isFlask: false },
+  { path: '/activity', icon: Activity, label: 'Activity', section: 'other', isFlask: false },
+  { path: '/settings', icon: Settings, label: 'Settings', section: 'other', isFlask: false },
 ];
 
 // Mock channels - in real app, fetch from API
@@ -197,45 +206,111 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <div className="border-t border-border p-4">
-          <nav className="space-y-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-
-              // Flask-backed routes should bypass React Router
-              if (item.isFlask) {
+          <nav className="space-y-4">
+            {/* Queue at top */}
+            <div className="space-y-0.5">
+              {navItems.filter(item => item.section === 'top').map((item) => {
+                const Icon = item.icon;
                 return (
-                  <a
+                  <NavLink
                     key={item.path}
-                    href={item.path}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      )
+                    }
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{item.label}</span>
-                  </a>
+                  </NavLink>
                 );
-              }
+              })}
+            </div>
 
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )
-                  }
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </NavLink>
-              );
-            })}
+            {/* Audio Section */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Audio</h3>
+              <div className="space-y-0.5">
+                {navItems.filter(item => item.section === 'audio' && item.path).map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* YouTube Section */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">YouTube</h3>
+              <div className="space-y-0.5">
+                {navItems.filter(item => item.section === 'youtube' && item.path).map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Other Section */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Other</h3>
+              <div className="space-y-0.5">
+                {navItems.filter(item => item.section === 'other' && item.path).map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
           </nav>
         </div>
       </div>
