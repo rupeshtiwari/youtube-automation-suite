@@ -23,9 +23,6 @@ import api from '@/lib/api';
 
 // All routes are now handled by React Router
 const navItems = [
-  // Queue - Top Level
-  { path: '/', icon: LayoutDashboard, label: 'Queue', section: 'top', isFlask: false },
-  
   // Audio Section
   { path: '/audio-generator', icon: Mic, label: 'Audio Generator', section: 'audio', isFlask: false },
   { path: '/audio-library', icon: Mic, label: 'Audio Library', section: 'audio', isFlask: false },
@@ -39,6 +36,7 @@ const navItems = [
   { path: '/sessions', icon: FileText, label: 'Sessions', section: 'other', isFlask: false },
   { path: '/insights', icon: BarChart3, label: 'Analytics', section: 'other', isFlask: false },
   { path: '/activity', icon: Activity, label: 'Activity', section: 'other', isFlask: false },
+  { path: '/', icon: LayoutDashboard, label: 'Queue', section: 'other', isFlask: false },
   { path: '/settings', icon: Settings, label: 'Settings', section: 'other', isFlask: false },
 ];
 
@@ -205,30 +203,6 @@ export default function Sidebar() {
         {/* Navigation */}
         <div className="border-t border-border p-4">
           <nav className="space-y-4">
-            {/* Queue at top */}
-            <div className="space-y-0.5">
-              {navItems.filter(item => item.section === 'top').map((item) => {
-                const Icon = item.icon!;
-                return (
-                  <NavLink
-                    key={item.path!}
-                    to={item.path!}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )
-                    }
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-
             {/* Audio Section */}
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Audio</h3>
