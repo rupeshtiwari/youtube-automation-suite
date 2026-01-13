@@ -43,7 +43,7 @@ export default function Shorts() {
   const { data, isLoading, error } = useQuery<ShortsData>({
     queryKey: ['shorts'],
     queryFn: async () => {
-      const response = await api.get('/shorts')
+      const response = await api.get('/api/shorts')
       return response.data
     },
   })
