@@ -28,7 +28,7 @@ const navItems = [
   { path: '/audio-library', icon: Mic, label: 'Audio Library', section: 'audio', isFlask: false },
   
   // YouTube Section
-  { path: '/shorts', icon: Video, label: 'Shorts', section: 'youtube', isFlask: false },
+  { path: '/shorts-library', icon: Video, label: 'Shorts Library', section: 'youtube', isFlask: false },
   { path: '/content-preview', icon: Eye, label: 'Preview & Schedule', section: 'youtube', isFlask: false },
   
   // Other

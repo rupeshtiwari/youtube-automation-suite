@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Sessions from './pages/Sessions'
 import ShortsNew from './pages/ShortsNew'
+import ShortsLibrary from './pages/ShortsLibrary'
 import Calendar from './pages/Calendar'
 import ContentPreview from './pages/ContentPreview'
 import Insights from './pages/Insights'
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/shorts" element={<ShortsNew />} />
+        <Route path="/shorts-library" element={<ShortsLibrary />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/content-preview" element={<ContentPreview />} />
         <Route path="/insights" element={<Insights />} />
