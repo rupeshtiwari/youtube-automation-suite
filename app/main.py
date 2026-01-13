@@ -7902,6 +7902,286 @@ def api_create_playlist():
         )
 
 
+# ============================================================================
+# Course Management Endpoints
+# ============================================================================
+
+@app.route("/api/courses", methods=["GET"])
+def get_courses():
+    """Get all courses with modules and tracks."""
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"courses": []}), 200
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        return jsonify({"courses": courses}), 200
+    except Exception as e:
+        app.logger.error(f"Error getting courses: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/courses", methods=["POST"])
+def create_course():
+    """Create a new course."""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        data = request.get_json()
+        name = data.get("name", "").strip()
+        description = data.get("description", "").strip()
+        
+        if not name:
+            return jsonify({"error": "Course name is required"}), 400
+        
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        # Load existing courses
+        courses = []
+        if os.path.exists(courses_file):
+            with open(courses_file, 'r') as f:
+                courses = json.load(f)
+        
+        # Create new course
+        new_course = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "description": description,
+            "modules": [],
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        courses.append(new_course)
+        
+        # Save courses
+        os.makedirs(os.path.dirname(courses_file), exist_ok=True)
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True, "course": new_course}), 201
+    except Exception as e:
+        app.logger.error(f"Error creating course: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/courses/<course_id>", methods=["DELETE"])
+def delete_course(course_id):
+    """Delete a course."""
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"error": "Course not found"}), 404
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        # Filter out the course to delete
+        courses = [c for c in courses if c["id"] != course_id]
+        
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        app.logger.error(f"Error deleting course: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/courses/<course_id>/modules", methods=["POST"])
+def create_module(course_id):
+    """Create a new module in a course."""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        data = request.get_json()
+        name = data.get("name", "").strip()
+        description = data.get("description", "").strip()
+        
+        if not name:
+            return jsonify({"error": "Module name is required"}), 400
+        
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"error": "Course not found"}), 404
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        # Find the course
+        course = None
+        for c in courses:
+            if c["id"] == course_id:
+                course = c
+                break
+        
+        if not course:
+            return jsonify({"error": "Course not found"}), 404
+        
+        # Create new module
+        new_module = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "description": description,
+            "tracks": [],
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        course["modules"].append(new_module)
+        
+        # Save courses
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True, "module": new_module}), 201
+    except Exception as e:
+        app.logger.error(f"Error creating module: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/courses/<course_id>/modules/<module_id>", methods=["DELETE"])
+def delete_module(course_id, module_id):
+    """Delete a module from a course."""
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"error": "Course not found"}), 404
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        # Find the course and remove the module
+        for course in courses:
+            if course["id"] == course_id:
+                course["modules"] = [m for m in course["modules"] if m["id"] != module_id]
+                break
+        
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        app.logger.error(f"Error deleting module: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/modules/<module_id>/tracks", methods=["POST"])
+def create_track(module_id):
+    """Create a new audio track in a module using text-to-speech."""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        data = request.get_json()
+        name = data.get("name", "").strip()
+        text = data.get("text", "").strip()
+        
+        if not name or not text:
+            return jsonify({"error": "Track name and text are required"}), 400
+        
+        # Generate audio using ElevenLabs
+        audio_filename = generate_audio(text, name)
+        
+        if not audio_filename:
+            return jsonify({"error": "Failed to generate audio"}), 500
+        
+        # Get audio file info
+        audio_path = os.path.join(AUDIO_OUTPUT_DIR, audio_filename)
+        duration = None
+        if os.path.exists(audio_path):
+            try:
+                import wave
+                with wave.open(audio_path, 'rb') as wav:
+                    frames = wav.getnframes()
+                    rate = wav.getframerate()
+                    duration = frames / float(rate)
+            except:
+                pass
+        
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"error": "Courses not found"}), 404
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        # Find the module
+        module = None
+        for course in courses:
+            for m in course["modules"]:
+                if m["id"] == module_id:
+                    module = m
+                    break
+            if module:
+                break
+        
+        if not module:
+            return jsonify({"error": "Module not found"}), 404
+        
+        # Create new track
+        new_track = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "audio_file": f"/audio/{audio_filename}",
+            "duration": duration,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        module["tracks"].append(new_track)
+        
+        # Save courses
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True, "track": new_track}), 201
+    except Exception as e:
+        app.logger.error(f"Error creating track: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/modules/<module_id>/tracks/<track_id>", methods=["DELETE"])
+def delete_track(module_id, track_id):
+    """Delete a track from a module."""
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        courses_file = os.path.join(project_root, "data", "courses.json")
+        
+        if not os.path.exists(courses_file):
+            return jsonify({"error": "Courses not found"}), 404
+        
+        with open(courses_file, 'r') as f:
+            courses = json.load(f)
+        
+        # Find the module and remove the track
+        for course in courses:
+            for module in course["modules"]:
+                if module["id"] == module_id:
+                    module["tracks"] = [t for t in module["tracks"] if t["id"] != track_id]
+                    break
+        
+        with open(courses_file, 'w') as f:
+            json.dump(courses, f, indent=2)
+        
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        app.logger.error(f"Error deleting track: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     import argparse
 

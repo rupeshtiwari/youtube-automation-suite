@@ -15,7 +15,8 @@ import {
   Instagram,
   Plus,
   PlaySquare,
-  Eye
+  Eye,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -26,6 +27,7 @@ const navItems = [
   // Audio Section
   { path: '/audio-generator', icon: Mic, label: 'Audio Generator', section: 'audio', isFlask: false },
   { path: '/audio-library', icon: Mic, label: 'Audio Library', section: 'audio', isFlask: false },
+  { path: '/course-manager', icon: BookOpen, label: 'Course Manager', section: 'audio', isFlask: false },
   
   // YouTube Section
   { path: '/shorts', icon: PlaySquare, label: 'Shorts', section: 'youtube', isFlask: false },

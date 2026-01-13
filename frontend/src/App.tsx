@@ -11,6 +11,7 @@ import Activity from './pages/Activity'
 import Settings from './pages/Settings'
 import AudioGenerator from './pages/AudioGenerator'
 import AudioLibrary from './pages/AudioLibrary'
+import CourseManager from './pages/CourseManager'
 import VideoUpload from './pages/VideoUpload'
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/activity" element={<Activity />} />
         <Route path="/audio-generator" element={<AudioGenerator />} />
         <Route path="/audio-library" element={<AudioLibrary />} />
+        <Route path="/course-manager" element={<CourseManager />} />
         <Route path="/video-upload" element={<VideoUpload />} />
         <Route path="/settings" element={<Settings />} />
         {/* Catch-all for unknown routes */}
