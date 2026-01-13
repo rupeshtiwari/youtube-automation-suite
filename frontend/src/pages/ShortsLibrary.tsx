@@ -411,13 +411,6 @@ export default function ShortsLibrary() {
           )}
           
           {/* Downloaded Shorts by Role */}
-            className="text-primary hover:text-primary/80 font-medium text-sm"
-          >
-            Clear Filters
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-8">
           {sortedRoles.map((role: string) => {
             const roleFolder = foldersByRole[role]
             if (roleFolder.length === 0) return null
