@@ -31,6 +31,7 @@ const navItems = [
   { path: '/insights', icon: BarChart3, label: 'Analytics', isFlask: false },
   { path: '/activity', icon: Activity, label: 'Activity', isFlask: false },
   { path: '/audio-generator', icon: Mic, label: 'Audio Generator', isFlask: false },
+  { path: '/audio-library', icon: Mic, label: 'Audio Library', isFlask: false },
   { path: '/settings', icon: Settings, label: 'Settings', isFlask: false },
 ];
 

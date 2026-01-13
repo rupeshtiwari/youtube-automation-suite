@@ -31,14 +31,14 @@ def get_youtube_service():
     creds = None
     if os.path.exists(TOKEN_FILE):
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             print("❌ No valid YouTube credentials found.")
             return None
-    
+
     return build("youtube", "v3", credentials=creds)
 
 
@@ -46,7 +46,7 @@ def get_playlist_videos(youtube, playlist_id):
     """Get all videos from a playlist."""
     videos = []
     next_page_token = None
-    
+
     while True:
         request = youtube.playlistItems().list(
             part="snippet,contentDetails",
@@ -55,16 +55,16 @@ def get_playlist_videos(youtube, playlist_id):
             pageToken=next_page_token,
         )
         response = request.execute()
-        
+
         for item in response.get("items", []):
             video_id = item["contentDetails"]["videoId"]
             video_title = item["snippet"]["title"]
             videos.append({"id": video_id, "title": video_title})
-        
+
         next_page_token = response.get("nextPageToken")
         if not next_page_token:
             break
-    
+
     return videos
 
 
@@ -73,14 +73,16 @@ def check_video_accessibility(video_id):
     try:
         cmd = [
             "yt-dlp",
-            "--cookies-from-browser", "chrome",
+            "--cookies-from-browser",
+            "chrome",
             "--skip-download",
             "--quiet",
-            "--print", "%(title)s",
-            f"https://www.youtube.com/watch?v={video_id}"
+            "--print",
+            "%(title)s",
+            f"https://www.youtube.com/watch?v={video_id}",
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        
+
         if result.returncode == 0:
             return "accessible"
         elif "private" in result.stderr.lower():
@@ -100,26 +102,26 @@ def main():
     print("Private Video Checker")
     print("=" * 80)
     print()
-    
+
     youtube = get_youtube_service()
     if not youtube:
         return
-    
+
     for playlist_id, playlist_title in FAILED_PLAYLISTS.items():
         print(f"\n📋 {playlist_title}")
         print(f"   Playlist ID: {playlist_id}")
-        
+
         try:
             videos = get_playlist_videos(youtube, playlist_id)
             print(f"   Found {len(videos)} videos")
-            
+
             accessible = 0
             private = 0
             other = 0
-            
+
             for i, video in enumerate(videos, 1):
                 status = check_video_accessibility(video["id"])
-                
+
                 if status == "accessible":
                     accessible += 1
                     symbol = "✅"
@@ -129,18 +131,22 @@ def main():
                 else:
                     other += 1
                     symbol = "❓"
-                
+
                 print(f"      [{i:2d}/{len(videos)}] {symbol} {video['title'][:60]}")
-            
-            print(f"\n   Summary: {accessible} accessible, {private} private, {other} other")
-            
+
+            print(
+                f"\n   Summary: {accessible} accessible, {private} private, {other} other"
+            )
+
         except Exception as e:
             print(f"   ❌ Error: {e}")
-    
+
     print("\n" + "=" * 80)
     print("Recommendations:")
     print("=" * 80)
-    print("🔒 Private videos: Change privacy to 'Unlisted' or 'Public' in YouTube Studio")
+    print(
+        "🔒 Private videos: Change privacy to 'Unlisted' or 'Public' in YouTube Studio"
+    )
     print("❓ Other issues: Check video status in YouTube Studio")
     print("✅ Accessible videos: Should download successfully")
 

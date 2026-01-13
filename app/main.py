@@ -1585,6 +1585,185 @@ def audio_history():
         return jsonify({"error": "Could not list audio history"}), 500
 
 
+@app.route("/api/audio/metadata", methods=["GET"])
+def get_audio_metadata():
+    """Get all audio files grouped by course, module, and track."""
+    try:
+        from app.database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all audio files ordered by course, module, track
+        cursor.execute("""
+            SELECT 
+                id, filename, filepath, filesize, course_name, 
+                module_number, module_name, track_number, track_name,
+                description, tags, created_at
+            FROM audio_files
+            ORDER BY 
+                COALESCE(course_name, ''), 
+                CAST(COALESCE(module_number, '0') AS INTEGER),
+                CAST(COALESCE(track_number, '0') AS INTEGER)
+        """)
+        
+        files = cursor.fetchall()
+        
+        # Group by course -> module -> track
+        grouped = {}
+        for file in files:
+            course = file['course_name'] or 'Untagged'
+            module = f"Module {file['module_number']}: {file['module_name']}" if file['module_number'] else "Unorganized"
+            track_key = f"Track {file['track_number']}: {file['track_name']}" if file['track_number'] else file['filename']
+            
+            if course not in grouped:
+                grouped[course] = {}
+            if module not in grouped[course]:
+                grouped[course][module] = []
+            
+            grouped[course][module].append({
+                "id": file['id'],
+                "filename": file['filename'],
+                "filepath": file['filepath'],
+                "filesize": file['filesize'],
+                "course_name": file['course_name'],
+                "module_number": file['module_number'],
+                "module_name": file['module_name'],
+                "track_number": file['track_number'],
+                "track_name": file['track_name'],
+                "description": file['description'],
+                "tags": file['tags'],
+                "created_at": file['created_at'],
+                "download_url": f"/download-audio/{file['filename']}",
+                "stream_url": f"/audio/{file['filename']}"
+            })
+        
+        return jsonify({"grouped": grouped, "total": len(files)})
+    except Exception as e:
+        app.logger.error(f"Error getting audio metadata: {e}", exc_info=True)
+        return jsonify({"error": "Could not retrieve audio metadata"}), 500
+
+
+@app.route("/api/audio/tag", methods=["POST"])
+def tag_audio():
+    """Tag an audio file with course, module, and track information."""
+    try:
+        from app.database import get_db_connection
+        
+        data = request.get_json()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({"error": "Filename required"}), 400
+        
+        # Validate filename exists
+        audio_path = os.path.join(AUDIO_OUTPUT_DIR, filename)
+        if not os.path.exists(audio_path):
+            return jsonify({"error": "Audio file not found"}), 404
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if file already has metadata
+        cursor.execute("SELECT id FROM audio_files WHERE filename = ?", (filename,))
+        existing = cursor.fetchone()
+        
+        stat = os.stat(audio_path)
+        
+        if existing:
+            # Update existing
+            cursor.execute("""
+                UPDATE audio_files 
+                SET course_name = ?, module_number = ?, module_name = ?,
+                    track_number = ?, track_name = ?, description = ?,
+                    tags = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE filename = ?
+            """, (
+                data.get('course_name'),
+                data.get('module_number'),
+                data.get('module_name'),
+                data.get('track_number'),
+                data.get('track_name'),
+                data.get('description'),
+                data.get('tags'),
+                filename
+            ))
+        else:
+            # Insert new
+            cursor.execute("""
+                INSERT INTO audio_files 
+                (filename, filepath, filesize, course_name, module_number, 
+                 module_name, track_number, track_name, description, tags)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                filename,
+                audio_path,
+                stat.st_size,
+                data.get('course_name'),
+                data.get('module_number'),
+                data.get('module_name'),
+                data.get('track_number'),
+                data.get('track_name'),
+                data.get('description'),
+                data.get('tags')
+            ))
+        
+        conn.commit()
+        return jsonify({"success": True, "message": "Audio tagged successfully"})
+    except Exception as e:
+        app.logger.error(f"Error tagging audio: {e}", exc_info=True)
+        return jsonify({"error": "Could not tag audio"}), 500
+
+
+@app.route("/api/audio/search", methods=["GET"])
+def search_audio():
+    """Search audio files by course, module, or track."""
+    try:
+        from app.database import get_db_connection
+        
+        query = request.args.get('q', '').strip()
+        course_filter = request.args.get('course', '').strip()
+        module_filter = request.args.get('module', '').strip()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = "SELECT * FROM audio_files WHERE 1=1"
+        params = []
+        
+        if course_filter:
+            sql += " AND LOWER(course_name) LIKE ?"
+            params.append(f"%{course_filter.lower()}%")
+        
+        if module_filter:
+            sql += " AND LOWER(module_name) LIKE ?"
+            params.append(f"%{module_filter.lower()}%")
+        
+        if query:
+            sql += " AND (LOWER(filename) LIKE ? OR LOWER(track_name) LIKE ? OR LOWER(tags) LIKE ?)"
+            params.extend([f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%"])
+        
+        sql += " ORDER BY COALESCE(course_name, ''), CAST(COALESCE(module_number, '0') AS INTEGER), CAST(COALESCE(track_number, '0') AS INTEGER)"
+        
+        cursor.execute(sql, params)
+        files = cursor.fetchall()
+        
+        results = [{
+            "id": f['id'],
+            "filename": f['filename'],
+            "course_name": f['course_name'],
+            "module_name": f['module_name'],
+            "track_name": f['track_name'],
+            "download_url": f"/download-audio/{f['filename']}",
+            "stream_url": f"/audio/{f['filename']}"
+        } for f in files]
+        
+        return jsonify({"results": results, "total": len(results)})
+    except Exception as e:
+        app.logger.error(f"Error searching audio: {e}", exc_info=True)
+        return jsonify({"error": "Could not search audio"}), 500
+
+
 @app.route("/api/automation-status")
 def api_automation_status():
     """API endpoint for automation status."""

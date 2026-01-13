@@ -282,6 +282,28 @@ def init_database():
         "CREATE INDEX IF NOT EXISTS idx_session_content_type ON session_content(content_type)"
     )
 
+    # Audio metadata table - stores audio files with course/module/track info
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audio_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT UNIQUE NOT NULL,
+            filepath TEXT NOT NULL,
+            filesize INTEGER,
+            course_name TEXT,
+            module_number TEXT,
+            module_name TEXT,
+            track_number TEXT,
+            track_name TEXT,
+            description TEXT,
+            tags TEXT,
+            duration REAL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """
+    )
+
     # Create indexes for better performance
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)")
     cursor.execute(
@@ -292,6 +314,11 @@ def init_database():
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_videos_custom_tags ON videos(custom_tags)"
     )
+    # Audio file indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_course ON audio_files(course_name)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_module ON audio_files(module_number)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_track ON audio_files(track_number)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audio_filename ON audio_files(filename)")
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_posts_video_id ON social_media_posts(video_id)"
     )
